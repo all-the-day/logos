@@ -71,3 +71,21 @@ body {
   background: var(--background);
   color: var(--foreground);
 }
+
+/* ── Glass card utility ────────────────────────── */
+@utility glass {
+  background: rgba(255, 255, 255, 0.45);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+/* ── Warm paper theme (optional) ────────────────── */
+/* Uncomment to enable warm paper background:
+:root {
+  --background: oklch(0.97 0.01 80);
+  --card: oklch(0.98 0.01 80);
+  --primary: oklch(0.35 0.04 60);
+  --primary-foreground: oklch(0.99 0 0);
+}
+*/
