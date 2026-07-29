@@ -102,10 +102,24 @@ function OutlineSection({ json }: { json: string }) {
   );
 }
 
+function normalizeToGroups<T>(parsed: unknown): Record<string, T[]> {
+  if (Array.isArray(parsed)) {
+    return { "": parsed as T[] };
+  }
+  if (parsed && typeof parsed === "object") {
+    const result: Record<string, T[]> = {};
+    for (const [key, val] of Object.entries(parsed)) {
+      result[key] = Array.isArray(val) ? val : [];
+    }
+    return result;
+  }
+  return {};
+}
+
 function FootnoteSection({ json }: { json: string }) {
   let items: Record<string, FootnoteItem[]>;
   try {
-    items = JSON.parse(json);
+    items = normalizeToGroups<FootnoteItem>(JSON.parse(json));
   } catch {
     return null;
   }
@@ -140,7 +154,7 @@ function FootnoteSection({ json }: { json: string }) {
 function CrossrefSection({ json }: { json: string }) {
   let items: Record<string, CrossrefItem[]>;
   try {
-    items = JSON.parse(json);
+    items = normalizeToGroups<CrossrefItem>(JSON.parse(json));
   } catch {
     return null;
   }
