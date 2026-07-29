@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { useToast } from "@/components/ToastProvider";
@@ -104,6 +104,8 @@ export default function SettingsClient() {
         </CardContent>
       </Card>
 
+      <StatsCard />
+
       <Card>
         <CardHeader><CardTitle>关于</CardTitle></CardHeader>
         <CardContent>
@@ -113,5 +115,46 @@ export default function SettingsClient() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+function StatsCard() {
+  const [stats, setStats] = useState<{ verses?: number; cards?: number; notes?: number; checkins?: number } | null>(null);
+
+  useEffect(() => {
+    fetch("/api/stats")
+      .then((r) => r.json())
+      .then(setStats)
+      .catch(() => {});
+  }, []);
+
+  return (
+    <Card>
+      <CardHeader><CardTitle>数据统计</CardTitle></CardHeader>
+      <CardContent>
+        {stats ? (
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <div className="p-2 rounded-md bg-secondary/50">
+              <span className="text-muted-foreground">经文</span>
+              <p className="font-medium">{stats.verses} 节</p>
+            </div>
+            <div className="p-2 rounded-md bg-secondary/50">
+              <span className="text-muted-foreground">卡片</span>
+              <p className="font-medium">{stats.cards} 张</p>
+            </div>
+            <div className="p-2 rounded-md bg-secondary/50">
+              <span className="text-muted-foreground">笔记</span>
+              <p className="font-medium">{stats.notes} 条</p>
+            </div>
+            <div className="p-2 rounded-md bg-secondary/50">
+              <span className="text-muted-foreground">签到</span>
+              <p className="font-medium">{stats.checkins} 次</p>
+            </div>
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">加载中...</p>
+        )}
+      </CardContent>
+    </Card>
   );
 }
