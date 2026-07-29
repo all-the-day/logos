@@ -150,12 +150,9 @@ export default function PlanClient({
         </CardContent>
       </Card>
 
-      {dailyVerse && (
+      {checkinState.checkedIn && dailyVerse && (
         <Card>
-          <CardHeader>
-            <CardTitle className="text-sm text-muted-foreground">每日金句</CardTitle>
-          </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6">
             <p className="text-lg leading-relaxed">{dailyVerse.content}</p>
             <p className="text-sm text-muted-foreground mt-2">
               {dailyVerse.book} {dailyVerse.chapter}:{dailyVerse.section}

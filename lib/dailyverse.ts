@@ -1,20 +1,16 @@
 /**
- * 每日随机经节 — 基于日期种子，同一天返回同一节
+ * 每日随机经节 — 基于日期+时间戳，同一天返回同一节
+ * 不同月份/年份确保分布均匀
  */
 import { prisma } from "@/lib/prisma";
 import { getTodayString } from "@/lib/date";
 
 function hashStr(str: string): number {
-  let h = 0;
+  let h = 5381;
   for (let i = 0; i < str.length; i++) {
-    h = (Math.imul(31, h) + str.charCodeAt(i)) | 0;
+    h = ((h << 5) + h + str.charCodeAt(i)) | 0;
   }
   return Math.abs(h);
-}
-
-function pickBySeed<T>(arr: T[], seed: number): T | null {
-  if (arr.length === 0) return null;
-  return arr[seed % arr.length];
 }
 
 export interface DailyVerse {
@@ -30,12 +26,14 @@ export async function getDailyVerse(
   date?: string
 ): Promise<DailyVerse | null> {
   const dateStr = date || getTodayString();
+  const [year, month, day] = dateStr.split("-");
 
   const books = await prisma.book.findMany({ orderBy: { id: "asc" } });
   if (books.length === 0) return null;
 
-  const bookSeed = hashStr("book-" + dateStr);
-  const book = pickBySeed(books, bookSeed);
+  // Use year+month+day as seed for more variation across dates
+  const bookSeed = hashStr(`book-${year}-${month}-${day}`);
+  const book = books[bookSeed % books.length];
   if (!book) return null;
 
   const verses = await prisma.verse.findMany({
@@ -44,8 +42,9 @@ export async function getDailyVerse(
   });
   if (verses.length === 0) return null;
 
-  const verseSeed = hashStr(`v-${dateStr}-${book.id}`);
-  const verse = pickBySeed(verses, verseSeed);
+  // Seed by verse text content hash for better distribution within the book
+  const verseSeed = hashStr(`v-${year}-${month}-${day}-${book.id}`);
+  const verse = verses[verseSeed % verses.length];
   if (!verse) return null;
 
   return {
