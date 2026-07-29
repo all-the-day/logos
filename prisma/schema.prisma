@@ -1,0 +1,90 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Book {
+  id       Int     @id
+  name     String
+  chapters Int
+  verses   Verse[]
+}
+
+model Verse {
+  id      Int    @id
+  bookId  Int
+  chapter Int
+  verse   Int
+  content String
+  kjv     String?
+
+  book        Book        @relation(fields: [bookId], references: [id])
+  annotations Annotation?
+  cards       Card[]
+  notes       Note[]
+
+  @@index([bookId, chapter, verse])
+}
+
+model Annotation {
+  id       Int     @id @default(autoincrement())
+  verseId  Int     @unique
+  outline  String?
+  footnote String?
+  crossref String?
+  verse    Verse   @relation(fields: [verseId], references: [id])
+}
+
+model Plan {
+  id           Int      @id @default(autoincrement())
+  bookId       Int
+  versesPerDay Int      @default(3)
+  startDate    DateTime @default(now())
+  status       String   @default("active")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Card {
+  id            Int       @id @default(autoincrement())
+  verseId       Int
+  stability     Float     @default(2.5)
+  difficulty    Float     @default(0.3)
+  elapsedDays   Int       @default(0)
+  scheduledDays Int       @default(0)
+  reps          Int       @default(0)
+  lapses        Int       @default(0)
+  state         String    @default("new")
+  lastReview    DateTime?
+  due           DateTime  @default(now())
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  verse         Verse     @relation(fields: [verseId], references: [id])
+
+  @@index([due])
+  @@index([verseId])
+}
+
+model Note {
+  id        Int      @id @default(autoincrement())
+  verseId   Int
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  verse     Verse    @relation(fields: [verseId], references: [id])
+
+  @@index([verseId])
+}
+
+model Checkin {
+  id        Int      @id @default(autoincrement())
+  date      String
+  verseText String?
+  createdAt DateTime @default(now())
+
+  @@unique([date])
+}
