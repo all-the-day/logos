@@ -1,148 +1,195 @@
 /**
- * 将 public/data/ 中的经文 JSON 导入 SQLite 数据库
- * 用法：npx prisma db seed
+ * 从 data/bible.db 导入经文到 prisma/dev.db
+ * 用法：npx tsx prisma/seed.ts [书卷索引 ...]
+ *   npx tsx prisma/seed.ts              # 默认导入当前配置的书卷
+ *   npx tsx prisma/seed.ts 45 46 47     # 导入指定书卷
  */
 import { PrismaClient } from "@prisma/client";
-import { readdirSync, readFileSync } from "fs";
-import { resolve, join } from "path";
+import { resolve } from "path";
+
+// node:sqlite (Node 22.5+) experimental — dynamic require for tsx
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { DatabaseSync } = require("node:sqlite");
 
 const prisma = new PrismaClient();
 
-interface VerseItem {
-  section: number;
-  content: string;
-  kjv?: string;
-}
+// ── 配置：需要导入的书卷索引 ──────────────────────────
+const DEFAULT_BOOKS = [45, 46, 47, 48, 49, 50, 51, 62];
+// 45=罗马书 46=林前 47=林后 48=加拉太 49=以弗所 50=腓立比 51=歌罗西 62=约一
 
-interface ChapterData {
-  chapter: number;
-  verses: VerseItem[];
-}
-
-interface VerseFile {
-  book: string;
-  book_index: number;
-  total_verses: number;
-  total_chapters: number;
-  chapters: ChapterData[];
-}
-
-interface AnnotationEntry {
-  [key: string]: Array<{ content?: string; ref?: string }>;
-}
-
-interface AnnotationFile {
-  outlines?: AnnotationEntry;
-  footnotes?: AnnotationEntry;
-  beads?: AnnotationEntry;
-}
+// ── 数据源路径 ───────────────────────────────────────
+const BIBLE_DB = resolve(__dirname, "../data/bible.db");
+const KJV_DB = resolve(__dirname, "../data/bible_kjv.db");
 
 async function main() {
-  const dataDir = resolve(__dirname, "../data");
-  let files: string[];
-  try {
-    files = readdirSync(dataDir).filter(
-      (f) => /^\d+-.+\.json$/.test(f) && !f.includes("-annotations")
-    );
-  } catch {
-    console.log("No data directory. Run extract-verses first.");
-    return;
-  }
+  const args = process.argv.slice(2);
+  const bookIndexes = args.length > 0
+    ? args.map(Number).filter((n) => !isNaN(n))
+    : DEFAULT_BOOKS;
 
-  if (files.length === 0) {
-    console.log("No verse JSON files found in data/");
-    return;
-  }
+  // 打开中英文数据库
+  const bible = new DatabaseSync(BIBLE_DB, { readonly: true });
+  let kjv: typeof DatabaseSync | null = null;
+  try {
+    kjv = new DatabaseSync(KJV_DB, { readonly: true });
+  } catch { /* KJV 库可能不存在 */ }
 
   const existing = await prisma.book.count();
   if (existing > 0) {
     console.log(`Database already has ${existing} books. Skipping.`);
     console.log("To reset: delete prisma/dev.db and re-run.");
+    bible.close();
+    kjv?.close();
     return;
   }
 
-  for (const file of files) {
-    const raw = readFileSync(join(dataDir, file), "utf-8");
-    const data: VerseFile = JSON.parse(raw);
+  for (const bookIndex of bookIndexes) {
+    // ── 书卷名称 ──
+    const bookRow = bible.prepare(
+      "SELECT name FROM book_name WHERE book_index = ?"
+    ).get(bookIndex) as { name: string } | undefined;
 
-    console.log(`Importing ${data.book} (${data.total_verses} verses)...`);
+    if (!bookRow) {
+      console.log(`Book index ${bookIndex} not found, skipping.`);
+      continue;
+    }
 
-    // Create book
+    const bookName = bookRow.name;
+
+    // ── 经文 ── (flag=0 为正文)
+    const verses = bible.prepare(
+      "SELECT chapter, section, content FROM content WHERE book_index = ? AND flag = 0 ORDER BY chapter, section"
+    ).all(bookIndex) as { chapter: number; section: number; content: string }[];
+
+    // 每章有多少节
+    const chapterSet = new Set<number>();
+    for (const v of verses) chapterSet.add(v.chapter);
+    const totalChapters = chapterSet.size;
+
+    console.log(`Importing ${bookName} (${verses.length} verses, ${totalChapters} chapters)...`);
+
+    // 创建 Book
     await prisma.book.create({
-      data: {
-        id: data.book_index,
-        name: data.book,
-        chapters: data.total_chapters,
-      },
+      data: { id: bookIndex, name: bookName, chapters: totalChapters },
     });
 
-    // Create verses
-    for (const ch of data.chapters) {
-      for (const v of ch.verses) {
-        // Use book_index * 100000 + chapter * 1000 + section as verse ID
-        const id =
-          data.book_index * 100000 + ch.chapter * 1000 + v.section;
-        await prisma.verse.create({
-          data: {
-            id,
-            bookId: data.book_index,
-            chapter: ch.chapter,
-            verse: v.section,
-            content: v.content,
-            kjv: v.kjv || null,
-          },
-        });
-      }
-    }
+    // 准备 KJV 数据
+    let kjvVerses: Map<string, string> = new Map();
+    if (kjv) {
+      try {
+        // KJV 使用 engs 缩写 (Rom, 1 Cor 等) 而非 book_index
+        const kjvBook = kjv.prepare(
+          "SELECT engs FROM main WHERE id = ?"
+        ).get(bookIndex) as { engs: string } | undefined;
 
-    // Load annotations if available
-    const annFile = file.replace(".json", "-annotations.json");
-    try {
-      const annRaw = readFileSync(join(dataDir, annFile), "utf-8");
-      const ann: AnnotationFile = JSON.parse(annRaw);
-
-      // Process outlines, footnotes, beads
-      const allVerseKeys = new Set<string>();
-      if (ann.outlines) Object.keys(ann.outlines).forEach((k) => allVerseKeys.add(k));
-      if (ann.footnotes) Object.keys(ann.footnotes).forEach((k) => allVerseKeys.add(k));
-      if (ann.beads) Object.keys(ann.beads).forEach((k) => allVerseKeys.add(k));
-
-      for (const key of allVerseKeys) {
-        const [chStr, secStr] = key.split(":");
-        const chapter = parseInt(chStr);
-        const section = parseInt(secStr);
-        const verseId =
-          data.book_index * 100000 + chapter * 1000 + section;
-
-        const outlines = ann.outlines?.[key];
-        const footnotes = ann.footnotes?.[key];
-        const beads = ann.beads?.[key];
-
-        // Serialize arrays to JSON strings
-        const outlineJson = outlines ? JSON.stringify(outlines) : null;
-        const footnoteJson = footnotes ? JSON.stringify(footnotes) : null;
-        const crossrefJson = beads ? JSON.stringify(beads) : null;
-
-        if (outlineJson || footnoteJson || crossrefJson) {
-          await prisma.annotation.upsert({
-            where: { verseId },
-            create: {
-              verseId,
-              outline: outlineJson,
-              footnote: footnoteJson,
-              crossref: crossrefJson,
-            },
-            update: {},
-          });
+        if (kjvBook) {
+          const rows = kjv.prepare(
+            "SELECT chap, sec, txt FROM nstrkjv WHERE engs = ? ORDER BY chap, sec"
+          ).all(kjvBook.engs) as { chap: number; sec: number; txt: string }[];
+          for (const r of rows) {
+            kjvVerses.set(`${r.chap}:${r.sec}`, r.txt);
+          }
+          console.log(`  KJV: ${rows.length} verses matched`);
         }
-      }
-      console.log(`  Annotations imported for ${data.book}`);
-    } catch {
-      // No annotations file or error reading it
+      } catch { /* KJV 读取失败继续 */ }
     }
+
+    // 批量插入 Verse
+    for (const v of verses) {
+      const id = bookIndex * 100000 + v.chapter * 1000 + v.section;
+      const kjvText = kjvVerses.get(`${v.chapter}:${v.section}`) || null;
+      await prisma.verse.create({
+        data: {
+          id,
+          bookId: bookIndex,
+          chapter: v.chapter,
+          verse: v.section,
+          content: v.content,
+          kjv: kjvText,
+        },
+      });
+    }
+
+    // ── 注解 ──
+    // 收集所有有注解的经文
+    const verseKeys = new Set<string>();
+
+    // 纲目
+    const outlines = bible.prepare(
+      "SELECT chapter, section, level, outline FROM outline WHERE book_index = ? AND flag = 0 ORDER BY chapter, section, level"
+    ).all(bookIndex) as { chapter: number; section: number; level: number; outline: string }[];
+
+    const outlineMap = new Map<string, { level: number; content: string }[]>();
+    for (const o of outlines) {
+      const key = `${o.chapter}:${o.section}`;
+      if (!outlineMap.has(key)) outlineMap.set(key, []);
+      outlineMap.get(key)!.push({ level: o.level, content: o.outline });
+      verseKeys.add(key);
+    }
+
+    // 注解
+    const footnotes = bible.prepare(
+      "SELECT chapter, section, seq, note FROM footnote WHERE book_index = ? AND flag = 0 ORDER BY chapter, section, seq"
+    ).all(bookIndex) as { chapter: number; section: number; seq: number; note: string }[];
+
+    const footnoteMap = new Map<string, { seq: number; content: string }[]>();
+    for (const f of footnotes) {
+      const key = `${f.chapter}:${f.section}`;
+      if (!footnoteMap.has(key)) footnoteMap.set(key, []);
+      footnoteMap.get(key)!.push({ seq: f.seq, content: f.note });
+      verseKeys.add(key);
+    }
+
+    // 串珠
+    const beads = bible.prepare(
+      "SELECT chapter, section, seq, bead FROM bead WHERE book_index = ? AND flag = 0 ORDER BY chapter, section, seq"
+    ).all(bookIndex) as { chapter: number; section: number; seq: string; bead: string }[];
+
+    const beadMap = new Map<string, { ref: string; content: string }[]>();
+    for (const b of beads) {
+      const key = `${b.chapter}:${b.section}`;
+      if (!beadMap.has(key)) beadMap.set(key, []);
+      beadMap.get(key)!.push({ ref: b.seq, content: b.bead });
+      verseKeys.add(key);
+    }
+
+    // 插入注解
+    let annCount = 0;
+    for (const key of verseKeys) {
+      const [ch, sec] = key.split(":").map(Number);
+      const verseId = bookIndex * 100000 + ch * 1000 + sec;
+
+      const outlineJson = outlineMap.get(key)?.length
+        ? JSON.stringify(outlineMap.get(key))
+        : null;
+      const footnoteJson = footnoteMap.get(key)?.length
+        ? JSON.stringify(footnoteMap.get(key))
+        : null;
+      const beadJson = beadMap.get(key)?.length
+        ? JSON.stringify(beadMap.get(key))
+        : null;
+
+      if (outlineJson || footnoteJson || beadJson) {
+        await prisma.annotation.upsert({
+          where: { verseId },
+          create: {
+            verseId,
+            outline: outlineJson,
+            footnote: footnoteJson,
+            crossref: beadJson,
+          },
+          update: {},
+        });
+        annCount++;
+      }
+    }
+
+    console.log(`  Annotations: ${annCount} verses`);
   }
 
-  console.log(`Done! Imported ${files.length} books.`);
+  bible.close();
+  kjv?.close();
+  console.log(`Done! Imported ${bookIndexes.length} books.`);
 }
 
 main()
