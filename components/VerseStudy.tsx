@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { RATING } from "@/lib/fsrs";
 import { generateFillBlanks } from "@/lib/compare";
+import AnnotationPanel from "./AnnotationPanel";
 import type { DiffSegment } from "@/lib/compare";
 import type { Rating } from "@/lib/fsrs";
 
@@ -130,6 +131,7 @@ export function VerseResult({
   onRate,
   onNext,
   nextLabel,
+  verseId,
 }: {
   verse: VerseRef;
   segments: DiffSegment[];
@@ -138,6 +140,7 @@ export function VerseResult({
   onRate: (r: Rating) => void;
   onNext: () => void;
   nextLabel?: string;
+  verseId?: number;
 }) {
   return (
     <div className="space-y-4">
@@ -174,6 +177,8 @@ export function VerseResult({
           </div>
         </CardContent>
       </Card>
+
+      {verseId && <AnnotationPanel verseId={verseId} />}
 
       {!ratingDone && (
         <Card>

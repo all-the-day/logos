@@ -211,6 +211,7 @@ export default function ReviewClient({ cards: initialCards }: Props) {
           nextLabel={
             currentIdx >= cards.length - 1 ? "完成" : "下一节"
           }
+          verseId={card.verseId}
         />
       )}
     </div>
