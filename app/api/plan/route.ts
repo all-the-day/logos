@@ -35,11 +35,9 @@ export async function POST(request: Request) {
 
     const plan = await planService.initializePlan(bookId, versesPerDay);
 
-    // Initialize cards for all verses in the book
+    // Initialize cards for all verses in the book (batch)
     const verses = await verseDb.getVersesByBook(bookId);
-    for (const v of verses) {
-      await cardDb.createCard(v.id);
-    }
+    await cardDb.createCards(verses.map((v) => v.id));
 
     return NextResponse.json({ plan });
   } catch (error) {

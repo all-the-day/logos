@@ -50,6 +50,12 @@ export async function createCard(verseId: number) {
   return prisma.card.create({ data: { verseId } });
 }
 
+export async function createCards(verseIds: number[]) {
+  return prisma.card.createMany({
+    data: verseIds.map((verseId) => ({ verseId })),
+  });
+}
+
 export async function deleteCardsByBook(bookId: number) {
   return prisma.card.deleteMany({
     where: { verse: { bookId } },
