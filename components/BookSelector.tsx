@@ -11,52 +11,58 @@ export default function BookSelector({
   selectedId,
   onSelect,
 }: BookSelectorProps) {
-  // Group books by testament
   const ot = books.filter((b) => b.id <= 39);
   const nt = books.filter((b) => b.id > 39);
 
   return (
     <div className="space-y-3">
       <div>
-        <h3 className="text-sm font-medium text-muted-foreground mb-2">
+        <label className="text-sm font-medium text-muted-foreground mb-1.5 block">
           新约
-        </h3>
-        <div className="flex flex-wrap gap-1.5">
+        </label>
+        <select
+          className="w-full px-3 py-2 border rounded-md bg-background text-sm"
+          value={selectedId && selectedId > 39 ? selectedId : ""}
+          onChange={(e) => {
+            const v = Number(e.target.value);
+            if (v) onSelect(v);
+          }}
+        >
+          <option value="" disabled>选择新约书卷...</option>
           {nt.map((book) => (
-            <button
-              key={book.id}
-              onClick={() => onSelect(book.id)}
-              className={`px-3 py-1.5 rounded-md text-sm transition-colors ${
-                selectedId === book.id
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-secondary hover:bg-secondary/80"
-              }`}
-            >
+            <option key={book.id} value={book.id}>
               {book.name}
-            </button>
+            </option>
           ))}
-        </div>
+        </select>
       </div>
+
       <div>
-        <h3 className="text-sm font-medium text-muted-foreground mb-2">
+        <label className="text-sm font-medium text-muted-foreground mb-1.5 block">
           旧约
-        </h3>
-        <div className="flex flex-wrap gap-1.5">
+        </label>
+        <select
+          className="w-full px-3 py-2 border rounded-md bg-background text-sm"
+          value={selectedId && selectedId <= 39 ? selectedId : ""}
+          onChange={(e) => {
+            const v = Number(e.target.value);
+            if (v) onSelect(v);
+          }}
+        >
+          <option value="" disabled>选择旧约书卷...</option>
           {ot.map((book) => (
-            <button
-              key={book.id}
-              onClick={() => onSelect(book.id)}
-              className={`px-3 py-1.5 rounded-md text-sm transition-colors ${
-                selectedId === book.id
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-secondary hover:bg-secondary/80"
-              }`}
-            >
+            <option key={book.id} value={book.id}>
               {book.name}
-            </button>
+            </option>
           ))}
-        </div>
+        </select>
       </div>
+
+      {selectedId && (
+        <p className="text-xs text-muted-foreground">
+          已选：{books.find((b) => b.id === selectedId)?.name}
+        </p>
+      )}
     </div>
   );
 }
