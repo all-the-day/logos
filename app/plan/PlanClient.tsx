@@ -131,26 +131,24 @@ export default function PlanClient({
   return (
     <div className="max-w-lg mx-auto p-4 space-y-4">
 
-      <Card>
-        <CardContent className="pt-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-sm text-muted-foreground">今日签到</div>
-              <div className="text-2xl font-bold">
-                {checkinState.checkedIn ? "已签到" : "未签到"}
+      {!checkinState.checkedIn ? (
+        <Card>
+          <CardContent className="pt-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-sm text-muted-foreground">今日签到</div>
+                <div className="text-2xl font-bold">未签到</div>
+                <div className="text-sm text-muted-foreground">
+                  连续 {checkinState.streak} 天
+                </div>
               </div>
-              <div className="text-sm text-muted-foreground">
-                连续 {checkinState.streak} 天
-              </div>
+              <Button onClick={handleCheckin} size="lg">
+                签到
+              </Button>
             </div>
-            <Button onClick={handleCheckin} disabled={checkinState.checkedIn} size="lg">
-              {checkinState.checkedIn ? "已签到" : "签到"}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {checkinState.checkedIn && dailyVerse && (
+          </CardContent>
+        </Card>
+      ) : dailyVerse ? (
         <Card>
           <CardContent className="pt-6">
             <p className="text-lg leading-relaxed">{dailyVerse.content}</p>
@@ -159,7 +157,7 @@ export default function PlanClient({
             </p>
           </CardContent>
         </Card>
-      )}
+      ) : null}
 
       <Card>
         <CardHeader>
