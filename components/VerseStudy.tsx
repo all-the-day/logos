@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { RATING } from "@/lib/fsrs";
 import { generateFillBlanks } from "@/lib/compare";
 import AnnotationPanel from "./AnnotationPanel";
+import VerseNotes from "./VerseNotes";
 import type { DiffSegment } from "@/lib/compare";
 import type { Rating } from "@/lib/fsrs";
 
@@ -181,6 +182,7 @@ export function VerseResult({
       </Card>
 
       {verseId && <AnnotationPanel verseId={verseId} />}
+      {verseId && <VerseNotes verseId={verseId} />}
 
       {!ratingDone && (
         <Card>
