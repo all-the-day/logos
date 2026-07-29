@@ -129,7 +129,7 @@ export default function PlanClient({
   const { plan, book, totalVerses, workdays } = planDetails;
 
   return (
-    <div className="max-w-lg mx-auto p-4 space-y-4">
+    <div className="max-w-lg mx-auto px-4 pt-4 flex flex-col min-h-[calc(100vh-5rem)] space-y-4">
 
       {!checkinState.checkedIn ? (
         <Card>
@@ -159,7 +159,7 @@ export default function PlanClient({
         </Card>
       ) : null}
 
-      <Card>
+      <Card className="mt-auto shadow-md border-muted/60">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
