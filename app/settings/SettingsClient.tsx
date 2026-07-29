@@ -3,11 +3,13 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { useToast } from "@/components/ToastProvider";
 import { cn } from "@/lib/utils";
 
 export default function SettingsClient() {
   const [exporting, setExporting] = useState(false);
   const [importing, setImporting] = useState(false);
+  const { toast } = useToast();
 
   const handleExport = async () => {
     setExporting(true);
@@ -24,6 +26,9 @@ export default function SettingsClient() {
       a.download = `logos-backup-${new Date().toISOString().split("T")[0]}.json`;
       a.click();
       URL.revokeObjectURL(url);
+      toast("导出成功", "success");
+    } catch {
+      toast("导出失败", "error");
     } finally {
       setExporting(false);
     }
@@ -36,7 +41,7 @@ export default function SettingsClient() {
     try {
       const text = await file.text();
       if (!text.trim()) {
-        alert("文件为空或格式不正确");
+        toast("文件为空", "error");
         return;
       }
       const data = JSON.parse(text);
@@ -45,10 +50,10 @@ export default function SettingsClient() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
-      alert("导入成功");
-      window.location.reload();
+      toast("导入成功", "success");
+      setTimeout(() => window.location.reload(), 1000);
     } catch {
-      alert("导入失败，请检查文件格式");
+      toast("导入失败，请检查文件格式", "error");
     } finally {
       setImporting(false);
     }
@@ -58,10 +63,10 @@ export default function SettingsClient() {
     if (!confirm("确定要清除所有数据吗？此操作不可恢复。")) return;
     try {
       await fetch("/api/data", { method: "DELETE" });
-      alert("数据已清除");
-      window.location.reload();
+      toast("数据已清除", "success");
+      setTimeout(() => window.location.reload(), 800);
     } catch {
-      alert("清除失败");
+      toast("清除失败", "error");
     }
   };
 
@@ -103,7 +108,7 @@ export default function SettingsClient() {
         <CardHeader><CardTitle>关于</CardTitle></CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">
-            Logos v0.1.0 - 基于 FSRS 间隔重复的圣经背诵应用
+            Logos v0.1.0 · FSRS 间隔重复 · 恢复本 + KJV · PWA
           </p>
         </CardContent>
       </Card>
