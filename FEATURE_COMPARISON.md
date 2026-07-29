@@ -46,7 +46,7 @@
 | B11 | 准确率显示 | matching_chars / total_chars | ✅ accuracy 百分比 | - | - |
 | B12 | FSRS 评分 | Again/Hard/Good/Easy 四按钮 + 下次复习提示 | ✅ RatingButtons + previewInterval | - | - |
 | B13 | 键盘快捷键 | 1-4 评分 + Enter 提交 + Space 跳过 + U 撤销 | ✅ 支持 1-4 + Enter + Space（U 待做） | - | - |
-| B14 | 撤销评分 | 保存前一个 card 快照，可回退 | ❌ 缺失 | P2 | M |
+| B14 | 撤销评分 | 保存前一个 card 快照，可回退 | ✅ U 键 + "撤销"按钮 | - | - |
 | B15 | 进度指示器 | "n/N" 完成进度 | ✅ Badge 显示 | - | - |
 | B16 | 下一节/完成导航 | 自动跳下一节或完成页 | ✅ 自动切换 | - | - |
 | B17 | cardId/verseId 映射 | 通过 verseId 找到对应的 Card | ✅ API 支持 verseId 参数 | - | - |
@@ -202,7 +202,7 @@
 | P2-4 | 底部导航真实图标 | BottomNav.tsx | 30min | ✅ |
 | P2-5 | 笔记列表空状态 | NotesClient.tsx | 15min | ✅ |
 | P2-6 | 快速章节导航 | LearnClient.tsx | 1h | ✅ |
-| P2-7 | 撤销功能 | LearnClient.tsx + ReviewClient.tsx | 1h | ⏸ |
+| P2-7 | 撤销功能 | LearnClient.tsx + ReviewClient.tsx | 1h | ✅ |
 
 ### 第四批：P3 增强（择时推进）
 
