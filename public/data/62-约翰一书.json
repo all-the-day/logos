@@ -1,0 +1,554 @@
+{
+  "book": "约翰一书",
+  "book_index": 62,
+  "short_name": "约壹",
+  "total_verses": 104,
+  "total_chapters": 5,
+  "chapters": [
+    {
+      "chapter": 1,
+      "verses": [
+        {
+          "section": 1,
+          "content": "论到那从起初原有的生命之话，就是我们所听见过的，我们亲眼所看见过的，我们所注视过，我们的手也摸过的；",
+          "kjv": "That which was from the beginning, which we have heard, which we have seen with our eyes, which we have looked upon, and our hands have handled, of the Word of life;"
+        },
+        {
+          "section": 2,
+          "content": "（这生命已经显现出来，我们也看见过，现在又作见证，将原与父同在，且显现与我们那永远的生命传与你们；）",
+          "kjv": "(For the life was manifested, and we have seen it , and bear witness, and shew unto you that eternal life, which was with the Father, and was manifested unto us;)"
+        },
+        {
+          "section": 3,
+          "content": "我们将所看见并听见的，也传与你们，使你们也可以与我们有交通；而且我们的交通，又是与父并与祂儿子耶稣基督所有的。",
+          "kjv": "That which we have seen and heard declare we unto you, that ye also may have fellowship with us: and truly our fellowship is with the Father, and with his Son Jesus Christ."
+        },
+        {
+          "section": 4,
+          "content": "我们写这些事，是要叫我们的喜乐得以满足。",
+          "kjv": "And these things write we unto you, that your joy may be full."
+        },
+        {
+          "section": 5,
+          "content": "神就是光，在祂里面毫无黑暗；这是我们从祂所听见，现在又报给你们的信息。",
+          "kjv": "This then is the message which we have heard of him, and declare unto you, that God is light, and in him is no darkness at all."
+        },
+        {
+          "section": 6,
+          "content": "我们若说我们与神有交通，却在黑暗里行，就是说谎话，不行真理了；",
+          "kjv": "If we say that we have fellowship with him, and walk in darkness, we lie, and do not the truth:"
+        },
+        {
+          "section": 7,
+          "content": "但我们若在光中行，如同神在光中，就彼此有交通，祂儿子耶稣的血也洗净我们一切的罪。",
+          "kjv": "But if we walk in the light, as he is in the light, we have fellowship one with another, and the blood of Jesus Christ his Son cleanseth us from all sin."
+        },
+        {
+          "section": 8,
+          "content": "我们若说自己没有罪，便是自欺，真理就不在我们里面了。",
+          "kjv": "If we say that we have no sin, we deceive ourselves, and the truth is not in us."
+        },
+        {
+          "section": 9,
+          "content": "我们若认自己的罪，神是信实的，是公义的，必要赦免我们的罪，洗净我们一切的不义。",
+          "kjv": "If we confess our sins, he is faithful and just to forgive us our sins, and to cleanse us from all unrighteousness."
+        },
+        {
+          "section": 10,
+          "content": "我们若说自己没有犯过罪，便是以神为说谎的，祂的话就不在我们里面了。",
+          "kjv": "If we say that we have not sinned, we make him a liar, and his word is not in us."
+        }
+      ]
+    },
+    {
+      "chapter": 2,
+      "verses": [
+        {
+          "section": 1,
+          "content": "我的孩子们，我将这些事写给你们，是要叫你们不犯罪。若有人犯罪，我们有一位与父同在的辩护者，就是那义者耶稣基督；",
+          "kjv": "My little children, these things write I unto you, that ye sin not. And if any man sin, we have an advocate with the Father, Jesus Christ the righteous:"
+        },
+        {
+          "section": 2,
+          "content": "祂为我们的罪，作了平息的祭物，不是单为我们的罪，也是为所有的世人。",
+          "kjv": "And he is the propitiation for our sins: and not for ours only, but also for the sins of the whole world."
+        },
+        {
+          "section": 3,
+          "content": "我们若遵守祂的诫命，在此就知道我们是认识祂。",
+          "kjv": "And hereby we do know that we know him, if we keep his commandments."
+        },
+        {
+          "section": 4,
+          "content": "那说我认识祂，却不遵守祂诫命的，便是说谎的，真理也不在这人里面了；",
+          "kjv": "He that saith, I know him, and keepeth not his commandments, is a liar, and the truth is not in him."
+        },
+        {
+          "section": 5,
+          "content": "然而凡遵守祂话的，神的爱在这人里面实在是得了成全。在此我们就知道我们是在祂里面。",
+          "kjv": "But whoso keepeth his word, in him verily is the love of God perfected: hereby know we that we are in him."
+        },
+        {
+          "section": 6,
+          "content": "那说自己住在祂里面的，就该照祂所行的去行。",
+          "kjv": "He that saith he abideth in him ought himself also so to walk, even as he walked."
+        },
+        {
+          "section": 7,
+          "content": "亲爱的，我写给你们的，不是一条新诫命，乃是一条你们从起初就有的旧诫命，这旧诫命就是你们所听见的话。",
+          "kjv": "Brethren, I write no new commandment unto you, but an old commandment which ye had from the beginning. The old commandment is the word which ye have heard from the beginning."
+        },
+        {
+          "section": 8,
+          "content": "再者，我写给你们的是一条新诫命，这在主并在你们都是真的；因为黑暗渐渐过去，真光已经照耀。",
+          "kjv": "Again, a new commandment I write unto you, which thing is true in him and in you: because the darkness is past, and the true light now shineth."
+        },
+        {
+          "section": 9,
+          "content": "那说自己在光中，却恨他弟兄的，到如今还是在黑暗里。",
+          "kjv": "He that saith he is in the light, and hateth his brother, is in darkness even until now."
+        },
+        {
+          "section": 10,
+          "content": "那爱他弟兄的，就住在光中，在他并没有绊跌的缘由；",
+          "kjv": "He that loveth his brother abideth in the light, and there is none occasion of stumbling in him. occasion...: Gr. scandal"
+        },
+        {
+          "section": 11,
+          "content": "但那恨他弟兄的，是在黑暗里，且在黑暗里行，也不知道往哪里去，因为黑暗弄瞎了他的眼睛。",
+          "kjv": "But he that hateth his brother is in darkness, and walketh in darkness, and knoweth not whither he goeth, because that darkness hath blinded his eyes."
+        },
+        {
+          "section": 12,
+          "content": "孩子们，我写信给你们，因为你们的罪因着祂的名得了赦免。",
+          "kjv": "I write unto you, little children, because your sins are forgiven you for his name's sake."
+        },
+        {
+          "section": 13,
+          "content": "父老们，我写信给你们，因为你们认识那从起初原有的。青年人，我写信给你们，因为你们胜了那恶者。小孩子们，我写信给你们，因为你们认识父。",
+          "kjv": "I write unto you, fathers, because ye have known him that is from the beginning. I write unto you, young men, because ye have overcome the wicked one. I write unto you, little children, because ye have known the Father."
+        },
+        {
+          "section": 14,
+          "content": "父老们，我刚写信给你们，因为你们认识那从起初原有的。青年人，我刚写信给你们，因为你们刚强，神的话住在你们里面，你们也胜了那恶者。",
+          "kjv": "I have written unto you, fathers, because ye have known him that is from the beginning. I have written unto you, young men, because ye are strong, and the word of God abideth in you, and ye have overcome the wicked one."
+        },
+        {
+          "section": 15,
+          "content": "不要爱世界，和世界上的事。人若爱世界，爱父的心就不在他里面了；",
+          "kjv": "Love not the world, neither the things that are in the world. If any man love the world, the love of the Father is not in him."
+        },
+        {
+          "section": 16,
+          "content": "因为凡世界上的事，就是肉体的情欲、眼目的情欲、并今生的骄傲，都不是出于父，乃是出于世界。",
+          "kjv": "For all that is in the world, the lust of the flesh, and the lust of the eyes, and the pride of life, is not of the Father, but is of the world."
+        },
+        {
+          "section": 17,
+          "content": "这世界和其上的情欲，正在过去；惟独实行神旨意的，永远长存。",
+          "kjv": "And the world passeth away, and the lust thereof: but he that doeth the will of God abideth for ever."
+        },
+        {
+          "section": 18,
+          "content": "小孩子们，如今是末时了；你们曾听见，那敌基督的要来，现在已经有好些敌基督的出来了，从此我们就知道如今是末时了。",
+          "kjv": "Little children, it is the last time: and as ye have heard that antichrist shall come, even now are there many antichrists; whereby we know that it is the last time."
+        },
+        {
+          "section": 19,
+          "content": "他们从我们中间出去，却不是属我们的；若是属我们的，就会仍旧与我们同在；但他们出去，是要显明他们都不是属我们的。",
+          "kjv": "They went out from us, but they were not of us; for if they had been of us, they would no doubt have continued with us: but they went out , that they might be made manifest that they were not all of us."
+        },
+        {
+          "section": 20,
+          "content": "你们有从那圣者来的膏油涂抹，并且你们众人都知道。",
+          "kjv": "But ye have an unction from the Holy One, and ye know all things."
+        },
+        {
+          "section": 21,
+          "content": "我刚写信给你们，不是因你们不晓得真理，正是因为你们晓得，又因为没有虚谎是出于真理的。",
+          "kjv": "I have not written unto you because ye know not the truth, but because ye know it, and that no lie is of the truth."
+        },
+        {
+          "section": 22,
+          "content": "谁是说谎的？不是那否认耶稣是基督的么？否认父与子的，这就是敌基督的。",
+          "kjv": "Who is a liar but he that denieth that Jesus is the Christ? He is antichrist, that denieth the Father and the Son."
+        },
+        {
+          "section": 23,
+          "content": "凡否认子的就没有父，承认子的连父也有了。",
+          "kjv": "Whosoever denieth the Son, the same hath not the Father: (but) he that acknowledgeth the Son hath the Father also ."
+        },
+        {
+          "section": 24,
+          "content": "至于你们，务要让那从起初所听见的住在你们里面；那从起初所听见的若住在你们里面，你们也就住在子里面，并住在父里面。",
+          "kjv": "Let that therefore abide in you, which ye have heard from the beginning. If that which ye have heard from the beginning shall remain in you, ye also shall continue in the Son, and in the Father."
+        },
+        {
+          "section": 25,
+          "content": "祂所应许我们的，就是那永远的生命。",
+          "kjv": "And this is the promise that he hath promised us, even eternal life."
+        },
+        {
+          "section": 26,
+          "content": "我刚将这些话写给你们，是指着那些迷惑你们的人说的。",
+          "kjv": "These things have I written unto you concerning them that seduce you."
+        },
+        {
+          "section": 27,
+          "content": "你们从祂所领受的膏油涂抹，住在你们里面，并不需要人教导你们，乃有祂的膏油涂抹，在凡事上教导你们；这膏油涂抹是真实的，不是虚谎的，你们要按这膏油涂抹所教导你们的，住在祂里面。",
+          "kjv": "But the anointing which ye have received of him abideth in you, and ye need not that any man teach you: but as the same anointing teacheth you of all things, and is truth, and is no lie, and even as it hath taught you, ye shall abide in him. in him: or, in it"
+        },
+        {
+          "section": 28,
+          "content": "现在，孩子们，你们要住在主里面；这样，祂若显现，我们就可以坦然无惧，当祂来临的时候，也不至于蒙羞离开祂。",
+          "kjv": "And now, little children, abide in him; that, when he shall appear, we may have confidence, and not be ashamed before him at his coming."
+        },
+        {
+          "section": 29,
+          "content": "你们若晓得祂是义的，就当知道凡行义的人也都是从祂生的。",
+          "kjv": "If ye know that he is righteous, ye know that every one that doeth righteousness is born of him. ye know that every: or, know ye etc. is born: Gr. has been born"
+        }
+      ]
+    },
+    {
+      "chapter": 3,
+      "verses": [
+        {
+          "section": 1,
+          "content": "你们看，父赐给我们的是何等的爱，使我们得称为神的儿女，我们也真是祂的儿女。世人所以不认识我们，是因未曾认识祂。",
+          "kjv": "Behold, what manner of love the Father hath bestowed upon us, that we should be called the sons of God: therefore the world knoweth us not, because it knew him not."
+        },
+        {
+          "section": 2,
+          "content": "亲爱的，我们现在是神的儿女，将来如何，还未显明；但我们晓得祂若显现，我们必要像祂；因为我们必要看见祂，正如祂所是的。",
+          "kjv": "Beloved, now are we the sons of God, and it doth not yet appear what we shall be: but we know that, when he shall appear, we shall be like him; for we shall see him as he is."
+        },
+        {
+          "section": 3,
+          "content": "凡向祂有这盼望的，就洁净自己，正如祂是洁净的一样。",
+          "kjv": "And every man that hath this hope in him purifieth himself, even as he is pure."
+        },
+        {
+          "section": 4,
+          "content": "凡犯罪的，也行不法；罪就是不法。",
+          "kjv": "Whosoever committeth sin transgresseth also the law: for sin is the transgression of the law."
+        },
+        {
+          "section": 5,
+          "content": "你们晓得祂曾显现，为要除去罪；在祂里面并没有罪。",
+          "kjv": "And ye know that he was manifested to take away our sins; and in him is no sin."
+        },
+        {
+          "section": 6,
+          "content": "凡住在祂里面的，就不犯罪；凡犯罪的，是未曾看见祂，也未曾认识祂。",
+          "kjv": "Whosoever abideth in him sinneth not: whosoever sinneth hath not seen him, neither known him."
+        },
+        {
+          "section": 7,
+          "content": "孩子们，不要让人迷惑你们，行义的人才是义的，正如祂是义的一样；",
+          "kjv": "Little children, let no man deceive you: he that doeth righteousness is righteous, even as he is righteous."
+        },
+        {
+          "section": 8,
+          "content": "犯罪的是出于魔鬼，因为魔鬼从起初就犯罪。为此，神的儿子显现出来，是要消除魔鬼的作为。",
+          "kjv": "He that committeth sin is of the devil; for the devil sinneth from the beginning. For this purpose the Son of God was manifested, that he might destroy the works of the devil."
+        },
+        {
+          "section": 9,
+          "content": "凡从神生的，就不犯罪，因为神的种子住在他里面；他也不能犯罪，因为他是从神生的。",
+          "kjv": "Whosoever is born of God doth not commit sin; for his seed remaineth in him: and he cannot sin, because he is born of God. is born: or, has been born"
+        },
+        {
+          "section": 11,
+          "content": "我们应当彼此相爱，这就是你们从起初所听见的信息；",
+          "kjv": "For this is the message that ye heard from the beginning, that we should love one another. message: or, commandment"
+        },
+        {
+          "section": 12,
+          "content": "不要像该隐，他是出于那恶者，又杀了他的兄弟。为什么杀了他？因为自己的行为是恶的，兄弟的行为是义的。",
+          "kjv": "Not as Cain, who was of that wicked one, and slew his brother. And wherefore slew he him? Because his own works were evil, and his brother's righteous."
+        },
+        {
+          "section": 13,
+          "content": "弟兄们，世人若恨你们，不要以为希奇。",
+          "kjv": "Marvel not, my brethren, if the world hate you."
+        },
+        {
+          "section": 14,
+          "content": "我们因为爱弟兄，就晓得是已经出死入生了。不爱弟兄的，仍住在死中。",
+          "kjv": "We know that we have passed from death unto life, because we love the brethren. He that loveth not his brother abideth in death."
+        },
+        {
+          "section": 15,
+          "content": "凡恨他弟兄的，就是杀人的；你们晓得凡杀人的，没有永远的生命住在他里面。",
+          "kjv": "Whosoever hateth his brother is a murderer: and ye know that no murderer hath eternal life abiding in him."
+        },
+        {
+          "section": 16,
+          "content": "主为我们舍命，在此我们就知道何为爱；我们也当为弟兄舍命。",
+          "kjv": "Hereby perceive we the love of God , because he laid down his life for us: and we ought to lay down our lives for the brethren."
+        },
+        {
+          "section": 17,
+          "content": "凡有世上养生之物的，看见弟兄有需要，却向他塞住慈心，神的爱怎能住在他里面？",
+          "kjv": "But whoso hath this world's good, and seeth his brother have need, and shutteth up his bowels of compassion from him, how dwelleth the love of God in him?"
+        },
+        {
+          "section": 18,
+          "content": "孩子们，我们相爱，不要只在言语和舌头上，总要在行为和真诚上。",
+          "kjv": "My little children, let us not love in word, neither in tongue; but in deed and in truth."
+        },
+        {
+          "section": 19,
+          "content": "在此就知道，我们是属真理的，并且我们在祂面前可以安心；",
+          "kjv": "And hereby we know that we are of the truth, and shall assure our hearts before him. assure: Gr. persuade"
+        },
+        {
+          "section": 20,
+          "content": "我们的心若责备我们，神比我们的心大，一切事祂都知道。",
+          "kjv": "For if our heart condemn us, God is greater than our heart, and knoweth all things."
+        },
+        {
+          "section": 21,
+          "content": "亲爱的，我们的心若不责备我们，我们就可以向神坦然无惧了；",
+          "kjv": "Beloved, if our heart condemn us not, then have we confidence toward God."
+        },
+        {
+          "section": 22,
+          "content": "并且我们不论求什么，就从祂得着；因为我们遵守祂的诫命，也行祂看为可喜悦的事。",
+          "kjv": "And whatsoever we ask, we receive of him, because we keep his commandments, and do those things that are pleasing in his sight."
+        },
+        {
+          "section": 23,
+          "content": "神的诫命就是叫我们信祂儿子耶稣基督的名，并且照祂所赐给我们的诫命彼此相爱。",
+          "kjv": "And this is his commandment, That we should believe on the name of his Son Jesus Christ, and love one another, as he gave us commandment."
+        },
+        {
+          "section": 24,
+          "content": "遵守神诫命的，就住在神里面，神也住在他里面。在此我们就知道神住在我们里面，乃是由于祂所赐给我们的那灵。",
+          "kjv": "And he that keepeth his commandments dwelleth in him, and he in him. And hereby we know that he abideth in us, by the Spirit which he hath given us."
+        }
+      ]
+    },
+    {
+      "chapter": 4,
+      "verses": [
+        {
+          "section": 1,
+          "content": "亲爱的，一切的灵，你们不可都信，总要试证那些灵是出于神的不是；因为有许多假申言者已经出来，进到世界里了。",
+          "kjv": "Beloved, believe not every spirit, but try the spirits whether they are of God: because many false prophets are gone out into the world."
+        },
+        {
+          "section": 2,
+          "content": "凡灵承认耶稣基督是在肉体里来的，就是出于神的；在此你们可以认出神的灵来。",
+          "kjv": "Hereby know ye the Spirit of God: Every spirit that confesseth that Jesus Christ is come in the flesh is of God:"
+        },
+        {
+          "section": 3,
+          "content": "凡灵不承认耶稣，就不是出于神的，这是那敌基督者的灵；你们从前听见这灵要来，现在已经在世界上了。",
+          "kjv": "And every spirit that confesseth not that Jesus Christ is come in the flesh is not of God: and this is that spirit of antichrist, whereof ye have heard that it should come; and even now already is it in the world."
+        },
+        {
+          "section": 4,
+          "content": "孩子们，你们是出于神的，并且胜了他们；因为那在你们里面的，比那在世界上的更大。",
+          "kjv": "Ye are of God, little children, and have overcome them: because greater is he that is in you, than he that is in the world."
+        },
+        {
+          "section": 5,
+          "content": "他们是出于世界的；所以他们的讲说乃是出于世界，世人也听从他们。",
+          "kjv": "They are of the world: therefore speak they of the world, and the world heareth them."
+        },
+        {
+          "section": 6,
+          "content": "我们是出于神的；认识神的就听从我们，不出于神的就不听从我们；从此我们可以认出真理的灵和谬妄的灵来。",
+          "kjv": "We are of God: he that knoweth God heareth us; he that is not of God heareth not us. Hereby know we the spirit of truth, and the spirit of error."
+        },
+        {
+          "section": 7,
+          "content": "亲爱的，我们应当彼此相爱，因为爱是出于神的；凡爱弟兄的，都是从神生的，并且认识神。",
+          "kjv": "Beloved, let us love one another: for love is of God; and every one that loveth is born of God, and knoweth God. is born: Gr. has been born"
+        },
+        {
+          "section": 8,
+          "content": "不爱弟兄的，未曾认识神，因为神就是爱。",
+          "kjv": "He that loveth not knoweth not God; for God is love."
+        },
+        {
+          "section": 9,
+          "content": "神差祂的独生子到世上来，使我们借着祂得生并活着，在此神的爱就向我们显明了。",
+          "kjv": "In this was manifested the love of God toward us, because that God sent his only begotten Son into the world, that we might live through him."
+        },
+        {
+          "section": 10,
+          "content": "不是我们爱神，乃是神爱我们，差祂的儿子，为我们的罪作了平息的祭物，在此就是爱了。",
+          "kjv": "Herein is love, not that we loved God, but that he loved us, and sent his Son to be  the propitiation for our sins."
+        },
+        {
+          "section": 11,
+          "content": "亲爱的，神既是这样爱我们，我们也当彼此相爱。",
+          "kjv": "Beloved, if God so loved us, we ought also to love one another."
+        },
+        {
+          "section": 12,
+          "content": "从来没有人见过神；我们若彼此相爱，神就住在我们里面，祂的爱也在我们里面得了成全。",
+          "kjv": "No man hath seen God at any time. If we love one another, God dwelleth in us, and his love is perfected in us."
+        },
+        {
+          "section": 13,
+          "content": "神已将祂的灵赐给我们，在此就知道我们住在祂里面，祂也住在我们里面。",
+          "kjv": "Hereby know we that we dwell in him, and he in us, because he hath given us of his Spirit."
+        },
+        {
+          "section": 14,
+          "content": "父差子作世人的救主，这是我们所看见，现在又作见证的。",
+          "kjv": "And we have seen and do testify that the Father sent the Son to be the Saviour of the world."
+        },
+        {
+          "section": 15,
+          "content": "凡承认耶稣是神儿子的，神就住在他里面，他也住在神里面。",
+          "kjv": "Whosoever shall confess that Jesus is the Son of God, God dwelleth in him, and he in God."
+        },
+        {
+          "section": 16,
+          "content": "神在我们身上的爱，我们也知道也信。神就是爱，住在爱里面的，就住在神里面，神也住在他里面。",
+          "kjv": "And we have known and believed the love that God hath to us. God is love; and he that dwelleth in love dwelleth in God, and God in him."
+        },
+        {
+          "section": 17,
+          "content": "在此，爱在我们便得了成全，使我们在审判的日子，可以坦然无惧；因为祂如何，我们在这世上也如何。",
+          "kjv": "Herein is our love made perfect, that we may have boldness in the day of judgment: because as he is, so are we in this world. our love: Gr. love with us"
+        },
+        {
+          "section": 18,
+          "content": "爱里没有惧怕，完全的爱把惧怕驱除，因为惧怕含有刑罚，惧怕的人在爱里未得成全。",
+          "kjv": "There is no fear in love; but perfect love casteth out fear: because fear hath torment. He that feareth is not made perfect in love."
+        },
+        {
+          "section": 19,
+          "content": "我们爱，因为神先爱我们。",
+          "kjv": "We love him, because he first loved us."
+        },
+        {
+          "section": 20,
+          "content": "人若说，我爱神，却恨他的弟兄，就是说谎的；不爱他所看见的弟兄，就不能爱没有看见的神。",
+          "kjv": "If a man say, I love God, and hateth his brother, he is a liar: for he that loveth not his brother whom he hath seen, how can he love God whom he hath not seen?"
+        },
+        {
+          "section": 21,
+          "content": "爱神的，也当爱他的弟兄，这是我们从祂所受的诫命。",
+          "kjv": "And this commandment have we from him, That he who loveth God love his brother also."
+        }
+      ]
+    },
+    {
+      "chapter": 5,
+      "verses": [
+        {
+          "section": 1,
+          "content": "凡信耶稣是基督的，都是从神生的；凡爱那生他的，也爱从祂生的。",
+          "kjv": "Whosoever believeth that Jesus is the Christ is born of God: and every one that loveth him that begat loveth him also that is begotten of him. is born: Gr. has been born"
+        },
+        {
+          "section": 2,
+          "content": "我们若爱神，并行祂的诫命，在此就知道我们爱神的儿女。",
+          "kjv": "By this we know that we love the children of God, when we love God, and keep his commandments."
+        },
+        {
+          "section": 3,
+          "content": "我们遵守神的诫命，这就是爱祂了；并且祂的诫命不是难担的；",
+          "kjv": "For this is the love of God, that we keep his commandments: and his commandments are not grievous."
+        },
+        {
+          "section": 4,
+          "content": "因为凡从神生之物，就胜过世界，胜过世界的，就是我们的信。",
+          "kjv": "For whatsoever is born of God overcometh the world: and this is the victory that overcometh the world, even  our faith. is born: Gr. has been born"
+        },
+        {
+          "section": 5,
+          "content": "胜过世界的是谁？不就是那信耶稣是神儿子的么？",
+          "kjv": "Who is he that overcometh the world, but he that believeth that Jesus is the Son of God?"
+        },
+        {
+          "section": 6,
+          "content": "这借着水与血来的，就是耶稣基督；不是单凭着水，乃是凭着水，又凭着血；并且作见证的就是那灵，因为那灵就是实际。",
+          "kjv": "This is he that came by water and blood, even Jesus Christ; not by water only, but by water and blood. And it is the Spirit that beareth witness, because the Spirit is truth."
+        },
+        {
+          "section": 7,
+          "content": "作见证的原来有三，",
+          "kjv": "For there are three that bear record in heaven, the Father, the Word, and the Holy Ghost: and these three are one."
+        },
+        {
+          "section": 8,
+          "content": "就是那灵、水与血，这三样也都归于一。",
+          "kjv": "And there are three that bear witness in earth, the Spirit, and the water, and the blood: and these three agree in one."
+        },
+        {
+          "section": 9,
+          "content": "我们若领受人的见证，神的见证更大，因为这是神为祂儿子所作的见证。",
+          "kjv": "If we receive the witness of men, the witness of God is greater: for this is the witness of God which he hath testified of his Son."
+        },
+        {
+          "section": 10,
+          "content": "信入神儿子的，就有这见证在他里面。不信神的，就是将神当作说谎的，因他不信入神为祂儿子所作的见证。",
+          "kjv": "He that believeth on the Son of God hath the witness in himself: he that believeth not God hath made him a liar; because he believeth not the record that God gave of his Son."
+        },
+        {
+          "section": 11,
+          "content": "这见证就是神赐给我们永远的生命，这生命也是在祂儿子里面。",
+          "kjv": "And this is the record, that God hath given to us eternal life, and this life is in his Son."
+        },
+        {
+          "section": 12,
+          "content": "人有了神的儿子，就有生命；没有神的儿子，就没有生命。",
+          "kjv": "He that hath the Son hath life; and he that hath not the Son of God hath not life."
+        },
+        {
+          "section": 13,
+          "content": "我将这些话写给你们信入神儿子之名的人，要叫你们晓得自己有永远的生命。",
+          "kjv": "These things have I written unto you that believe on the name of the Son of God; that ye may know that ye have eternal life, and that ye may believe on the name of the Son of God."
+        },
+        {
+          "section": 14,
+          "content": "我们若照祂的旨意求什么，祂就听我们；这是我们向着祂所存坦然无惧的心。",
+          "kjv": "And this is the confidence that we have in him, that, if we ask any thing according to his will, he heareth us: in: or, concerning"
+        },
+        {
+          "section": 15,
+          "content": "我们若知道祂听我们一切所求的，就知道我们所求于祂的无不得着。",
+          "kjv": "And if we know that he hear us, whatsoever we ask, we know that we have the petitions that we desired of him."
+        },
+        {
+          "section": 16,
+          "content": "人若看见他的弟兄犯了不至于死的罪，就当为他祈求，将生命赐给他，就是给那些犯了不至于死之罪的。有至于死的罪，我不说当为那罪祈求。",
+          "kjv": "If any man see his brother sin a sin which is not unto death, he shall ask, and he shall give him life for them that sin not unto death. There is a sin unto death: I do not say that he shall pray for it."
+        },
+        {
+          "section": 17,
+          "content": "一切的不义都是罪，也有不至于死的罪。",
+          "kjv": "All unrighteousness is sin: and there is a sin not unto death."
+        },
+        {
+          "section": 18,
+          "content": "我们晓得凡从神生的都不犯罪，那从神生的，保守自己，那恶者也就不摸他。",
+          "kjv": "We know that whosoever is born of God sinneth not; but he that is begotten of God keepeth himself, and that wicked one toucheth him not. is born: Gr. has been born"
+        },
+        {
+          "section": 19,
+          "content": "我们晓得我们是属神的，而整个世界都卧在那恶者里面。",
+          "kjv": " And we know that we are of God, and the whole world lieth in wickedness."
+        },
+        {
+          "section": 20,
+          "content": "我们也晓得神的儿子已经来到，且将悟性赐给我们，使我们可以认识那位真实的；我们也在那位真实的里面，就是在祂儿子耶稣基督里面。这是真神，也是永远的生命。",
+          "kjv": "And we know that the Son of God is come, and hath given us an understanding, that we may know him that is true, and we are in him that is true, even in his Son Jesus Christ. This is the true God, and eternal life."
+        },
+        {
+          "section": 21,
+          "content": "孩子们，你们要保守自己，远避偶像。",
+          "kjv": "Little children, keep yourselves from idols. Amen."
+        }
+      ]
+    }
+  ]
+}

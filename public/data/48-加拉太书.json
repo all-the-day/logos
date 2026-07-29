@@ -1,0 +1,784 @@
+{
+  "book": "加拉太书",
+  "book_index": 48,
+  "short_name": "加",
+  "total_verses": 149,
+  "total_chapters": 6,
+  "chapters": [
+    {
+      "chapter": 1,
+      "verses": [
+        {
+          "section": 1,
+          "content": "作使徒的保罗，（不是由于人，也不是借着人，乃是借着耶稣基督，和叫祂从死人中复活的父神，）",
+          "kjv": "Paul, an apostle, (not of men, neither by man, but by Jesus Christ, and God the Father, who raised him from the dead;)"
+        },
+        {
+          "section": 2,
+          "content": "并一切与我同在的众弟兄，写信给加拉太的众召会：",
+          "kjv": "And all the brethren which are with me, unto the churches of Galatia:"
+        },
+        {
+          "section": 3,
+          "content": "愿恩典与平安，从神我们的父，并主耶稣基督归与你们。",
+          "kjv": "Grace be to you and peace from God the Father, and from our Lord Jesus Christ,"
+        },
+        {
+          "section": 4,
+          "content": "基督照着我们神与父的旨意，为我们的罪舍了自己，要把我们从现今这邪恶的世代救出来。",
+          "kjv": "Who gave himself for our sins, that he might deliver us from this present evil world, according to the will of God and our Father:"
+        },
+        {
+          "section": 5,
+          "content": "愿荣耀归与祂，直到永永远远。阿们。",
+          "kjv": "To whom be glory for ever and ever. Amen."
+        },
+        {
+          "section": 6,
+          "content": "我希奇你们这么快离开那在基督的恩典里召了你们的，去归向不同的福音。",
+          "kjv": "I marvel that ye are so soon removed from him that called you into the grace of Christ unto another gospel:"
+        },
+        {
+          "section": 7,
+          "content": "那并不是另一个福音，不过是有些人搅扰你们，想要转变基督的福音。",
+          "kjv": "Which is not another; but there be some that trouble you, and would pervert the gospel of Christ."
+        },
+        {
+          "section": 8,
+          "content": "但即使是我们，或是从天上来的使者，若在我们所传给你们的福音之外，另传一个福音给你们，他就该受咒诅。",
+          "kjv": "But though we, or an angel from heaven, preach any other gospel unto you than that which we have preached unto you, let him be accursed."
+        },
+        {
+          "section": 9,
+          "content": "我们先前说过，现在我再说，若有人在你们所领受的之外，另传一个福音给你们，他就该受咒诅。",
+          "kjv": "As we said before, so say I now again, If any man preach any other gospel unto you than that ye have received, let him be accursed."
+        },
+        {
+          "section": 10,
+          "content": "我现在是要得人的心，还是要得神的心？或者我是要讨人的喜悦么？若我仍讨人的喜悦，我就不是基督的奴仆了。",
+          "kjv": "For do I now persuade men, or God? or do I seek to please men? for if I yet pleased men, I should not be the servant of Christ."
+        },
+        {
+          "section": 11,
+          "content": "弟兄们，我要你们知道，那借着我所传的福音，并不是照着人意的，",
+          "kjv": "But I certify you, brethren, that the gospel which was preached of me is not after man."
+        },
+        {
+          "section": 12,
+          "content": "因为我不是从人领受的，也不是人教导我的，乃是借着耶稣基督的启示领受的。",
+          "kjv": "For I neither received it of man, neither was I taught it , but by the revelation of Jesus Christ."
+        },
+        {
+          "section": 13,
+          "content": "你们听过我从前在犹太教中所行的事，怎样极力逼迫神的召会，并损毁神的召会。",
+          "kjv": "For ye have heard of my conversation in time past in the Jews' religion, how that beyond measure I persecuted the church of God, and wasted it:"
+        },
+        {
+          "section": 14,
+          "content": "我又在犹太教中，比我本族许多同岁的人更有长进，为我祖宗的传统格外热心。",
+          "kjv": "And profited in the Jews' religion above many my equals in mine own nation, being more exceedingly zealous of the traditions of my fathers. equals: Gr. equals in years"
+        },
+        {
+          "section": 15,
+          "content": "然而那把我从母腹里分别出来，又借着祂的恩典呼召我的神，",
+          "kjv": "But when it pleased God, who separated me from my mother's womb, and called me by his grace,"
+        },
+        {
+          "section": 16,
+          "content": "既然乐意将祂儿子启示在我里面，叫我把祂当作福音传在外邦人中，我就即刻没有与血肉之人商量，",
+          "kjv": "To reveal his Son in me, that I might preach him among the heathen; immediately I conferred not with flesh and blood:"
+        },
+        {
+          "section": 17,
+          "content": "也没有上耶路撒冷，去见那些比我先作使徒的，却往亚拉伯去，后又回到大马色。",
+          "kjv": "Neither went I up to Jerusalem to them which were apostles before me; but I went into Arabia, and returned again unto Damascus."
+        },
+        {
+          "section": 18,
+          "content": "过了三年，才上耶路撒冷去访问矶法，和他同住了十五天。",
+          "kjv": "Then after three years I went up to Jerusalem to see Peter, and abode with him fifteen days. went up: or, returned"
+        },
+        {
+          "section": 19,
+          "content": "至于别的使徒，除了主的兄弟雅各，我都没有见过。",
+          "kjv": "But other of the apostles saw I none, save James the Lord's brother."
+        },
+        {
+          "section": 20,
+          "content": "我写给你们的，并不是谎言，看哪，我是在神面前说的。",
+          "kjv": "Now the things which I write unto you, behold, before God, I lie not."
+        },
+        {
+          "section": 21,
+          "content": "后来我到了叙利亚和基利家一带。",
+          "kjv": "Afterwards I came into the regions of Syria and Cilicia;"
+        },
+        {
+          "section": 22,
+          "content": "那时，犹太在基督里的众召会，都还没有见面认识我，",
+          "kjv": "And was unknown by face unto the churches of Judaea which were in Christ:"
+        },
+        {
+          "section": 23,
+          "content": "不过听说，那从前一直逼迫他们的，现在将他原先所损毁的信仰当作福音传扬。",
+          "kjv": "But they had heard only, That he which persecuted us in times past now preacheth the faith which once he destroyed."
+        },
+        {
+          "section": 24,
+          "content": "他们就因着我荣耀神。",
+          "kjv": "And they glorified God in me."
+        }
+      ]
+    },
+    {
+      "chapter": 2,
+      "verses": [
+        {
+          "section": 1,
+          "content": "过了十四年，我同巴拿巴，也带着提多，再上耶路撒冷去。",
+          "kjv": "Then fourteen years after I went up again to Jerusalem with Barnabas, and took Titus with me also."
+        },
+        {
+          "section": 2,
+          "content": "我是照着启示上去的，把我在外邦人中所传的福音，对他们陈述；只是私下对那些有名望的人说；惟恐我现在，或是从前，徒然奔跑。",
+          "kjv": "And I went up by revelation, and communicated unto them that gospel which I preach among the Gentiles, but privately to them which were of reputation, lest by any means I should run, or had run, in vain. privately: or, severally"
+        },
+        {
+          "section": 3,
+          "content": "但与我同去的提多，虽是希利尼人，也没有被勉强受割礼；",
+          "kjv": "But neither Titus, who was with me, being a Greek, was compelled to be circumcised:"
+        },
+        {
+          "section": 4,
+          "content": "因为有偷着引进来的假弟兄，他们偷着进来，要窥探我们在基督耶稣里所得的自由，为要强制我们作奴隶；",
+          "kjv": "And that because of false brethren unawares brought in, who came in privily to spy out our liberty which we have in Christ Jesus, that they might bring us into bondage:"
+        },
+        {
+          "section": 5,
+          "content": "我们就是一刻的工夫，也没有容让服从他们，为要使福音的真理存留在你们中间。",
+          "kjv": "To whom we gave place by subjection, no, not for an hour; that the truth of the gospel might continue with you."
+        },
+        {
+          "section": 6,
+          "content": "至于那些有名望的，不论他们从前是何等人，于我都没有差别；神不以外貌取人；那些有名望的，并没有加给我什么；",
+          "kjv": "But of these who seemed to be somewhat, (whatsoever they were, it maketh no matter to me: God accepteth no man's person:) for they who seemed to be somewhat in conference added nothing to me:"
+        },
+        {
+          "section": 7,
+          "content": "反倒看见我受托传福音给那未受割礼的人，正如彼得受托传福音给那受割礼的人，",
+          "kjv": "But contrariwise, when they saw that the gospel of the uncircumcision was committed unto me, as the gospel of the circumcision was unto Peter;"
+        },
+        {
+          "section": 8,
+          "content": "（因为那在彼得里面运行，叫他为受割礼之人尽使徒职分的，也在我里面运行，叫我为外邦人尽使徒的职分，）",
+          "kjv": "(For he that wrought effectually in Peter to the apostleship of the circumcision, the same was mighty in me toward the Gentiles:)"
+        },
+        {
+          "section": 9,
+          "content": "又知道所赐给我的恩典，那被视为柱石的雅各、矶法、约翰，就向我和巴拿巴伸出右手彼此相交，叫我们往外邦人那里去，他们却往受割礼的人那里去；",
+          "kjv": "And when James, Cephas, and John, who seemed to be pillars, perceived the grace that was given unto me, they gave to me and Barnabas the right hands of fellowship; that we should go unto the heathen, and they unto the circumcision."
+        },
+        {
+          "section": 10,
+          "content": "只是要我们记念穷人，这也是我本来热诚去行的。",
+          "kjv": "Only they would that we should remember the poor; the same which I also was forward to do."
+        },
+        {
+          "section": 11,
+          "content": "但矶法来到安提阿的时候，因他有可定罪之处，我就当面抵挡他。",
+          "kjv": "But when Peter was come to Antioch, I withstood him to the face, because he was to be blamed."
+        },
+        {
+          "section": 12,
+          "content": "因为从雅各那里来的几个人，未到以先，他惯常和外邦人一同吃饭；及至他们来到，他因怕奉割礼的人，就开始退去，隔离自己。",
+          "kjv": "For before that certain came from James, he did eat with the Gentiles: but when they were come, he withdrew and separated himself, fearing them which were of the circumcision."
+        },
+        {
+          "section": 13,
+          "content": "其余的犹太人，也都随着他装假；甚至连巴拿巴也被牵引，和他们一同装假。",
+          "kjv": "And the other Jews dissembled likewise with him; insomuch that Barnabas also was carried away with their dissimulation."
+        },
+        {
+          "section": 14,
+          "content": "但我一看见他们不按福音的真理正直而行，就在众人面前对矶法说，你既是犹太人，若是生活像外邦人，不像犹太人，怎么还勉强外邦人犹太化？",
+          "kjv": "But when I saw that they walked not uprightly according to the truth of the gospel, I said unto Peter before them  all, If thou, being a Jew, livest after the manner of Gentiles, and not as do the Jews, why compellest thou the Gentiles to live as do the Jews?"
+        },
+        {
+          "section": 15,
+          "content": "我们是生来的犹太人，并不是出于外邦的罪人，",
+          "kjv": "We who are Jews by nature, and not sinners of the Gentiles,"
+        },
+        {
+          "section": 16,
+          "content": "且知道人得称义，不是本于行律法，乃是借着信耶稣基督，连我们也信入了基督耶稣，使我们本于信基督得称义，不是本于行律法；因为凡属肉体的人，都不能本于行律法得称义。",
+          "kjv": "Knowing that a man is not justified by the works of the law, but by the faith of Jesus Christ, even we have believed in Jesus Christ, that we might be justified by the faith of Christ, and not by the works of the law: for by the works of the law shall no flesh be justified."
+        },
+        {
+          "section": 17,
+          "content": "我们若寻求在基督里得称义，自己却也显为罪人，这样，基督岂不是叫人犯罪的么？绝对不是。",
+          "kjv": "But if, while we seek to be justified by Christ, we ourselves also are found sinners, is therefore Christ the minister of sin? God forbid."
+        },
+        {
+          "section": 18,
+          "content": "因为我所拆毁的，若再建造，就证明自己是个有过犯的人。",
+          "kjv": "For if I build again the things which I destroyed, I make myself a transgressor."
+        },
+        {
+          "section": 19,
+          "content": "我借着律法，已经向律法死了，叫我可以向神活着。",
+          "kjv": "For I through the law am dead to the law, that I might live unto God."
+        },
+        {
+          "section": 20,
+          "content": "我已经与基督同钉十字架；现在活着的，不再是我，乃是基督在我里面活着；并且我如今在肉身里所活的生命，是我在神儿子的信里，与祂联结所活的，祂是爱我，为我舍了自己。",
+          "kjv": "I am crucified with Christ: nevertheless I live; yet not I, but Christ liveth in me: and the life which I now live in the flesh I live by the faith of the Son of God, who loved me, and gave himself for me."
+        },
+        {
+          "section": 21,
+          "content": "我不废弃神的恩；因为义若是借着律法得的，基督就是白白死了。",
+          "kjv": "I do not frustrate the grace of God: for if righteousness come by the law, then Christ is dead in vain."
+        }
+      ]
+    },
+    {
+      "chapter": 3,
+      "verses": [
+        {
+          "section": 1,
+          "content": "无知的加拉太人哪，耶稣基督钉十字架，已经活画在你们眼前，谁竟迷惑了你们？",
+          "kjv": "O foolish Galatians, who hath bewitched you, that ye should not obey the truth, before whose eyes Jesus Christ hath been evidently set forth, crucified among you?"
+        },
+        {
+          "section": 2,
+          "content": "我只愿问你们这一件，你们接受了那灵，是本于行律法，还是本于听信仰？",
+          "kjv": "This only would I learn of you, Received ye the Spirit by the works of the law, or by the hearing of faith?"
+        },
+        {
+          "section": 3,
+          "content": "你们是这样的无知么？你们既靠那灵开始，如今还靠肉体成全么？",
+          "kjv": "Are ye so foolish? having begun in the Spirit, are ye now made perfect by the flesh?"
+        },
+        {
+          "section": 4,
+          "content": "你们受苦如此之多，都是徒然的么？难道果真是徒然的么？",
+          "kjv": "Have ye suffered so many things in vain? if it be yet in vain. so many: or, so great"
+        },
+        {
+          "section": 5,
+          "content": "这样，那丰富供应你们那灵，又在你们中间行异能的，是本于行律法，还是本于听信仰？",
+          "kjv": "He therefore that ministereth to you the Spirit, and worketh miracles among you, doeth he it by the works of the law, or by the hearing of faith?"
+        },
+        {
+          "section": 6,
+          "content": "正如“亚伯拉罕信神，这就算为他的义。”",
+          "kjv": "Even as Abraham believed God, and it was accounted to him for righteousness. accounted: or, imputed"
+        },
+        {
+          "section": 7,
+          "content": "所以你们要知道，那以信为本的人，就是亚伯拉罕的子孙。",
+          "kjv": "Know ye therefore that they which are of faith, the same are the children of Abraham."
+        },
+        {
+          "section": 8,
+          "content": "并且圣经既预先看明，神要本于信称外邦人为义，就预先传福音给亚伯拉罕，说，“万国都必因你得福。”",
+          "kjv": "And the scripture, foreseeing that God would justify the heathen through faith, preached before the gospel unto Abraham, saying , In thee shall all nations be blessed."
+        },
+        {
+          "section": 9,
+          "content": "这样，那以信为本的人，便和那信的亚伯拉罕一同得福。",
+          "kjv": "So then they which be of faith are blessed with faithful Abraham."
+        },
+        {
+          "section": 10,
+          "content": "凡以行律法为本的，都在咒诅之下，因为经上记着：“凡不常常照着律法书上所记一切之事去行的，都是被咒诅的。”",
+          "kjv": "For as many as are of the works of the law are under the curse: for it is written, Cursed is every one that continueth not in all things which are written in the book of the law to do them."
+        },
+        {
+          "section": 11,
+          "content": "没有一个人凭着律法在神面前得称义，乃是明显的，因为“义人必本于信得生并活着；”",
+          "kjv": "But that no man is justified by the law in the sight of God, it is evident: for, The just shall live by faith."
+        },
+        {
+          "section": 12,
+          "content": "但律法不是本于信，只说，“行这些事的，必因这些事活着。”",
+          "kjv": "And the law is not of faith: but, The man that doeth them shall live in them."
+        },
+        {
+          "section": 13,
+          "content": "基督既为我们成了咒诅，就赎出我们脱离律法的咒诅，因为经上记着：“凡挂在木头上的，都是被咒诅的，”",
+          "kjv": "Christ hath redeemed us from the curse of the law, being made a curse for us: for it is written, Cursed is every one that hangeth on a tree:"
+        },
+        {
+          "section": 14,
+          "content": "为叫亚伯拉罕的福，在基督耶稣里可以临到外邦人，使我们借着信，可以接受所应许的那灵。",
+          "kjv": "That the blessing of Abraham might come on the Gentiles through Jesus Christ; that we might receive the promise of the Spirit through faith."
+        },
+        {
+          "section": 15,
+          "content": "弟兄们，我照着人的常话说，即使是人的约，若已经立定了，就没有人可以废弃，或加增的。",
+          "kjv": "Brethren, I speak after the manner of men; Though it be but a man's covenant, yet if it be confirmed, no man disannulleth, or addeth thereto. covenant: or, testament"
+        },
+        {
+          "section": 16,
+          "content": "应许原是向亚伯拉罕和他后裔说的。并不是说，和众后裔，像是指着许多人，乃是说，“和你那后裔，”指着一个人，就是基督。",
+          "kjv": "Now to Abraham and his seed were the promises made. He saith not, And to seeds, as of many; but as of one, And to thy seed, which is Christ."
+        },
+        {
+          "section": 17,
+          "content": "而且我这样说，神预先所立定的约，不能被那四百三十年以后才有的律法废掉，以致使应许失效。",
+          "kjv": "And this I say, that the covenant, that was confirmed before of God in Christ, the law, which was four hundred and thirty years after, cannot disannul, that it should make the promise of none effect."
+        },
+        {
+          "section": 18,
+          "content": "因为承受产业若是本于律法，就不再本于应许；但神已经借着应许，将产业恩赐亚伯拉罕。",
+          "kjv": "For if the inheritance be of the law, it is no more of promise: but God gave it to Abraham by promise."
+        },
+        {
+          "section": 19,
+          "content": "这样，律法是为什么有的？乃是因过犯添上的，直等那蒙应许的后裔来到；并且是借天使经中保之手设立的。",
+          "kjv": "Wherefore then serveth the law? It was added because of transgressions, till the seed should come to whom the promise was made; and it was ordained by angels in the hand of a mediator."
+        },
+        {
+          "section": 20,
+          "content": "但中保不是一面的，神却是一位。",
+          "kjv": "Now a mediator is not a mediator of one, but God is one."
+        },
+        {
+          "section": 21,
+          "content": "这样，律法是与神的应许相反么？绝对不是！因为若曾赐给一个能赐生命的律法，义就真是本于律法了。",
+          "kjv": " Is the law then against the promises of God? God forbid: for if there had been a law given which could have given life, verily righteousness should have been by the law."
+        },
+        {
+          "section": 22,
+          "content": "但圣经把众人都圈在罪里，好叫那以信耶稣基督为本的应许，可以赐给那些信的人。",
+          "kjv": "But the scripture hath concluded all under sin, that the promise by faith of Jesus Christ might be given to them that believe."
+        },
+        {
+          "section": 23,
+          "content": "但信仰还未来到以先，我们是被看守在律法之下，被圈住好归于那要显示的信仰。",
+          "kjv": "But before faith came, we were kept under the law, shut up unto the faith which should afterwards be revealed."
+        },
+        {
+          "section": 24,
+          "content": "这样，律法成了我们的儿童导师，带我们归于基督，好使我们本于信得称义。",
+          "kjv": "Wherefore the law was our schoolmaster to bring us unto Christ, that we might be justified by faith."
+        },
+        {
+          "section": 25,
+          "content": "但信仰既然来到，我们就不再在儿童导师的手下了，",
+          "kjv": "But after that faith is come, we are no longer under a schoolmaster."
+        },
+        {
+          "section": 26,
+          "content": "因为你们众人借着相信基督耶稣，都是神的儿子。",
+          "kjv": "For ye are all the children of God by faith in Christ Jesus."
+        },
+        {
+          "section": 27,
+          "content": "你们凡浸入基督的，都已经穿上了基督。",
+          "kjv": "For as many of you as have been baptized into Christ have put on Christ."
+        },
+        {
+          "section": 28,
+          "content": "没有犹太人或希利尼人，没有为奴的或自主的，也没有男和女，因为你们众人在基督耶稣里，都是一了。",
+          "kjv": "There is neither Jew nor Greek, there is neither bond nor free, there is neither male nor female: for ye are all one in Christ Jesus."
+        },
+        {
+          "section": 29,
+          "content": "你们既属于基督，就是亚伯拉罕的后裔，是照着应许为后嗣了。",
+          "kjv": "And if ye be Christ's, then are ye Abraham's seed, and heirs according to the promise."
+        }
+      ]
+    },
+    {
+      "chapter": 4,
+      "verses": [
+        {
+          "section": 1,
+          "content": "然而我说，后嗣几时还是孩童，他虽是全业的主人，却与奴仆毫无分别，",
+          "kjv": "Now I say, That the heir, as long as he is a child, differeth nothing from a servant, though he be lord of all;"
+        },
+        {
+          "section": 2,
+          "content": "乃是在监护人和管家的手下，直到父亲所预定的时候。",
+          "kjv": "But is under tutors and governors until the time appointed of the father."
+        },
+        {
+          "section": 3,
+          "content": "我们也是这样，为孩童的时候，受奴役于世上的蒙学之下；",
+          "kjv": "Even so we, when we were children, were in bondage under the elements of the world: elements: or, rudiments"
+        },
+        {
+          "section": 4,
+          "content": "及至时候满足，神就差出祂的儿子，由女子所生，且生在律法以下，",
+          "kjv": "But when the fulness of the time was come, God sent forth his Son, made of a woman, made under the law,"
+        },
+        {
+          "section": 5,
+          "content": "要把律法以下的人赎出来，好叫我们得着儿子的名分。",
+          "kjv": "To redeem them that were under the law, that we might receive the adoption of sons."
+        },
+        {
+          "section": 6,
+          "content": "而且因你们是儿子，神就差出祂儿子的灵，进入我们的心，呼叫：阿爸，父！",
+          "kjv": "And because ye are sons, God hath sent forth the Spirit of his Son into your hearts, crying, Abba, Father."
+        },
+        {
+          "section": 7,
+          "content": "这样，你不再是奴仆，乃是儿子了；既是儿子，也就借着神为后嗣。",
+          "kjv": "Wherefore thou art no more a servant, but a son; and if a son, then an heir of God through Christ."
+        },
+        {
+          "section": 8,
+          "content": "但从前你们不认识神的时候，是给那些本性上不是神的作奴仆。",
+          "kjv": "Howbeit then, when ye knew not God, ye did service unto them which by nature are no gods."
+        },
+        {
+          "section": 9,
+          "content": "现在你们既然认识神，更可说是神所认识的，怎么还要转向那软弱乏用的蒙学，情愿重新再给它们作奴仆？",
+          "kjv": "But now, after that ye have known God, or rather are known of God, how turn ye again to the weak and beggarly elements, whereunto ye desire again to be in bondage? turn ye again: or, turn ye back elements: or, rudiments"
+        },
+        {
+          "section": 10,
+          "content": "你们谨守日子、月分、节期、年分；",
+          "kjv": "Ye observe days, and months, and times, and years."
+        },
+        {
+          "section": 11,
+          "content": "我为你们害怕，惟恐我在你们身上是徒然劳苦。",
+          "kjv": "I am afraid of you, lest I have bestowed upon you labour in vain."
+        },
+        {
+          "section": 12,
+          "content": "弟兄们，我求你们要像我一样，因为我也像你们一样；你们一点没有亏负我。",
+          "kjv": "Brethren, I beseech you, be as I am ; for I am as ye are : ye have not injured me at all."
+        },
+        {
+          "section": 13,
+          "content": "你们知道我初次传福音给你们，是因为肉身有疾病。",
+          "kjv": " Ye know how through infirmity of the flesh I preached the gospel unto you at the first."
+        },
+        {
+          "section": 14,
+          "content": "那在我肉身上成为你们试炼的，你们并没有轻看，也没有厌弃；反倒接待我，如同神的使者，如同基督耶稣。",
+          "kjv": "And my temptation which was in my flesh ye despised not, nor rejected; but received me as an angel of God, even as Christ Jesus."
+        },
+        {
+          "section": 15,
+          "content": "这样，你们当日所庆幸的福气在哪里？我能给你们作见证，若是可能，那时你们已把自己的眼睛剜出来给我了。",
+          "kjv": "Where is then the blessedness ye spake of? for I bear you record, that, if it had been  possible, ye would have plucked out your own eyes, and have given them to me. Where...: or, What was then"
+        },
+        {
+          "section": 16,
+          "content": "现在我将真理告诉你们，就成了你们的仇敌么？",
+          "kjv": "Am I therefore become your enemy, because I tell you the truth?"
+        },
+        {
+          "section": 17,
+          "content": "那些人热心待你们，不是好意，乃是要离间你们，叫你们热心待他们。",
+          "kjv": "They zealously affect you, but not well; yea, they would exclude you, that ye might affect them. exclude you: or, exclude us"
+        },
+        {
+          "section": 18,
+          "content": "在善事上，常常热心待人，原是好的，却不单我与你们同在的时候才这样。",
+          "kjv": "But it is good to be zealously affected always in a good thing , and not only when I am present with you."
+        },
+        {
+          "section": 19,
+          "content": "我的孩子们，我为你们再受生产之苦，直等到基督成形在你们里面。",
+          "kjv": "My little children, of whom I travail in birth again until Christ be formed in you,"
+        },
+        {
+          "section": 20,
+          "content": "我巴不得现在与你们同在，改变我的口气，因我为你们心里作难。",
+          "kjv": " I desire to be present with you now, and to change my voice; for I stand in doubt of you. I stand...: or, I am perplexed for you"
+        },
+        {
+          "section": 21,
+          "content": "你们这愿意在律法以下的，请告诉我，你们岂没有听过律法么？",
+          "kjv": "Tell me, ye that desire to be under the law, do ye not hear the law?"
+        },
+        {
+          "section": 22,
+          "content": "因为律法上记着，亚伯拉罕有两个儿子，一个是出于使女，一个是出于自主的妇人。",
+          "kjv": "For it is written, that Abraham had two sons, the one by a bondmaid, the other by a freewoman."
+        },
+        {
+          "section": 23,
+          "content": "然而那出于使女的，是按着肉体生的；那出于自主妇人的，是借着应许生的。",
+          "kjv": "But he who was of the bondwoman was born after the flesh; but he of the freewoman was by promise."
+        },
+        {
+          "section": 24,
+          "content": "这些都是寓意：两个妇人就是两约，一个是出于西乃山，生子为奴，乃是夏甲。",
+          "kjv": "Which things are an allegory: for these are the two covenants; the one from the mount Sinai, which gendereth to bondage, which is Agar. covenants: or, testaments Sinai: Gr. Sina"
+        },
+        {
+          "section": 25,
+          "content": "这夏甲就是在亚拉伯的西乃山，相当于现在的耶路撒冷，因耶路撒冷同她的儿女都是作奴仆的。",
+          "kjv": "For this Agar is mount Sinai in Arabia, and answereth to Jerusalem which now is, and is in bondage with her children. answereth to: or, is in the same rank with"
+        },
+        {
+          "section": 26,
+          "content": "但那在上的耶路撒冷是自主的，她是我们的母，",
+          "kjv": "But Jerusalem which is above is free, which is the mother of us all."
+        },
+        {
+          "section": 27,
+          "content": "因为经上记着：“那不生育，没有生产过的，你要快乐；那未曾经过产难的，你要放声呼喊，因为独居的，比有丈夫的儿女更多。”",
+          "kjv": "For it is written, Rejoice, thou barren that bearest not; break forth and cry, thou that travailest not: for the desolate hath many more children than she which hath an husband."
+        },
+        {
+          "section": 28,
+          "content": "弟兄们，你们乃是借着应许生的儿女，像以撒一样。",
+          "kjv": "Now we, brethren, as Isaac was, are the children of promise."
+        },
+        {
+          "section": 29,
+          "content": "只是，当时那按着肉体生的，怎样逼迫了那按着灵生的，现在也是这样。",
+          "kjv": "But as then he that was born after the flesh persecuted him that was born after the Spirit, even so it is now."
+        },
+        {
+          "section": 30,
+          "content": "然而经上是怎么说的？“把使女和她儿子赶出去，因为使女的儿子，绝不可与自主妇人的儿子一同承受产业。”",
+          "kjv": "Nevertheless what saith the scripture? Cast out the bondwoman and her son: for the son of the bondwoman shall not be heir with the son of the freewoman."
+        },
+        {
+          "section": 31,
+          "content": "所以，弟兄们，我们不是使女的儿女，乃是自主妇人的儿女了。",
+          "kjv": "So then, brethren, we are not children of the bondwoman, but of the free."
+        }
+      ]
+    },
+    {
+      "chapter": 5,
+      "verses": [
+        {
+          "section": 1,
+          "content": "基督释放了我们，叫我们得以自由；所以要站立得住，不要再受奴役的轭挟制。",
+          "kjv": "Stand fast therefore in the liberty wherewith Christ hath made us free, and be not entangled again with the yoke of bondage."
+        },
+        {
+          "section": 2,
+          "content": "看哪，我保罗告诉你们，你们若受割礼，基督就于你们无益了。",
+          "kjv": "Behold, I Paul say unto you, that if ye be circumcised, Christ shall profit you nothing."
+        },
+        {
+          "section": 3,
+          "content": "我再对凡受割礼的人作见证，他是欠着行全律法债的人。",
+          "kjv": "For I testify again to every man that is circumcised, that he is a debtor to do the whole law."
+        },
+        {
+          "section": 4,
+          "content": "你们这要靠律法得称义的，是与基督隔绝，从恩典中坠落了。",
+          "kjv": "Christ is become of no effect unto you, whosoever of you are justified by the law; ye are fallen from grace."
+        },
+        {
+          "section": 5,
+          "content": "我们靠着那灵，本于信，热切等待所盼望的义。",
+          "kjv": "For we through the Spirit wait for the hope of righteousness by faith."
+        },
+        {
+          "section": 6,
+          "content": "因为在基督耶稣里，受割礼不受割礼，全无效力；惟独借着爱运行的信，才有效力。",
+          "kjv": "For in Jesus Christ neither circumcision availeth any thing, nor uncircumcision; but faith which worketh by love."
+        },
+        {
+          "section": 7,
+          "content": "你们向来跑得好，有谁拦阻你们，叫你们不信服真理？",
+          "kjv": "Ye did run well; who did hinder you that ye should not obey the truth? hinder you: or, drive you back"
+        },
+        {
+          "section": 8,
+          "content": "这劝导不是出于那召你们的。",
+          "kjv": "This persuasion cometh not of him that calleth you."
+        },
+        {
+          "section": 9,
+          "content": "一点面酵能使全团都发起来。",
+          "kjv": "A little leaven leaveneth the whole lump."
+        },
+        {
+          "section": 10,
+          "content": "我在主里深信，你们不会有别的念头；但那搅扰你们的，无论是谁，必担受处罚。",
+          "kjv": "I have confidence in you through the Lord, that ye will be none otherwise minded: but he that troubleth you shall bear his judgment, whosoever he be."
+        },
+        {
+          "section": 11,
+          "content": "至于我，弟兄们，如果我仍旧传割礼，为什么还受逼迫？若是这样，十字架这绊脚石就废去了。",
+          "kjv": "And I, brethren, if I yet preach circumcision, why do I yet suffer persecution? then is the offence of the cross ceased."
+        },
+        {
+          "section": 12,
+          "content": "我恨不得那些扰乱你们的人，甚至把自己割掉了。",
+          "kjv": "I would they were even cut off which trouble you."
+        },
+        {
+          "section": 13,
+          "content": "弟兄们，你们蒙召原是为得自由；只是不可将自由当作放纵肉体的机会，倒要凭着爱互相服事。",
+          "kjv": "For, brethren, ye have been called unto liberty; only use not liberty for an occasion to the flesh, but by love serve one another."
+        },
+        {
+          "section": 14,
+          "content": "因为全律法都在“要爱邻舍如同自己”这一句话之内，得以完全了。",
+          "kjv": "For all the law is fulfilled in one word, even in this; Thou shalt love thy neighbour as thyself."
+        },
+        {
+          "section": 15,
+          "content": "你们要谨慎，若相咬相吞，只怕要彼此销灭了。",
+          "kjv": "But if ye bite and devour one another, take heed that ye be not consumed one of another."
+        },
+        {
+          "section": 16,
+          "content": "我说，你们当凭着灵而行，就绝不会满足肉体的情欲了。",
+          "kjv": " This I say then, Walk in the Spirit, and ye shall not fulfil the lust of the flesh. ye...: or, fulfil not"
+        },
+        {
+          "section": 17,
+          "content": "因为肉体纵任贪欲，抵抗那灵，那灵也抵抗肉体，二者彼此敌对，使你们不能作所愿意的。",
+          "kjv": "For the flesh lusteth against the Spirit, and the Spirit against the flesh: and these are contrary the one to the other: so that ye cannot do the things that ye would."
+        },
+        {
+          "section": 18,
+          "content": "但你们若被那灵引导，就不在律法以下。",
+          "kjv": "But if ye be led of the Spirit, ye are not under the law."
+        },
+        {
+          "section": 19,
+          "content": "肉体的行为，都是明显的，就是淫乱、污秽、邪荡、",
+          "kjv": "Now the works of the flesh are manifest, which are these ; Adultery, fornication, uncleanness, lasciviousness,"
+        },
+        {
+          "section": 20,
+          "content": "拜偶像、邪术、仇恨、争竞、忌恨、恼怒、私图好争、分立、宗派、",
+          "kjv": "Idolatry, witchcraft, hatred, variance, emulations, wrath, strife, seditions, heresies,"
+        },
+        {
+          "section": 21,
+          "content": "嫉妒、醉酒、荒宴以及类似的事；关于这些事，我现在事先告诉你们，正如我先前说过的：行这样事的人，必不得承受神的国。",
+          "kjv": "Envyings, murders, drunkenness, revellings, and such like: of the which I tell you before, as I have also told you  in time past, that they which do such things shall not inherit the kingdom of God."
+        },
+        {
+          "section": 22,
+          "content": "但那灵的果子，就是爱、喜乐、和平、恒忍、恩慈、良善、信实、",
+          "kjv": "But the fruit of the Spirit is love, joy, peace, longsuffering, gentleness, goodness, faith,"
+        },
+        {
+          "section": 23,
+          "content": "温柔、节制；这样的事，没有律法反对。",
+          "kjv": "Meekness, temperance: against such there is no law."
+        },
+        {
+          "section": 24,
+          "content": "但那属基督耶稣的人，是已经把肉体连肉体的邪情私欲，都钉了十字架。",
+          "kjv": "And they that are Christ's have crucified the flesh with the affections and lusts. affections: or, passions"
+        },
+        {
+          "section": 25,
+          "content": "我们若凭着灵活着，也就当凭着灵而行。",
+          "kjv": "If we live in the Spirit, let us also walk in the Spirit."
+        },
+        {
+          "section": 26,
+          "content": "不要贪图虚荣，彼此惹气，互相嫉妒。",
+          "kjv": "Let us not be desirous of vain glory, provoking one another, envying one another."
+        }
+      ]
+    },
+    {
+      "chapter": 6,
+      "verses": [
+        {
+          "section": 1,
+          "content": "弟兄们，即使有人偶然为某种过犯所胜，你们属灵的人，也当用温柔的灵挽回这样的人，可是要当心自己，免得也被试诱。",
+          "kjv": "Brethren, if a man be overtaken in a fault, ye which are spiritual, restore such an one in the spirit of meekness; considering thyself, lest thou also be tempted. if: or, although"
+        },
+        {
+          "section": 2,
+          "content": "你们的重担要彼此担当，这样就完全满足了基督的律法。",
+          "kjv": "Bear ye one another's burdens, and so fulfil the law of Christ."
+        },
+        {
+          "section": 3,
+          "content": "人若不是什么，还以为是什么，就是自欺了。",
+          "kjv": "For if a man think himself to be something, when he is nothing, he deceiveth himself."
+        },
+        {
+          "section": 4,
+          "content": "各人应当验证自己的工作，这样，他所夸的就只在自己，不在别人了，",
+          "kjv": "But let every man prove his own work, and then shall he have rejoicing in himself alone, and not in another."
+        },
+        {
+          "section": 5,
+          "content": "因为各人必担当自己的担子。",
+          "kjv": "For every man shall bear his own burden."
+        },
+        {
+          "section": 6,
+          "content": "只是那在话语上受教的，当与施教的人共同分享一切的美物。",
+          "kjv": "Let him that is taught in the word communicate unto him that teacheth in all good things."
+        },
+        {
+          "section": 7,
+          "content": "不要受迷惑，神是嗤慢不得的，因为人种的是什么，收的也是什么。",
+          "kjv": "Be not deceived; God is not mocked: for whatsoever a man soweth, that shall he also reap."
+        },
+        {
+          "section": 8,
+          "content": "为着自己的肉体撒种的，必从肉体收败坏；为着那灵撒种的，必从那灵收永远的生命。",
+          "kjv": "For he that soweth to his flesh shall of the flesh reap corruption; but he that soweth to the Spirit shall of the Spirit reap life everlasting."
+        },
+        {
+          "section": 9,
+          "content": "我们行善，不可丧志；因为若不灰心，到了适当的时候，就要收成。",
+          "kjv": "And let us not be weary in well doing: for in due season we shall reap, if we faint not."
+        },
+        {
+          "section": 10,
+          "content": "所以我们有了时机，就当向众人行善，尤其是向信仰之家的人。",
+          "kjv": "As we have therefore opportunity, let us do good unto all men , especially unto them who are of the household of faith."
+        },
+        {
+          "section": 11,
+          "content": "你们看，我亲手写给你们的字是何等的大。",
+          "kjv": "Ye see how large a letter I have written unto you with mine own hand."
+        },
+        {
+          "section": 12,
+          "content": "凡在肉体上要体面的人，都想勉强你们受割礼，不过是免得为基督的十字架受逼迫。",
+          "kjv": "As many as desire to make a fair shew in the flesh, they constrain you to be circumcised; only lest they should suffer persecution for the cross of Christ."
+        },
+        {
+          "section": 13,
+          "content": "那些受割礼的，连自己也不守律法，他们却想要你们受割礼，好在你们的肉体上夸口。",
+          "kjv": "For neither they themselves who are circumcised keep the law; but desire to have you circumcised, that they may glory in your flesh."
+        },
+        {
+          "section": 14,
+          "content": "但就我而论，除了我们主耶稣基督的十字架，别无可夸；借着祂，就我而论，世界已经钉了十字架；就世界而论，我也已经钉了十字架。",
+          "kjv": "But God forbid that I should glory, save in the cross of our Lord Jesus Christ, by whom the world is crucified unto me, and I unto the world. by whom: or, whereby"
+        },
+        {
+          "section": 15,
+          "content": "受割礼不受割礼，都无关紧要，要紧的乃是作新造。",
+          "kjv": "For in Christ Jesus neither circumcision availeth any thing, nor uncircumcision, but a new creature."
+        },
+        {
+          "section": 16,
+          "content": "凡照这准则而行的，愿平安怜悯临到他们，就是临到神的以色列。",
+          "kjv": "And as many as walk according to this rule, peace be on them, and mercy, and upon the Israel of God."
+        },
+        {
+          "section": 17,
+          "content": "从今以后，人都不要搅扰我，因为我身体上带着耶稣的烙印。",
+          "kjv": "From henceforth let no man trouble me: for I bear in my body the marks of the Lord Jesus."
+        },
+        {
+          "section": 18,
+          "content": "弟兄们，愿我们主耶稣基督的恩与你们的灵同在。阿们。",
+          "kjv": "Brethren, the grace of our Lord Jesus Christ be with your spirit. Amen. To the Galatians written from Rome. "
+        }
+      ]
+    }
+  ]
+}
