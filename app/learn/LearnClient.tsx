@@ -1,0 +1,204 @@
+"use client";
+
+import { useState, useCallback, useEffect, useRef } from "react";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
+import { cn } from "@/lib/utils";
+import { compareVerse, generateFillBlanks } from "@/lib/compare";
+import { VerseViewer, VerseReciter, VerseResult } from "@/components/VerseStudy";
+import type { Rating } from "@/lib/fsrs";
+import type { PlanInfo } from "@/types";
+
+interface Task {
+  id: number;
+  bookId: number;
+  chapter: number;
+  verse: number;
+  content: string;
+  kjv: string | null;
+}
+
+interface Props {
+  plan: PlanInfo | null;
+  tasks: Task[];
+}
+
+type Mode = "view" | "recite" | "result";
+
+export default function LearnClient({ plan, tasks }: Props) {
+  const [currentIdx, setCurrentIdx] = useState(0);
+  const [mode, setMode] = useState<Mode>("view");
+  const [userInput, setUserInput] = useState("");
+  const [segments, setSegments] = useState<import("@/lib/compare").DiffSegment[]>([]);
+  const [accuracy, setAccuracy] = useState(0);
+  const [showKJV, setShowKJV] = useState(false);
+  const [fillMode, setFillMode] = useState(false);
+  const [fillInputs, setFillInputs] = useState<string[]>([]);
+  const [ratingDone, setRatingDone] = useState(false);
+  const [showOriginal, setShowOriginal] = useState(false);
+
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  const task = tasks[currentIdx];
+  const totalTasks = tasks.length;
+
+  const handleStartRecite = useCallback(() => {
+    setUserInput("");
+    setSegments([]);
+    setAccuracy(0);
+    setRatingDone(false);
+    setShowOriginal(false);
+    if (fillMode) {
+      const blanks = generateFillBlanks(task.content);
+      setFillInputs(new Array(blanks.blanks.length).fill(""));
+    }
+    setMode("recite");
+    setTimeout(() => inputRef.current?.focus(), 100);
+  }, [task, fillMode]);
+
+  const handleSubmit = useCallback(() => {
+    let finalInput = userInput;
+    if (fillMode) {
+      finalInput = fillInputs.join(" ");
+    }
+    const result = compareVerse(finalInput, task.content);
+    setSegments(result.segments);
+    setAccuracy(result.accuracy);
+    setMode("result");
+  }, [userInput, fillInputs, fillMode, task]);
+
+  const handleRate = useCallback(
+    async (rating: Rating) => {
+      setRatingDone(true);
+      try {
+        await fetch("/api/card", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            verseId: task.id,
+            rating,
+          }),
+        });
+      } catch { /* ignore */ }
+    },
+    [task]
+  );
+
+  const handleNext = useCallback(() => {
+    if (currentIdx < totalTasks - 1) {
+      setCurrentIdx((i) => i + 1);
+      setMode("view");
+      setUserInput("");
+      setSegments([]);
+      setRatingDone(false);
+    }
+  }, [currentIdx, totalTasks]);
+
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (mode === "recite" && e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        handleSubmit();
+      }
+      if (mode === "result" && !ratingDone) {
+        if (e.key === "1") handleRate(1 as Rating);
+        if (e.key === "2") handleRate(2 as Rating);
+        if (e.key === "3") handleRate(3 as Rating);
+        if (e.key === "4") handleRate(4 as Rating);
+        if (e.key === " " || e.key === "Spacebar") {
+          e.preventDefault();
+          handleNext(); // skip without rating
+        }
+      }
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [mode, ratingDone, handleSubmit, handleRate, handleNext]);
+
+  if (!plan) {
+    return (
+      <div className="max-w-lg mx-auto p-4">
+        <p className="text-muted-foreground">请先创建学习计划。</p>
+        <Link href="/plan" className={cn(buttonVariants({}), "mt-4")}>
+          去创建
+        </Link>
+      </div>
+    );
+  }
+
+  if (!task) {
+    return (
+      <div className="max-w-lg mx-auto p-4 text-center space-y-4">
+        <p className="text-muted-foreground">今日任务已完成！</p>
+        <Link href="/plan" className={buttonVariants({})}>返回</Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-lg mx-auto p-4 space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="font-medium text-muted-foreground">
+          {task.chapter}:{task.verse}
+        </h2>
+        <div className="flex items-center gap-2">
+          {task.kjv && (
+            <Button variant="ghost" size="sm" onClick={() => setShowKJV(!showKJV)}>
+              {showKJV ? "中" : "EN"}
+            </Button>
+          )}
+          <Button variant="ghost" size="sm"
+            onClick={() => setFillMode(!fillMode)}>
+            {fillMode ? "全文" : "填空"}
+          </Button>
+          <Badge variant="outline">
+            {currentIdx + 1}/{totalTasks}
+          </Badge>
+        </div>
+      </div>
+
+      {mode === "view" && (
+        <VerseViewer
+          verse={task}
+          showKJV={showKJV}
+          onStart={handleStartRecite}
+          showFillOption
+        />
+      )}
+
+      {mode === "recite" && (
+        <>
+          {showOriginal && (
+            <div className="p-3 rounded-md bg-muted text-sm text-muted-foreground">
+              {task.content}
+            </div>
+          )}
+          <VerseReciter
+            verse={task}
+            fillMode={fillMode}
+            fillInputs={fillInputs}
+            setFillInputs={setFillInputs}
+            userInput={userInput}
+            setUserInput={setUserInput}
+            inputRef={inputRef}
+            onSubmit={handleSubmit}
+            onViewOriginal={() => setShowOriginal(!showOriginal)}
+          />
+        </>
+      )}
+
+      {mode === "result" && (
+        <VerseResult
+          verse={task}
+          segments={segments}
+          accuracy={accuracy}
+          ratingDone={ratingDone}
+          onRate={handleRate}
+          onNext={handleNext}
+          nextLabel={currentIdx >= totalTasks - 1 ? "完成" : "下一节"}
+        />
+      )}
+    </div>
+  );
+}
