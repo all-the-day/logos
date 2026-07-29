@@ -23,8 +23,19 @@ export default function ReviewClient({ cards: initialCards }: Props) {
   const [segments, setSegments] = useState<DiffSegment[]>([]);
   const [accuracy, setAccuracy] = useState(0);
   const [ratingDone, setRatingDone] = useState(false);
+  const [undoAvailable, setUndoAvailable] = useState(false);
 
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const undoCardRef = useRef<{
+    id: number;
+    stability: number;
+    difficulty: number;
+    reps: number;
+    lapses: number;
+    state: string;
+    lastReview: Date | string | null;
+    due: Date | string;
+  } | null>(null);
 
   const card = cards[currentIdx];
   const verse = card?.verse;
@@ -57,16 +68,53 @@ export default function ReviewClient({ cards: initialCards }: Props) {
     async (rating: Rating) => {
       if (!card) return;
       setRatingDone(true);
+      setUndoAvailable(false);
+      // Save current card state for undo
+      undoCardRef.current = {
+        id: card.id,
+        stability: card.stability,
+        difficulty: card.difficulty,
+        reps: card.reps,
+        lapses: card.lapses,
+        state: card.state,
+        lastReview: card.lastReview,
+        due: card.due,
+      };
       try {
         await fetch("/api/card", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ cardId: card.id, rating }),
         });
+        setUndoAvailable(true);
       } catch { /* ignore */ }
     },
     [card]
   );
+
+  const handleUndo = useCallback(async () => {
+    const prev = undoCardRef.current;
+    if (!prev) return;
+    try {
+      await fetch("/api/card", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cardId: prev.id,
+          stability: prev.stability,
+          difficulty: prev.difficulty,
+          reps: prev.reps,
+          lapses: prev.lapses,
+          state: prev.state,
+          lastReview: prev.lastReview,
+          due: prev.due,
+        }),
+      });
+      setRatingDone(false);
+      setUndoAvailable(false);
+      undoCardRef.current = null;
+    } catch { /* ignore */ }
+  }, []);
 
   const handleNext = useCallback(() => {
     if (currentIdx < cards.length - 1) {
@@ -102,10 +150,14 @@ export default function ReviewClient({ cards: initialCards }: Props) {
       if (mode === "list" && e.key === "Escape") {
         // Go back to plan from list
       }
+      if (mode === "result" && ratingDone && undoAvailable && (e.key === "u" || e.key === "U")) {
+        e.preventDefault();
+        handleUndo();
+      }
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [mode, ratingDone, handleSubmit, handleRate, handleNext]);
+  }, [mode, ratingDone, handleSubmit, handleRate, handleNext, handleUndo, undoAvailable]);
 
   // ── render ────────────────────────────────────────
 
@@ -212,6 +264,7 @@ export default function ReviewClient({ cards: initialCards }: Props) {
             currentIdx >= cards.length - 1 ? "完成" : "下一节"
           }
           verseId={card.verseId}
+          onUndo={undoAvailable ? handleUndo : undefined}
         />
       )}
     </div>

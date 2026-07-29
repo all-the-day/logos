@@ -37,8 +37,19 @@ export default function LearnClient({ plan, tasks }: Props) {
   const [fillInputs, setFillInputs] = useState<string[]>([]);
   const [ratingDone, setRatingDone] = useState(false);
   const [showOriginal, setShowOriginal] = useState(false);
+  const [undoAvailable, setUndoAvailable] = useState(false);
 
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const undoCardRef = useRef<{
+    id: number;
+    stability: number;
+    difficulty: number;
+    reps: number;
+    lapses: number;
+    state: string;
+    lastReview: Date | string | null;
+    due: Date | string;
+  } | null>(null);
 
   const task = tasks[currentIdx];
   const totalTasks = tasks.length;
@@ -80,7 +91,15 @@ export default function LearnClient({ plan, tasks }: Props) {
   const handleRate = useCallback(
     async (rating: Rating) => {
       setRatingDone(true);
+      setUndoAvailable(false);
+      undoCardRef.current = null;
       try {
+        // Save current card state for undo before rating
+        const res = await fetch(`/api/card?verseId=${task.id}`);
+        const data = await res.json();
+        if (data.cards?.length > 0) {
+          undoCardRef.current = data.cards[data.cards.length - 1];
+        }
         await fetch("/api/card", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -89,10 +108,35 @@ export default function LearnClient({ plan, tasks }: Props) {
             rating,
           }),
         });
+        if (undoCardRef.current) setUndoAvailable(true);
       } catch { /* ignore */ }
     },
     [task]
   );
+
+  const handleUndo = useCallback(async () => {
+    const prev = undoCardRef.current;
+    if (!prev) return;
+    try {
+      await fetch("/api/card", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cardId: prev.id,
+          stability: prev.stability,
+          difficulty: prev.difficulty,
+          reps: prev.reps,
+          lapses: prev.lapses,
+          state: prev.state,
+          lastReview: prev.lastReview,
+          due: prev.due,
+        }),
+      });
+      setRatingDone(false);
+      setUndoAvailable(false);
+      undoCardRef.current = null;
+    } catch { /* ignore */ }
+  }, []);
 
   const handleNext = useCallback(() => {
     if (currentIdx < totalTasks - 1) {
@@ -120,10 +164,14 @@ export default function LearnClient({ plan, tasks }: Props) {
           handleNext(); // skip without rating
         }
       }
+      if (mode === "result" && ratingDone && undoAvailable && (e.key === "u" || e.key === "U")) {
+        e.preventDefault();
+        handleUndo();
+      }
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [mode, ratingDone, handleSubmit, handleRate, handleNext]);
+  }, [mode, ratingDone, undoAvailable, handleSubmit, handleRate, handleNext, handleUndo]);
 
   if (!plan) {
     return (
@@ -234,6 +282,7 @@ export default function LearnClient({ plan, tasks }: Props) {
           onNext={handleNext}
           nextLabel={currentIdx >= totalTasks - 1 ? "完成" : "下一节"}
           verseId={task.id}
+          onUndo={undoAvailable ? handleUndo : undefined}
         />
       )}
     </div>

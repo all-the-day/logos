@@ -90,3 +90,30 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
+
+export async function PUT(request: Request) {
+  try {
+    const text = await request.text();
+    if (!text) return NextResponse.json({ error: "请求体为空" }, { status: 400 });
+    const { cardId, stability, difficulty, reps, lapses, state, lastReview, due } = JSON.parse(text);
+
+    if (!cardId) {
+      return NextResponse.json({ error: "缺少 cardId" }, { status: 400 });
+    }
+
+    const restored = await cardDb.updateCard(cardId, {
+      stability,
+      difficulty,
+      reps,
+      lapses,
+      state,
+      lastReview: lastReview ? new Date(lastReview) : null,
+      due: due ? new Date(due) : undefined,
+    });
+
+    return NextResponse.json({ card: restored });
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : "恢复卡片失败";
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
+}

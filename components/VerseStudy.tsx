@@ -132,6 +132,7 @@ export function VerseResult({
   onNext,
   nextLabel,
   verseId,
+  onUndo,
 }: {
   verse: VerseRef;
   segments: DiffSegment[];
@@ -141,6 +142,7 @@ export function VerseResult({
   onNext: () => void;
   nextLabel?: string;
   verseId?: number;
+  onUndo?: () => void;
 }) {
   return (
     <div className="space-y-4">
@@ -204,9 +206,16 @@ export function VerseResult({
       )}
 
       {ratingDone && (
-        <Button className="w-full" onClick={onNext}>
-          {nextLabel || "下一节"}
-        </Button>
+        <div className="space-y-2">
+          <Button className="w-full" onClick={onNext}>
+            {nextLabel || "下一节"}
+          </Button>
+          {onUndo && (
+            <Button variant="ghost" size="sm" className="w-full" onClick={onUndo}>
+              撤销 (U)
+            </Button>
+          )}
+        </div>
       )}
     </div>
   );
