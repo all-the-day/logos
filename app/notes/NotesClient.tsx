@@ -97,9 +97,9 @@ export default function NotesClient({ notes, books }: Props) {
   return (
     <div className="max-w-lg mx-auto p-4 space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">
-          笔记 {notes.length > 0 && <span className="text-muted-foreground text-lg">({notes.length})</span>}
-        </h1>
+        <div className="text-sm text-muted-foreground">
+          笔记 {notes.length > 0 && `(${notes.length})`}
+        </div>
         <Button variant="outline" size="sm" onClick={openCreate}>
           新建笔记
         </Button>

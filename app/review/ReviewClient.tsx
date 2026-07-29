@@ -164,7 +164,6 @@ export default function ReviewClient({ cards: initialCards }: Props) {
   if (cards.length === 0) {
     return (
       <div className="max-w-lg mx-auto p-4 space-y-4">
-        <h1 className="text-2xl font-bold">复习</h1>
         <p className="text-muted-foreground">没有需要复习的经文。</p>
       </div>
     );
@@ -174,7 +173,6 @@ export default function ReviewClient({ cards: initialCards }: Props) {
   if (mode === "list") {
     return (
       <div className="max-w-lg mx-auto p-4 space-y-4">
-        <h1 className="text-2xl font-bold">复习</h1>
         <p className="text-muted-foreground">
           {cards.length} 节经文等待复习
         </p>

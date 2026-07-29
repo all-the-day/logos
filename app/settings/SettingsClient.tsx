@@ -72,7 +72,6 @@ export default function SettingsClient() {
 
   return (
     <div className="max-w-lg mx-auto p-4 space-y-4">
-      <h1 className="text-2xl font-bold">设置</h1>
 
       <Card>
         <CardHeader><CardTitle>数据管理</CardTitle></CardHeader>

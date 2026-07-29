@@ -80,7 +80,6 @@ export default function PlanClient({
   if (!planDetails?.plan) {
     return (
       <div className="max-w-lg mx-auto p-4 space-y-6">
-        <h1 className="text-2xl font-bold">Logos</h1>
         <p className="text-muted-foreground">
           还没有学习计划，创建一个开始背经吧。
         </p>
@@ -131,7 +130,6 @@ export default function PlanClient({
 
   return (
     <div className="max-w-lg mx-auto p-4 space-y-4">
-      <h1 className="text-2xl font-bold">Logos</h1>
 
       <Card>
         <CardContent className="pt-4">

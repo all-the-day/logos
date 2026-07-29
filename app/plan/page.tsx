@@ -1,9 +1,14 @@
+import type { Metadata } from "next";
 import * as planService from "@/services/plan";
 import * as checkinService from "@/services/checkin";
 import * as cardDb from "@/db/card";
 import * as verseDb from "@/db/verse";
 import { getDailyVerse } from "@/lib/dailyverse";
 import PlanClient from "./PlanClient";
+
+export const metadata: Metadata = {
+  title: "Logos - 背经",
+};
 
 export default async function PlanPage() {
   const planDetails = await planService.getActivePlanDetails();
