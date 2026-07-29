@@ -149,14 +149,12 @@ export default function PlanClient({
           </CardContent>
         </Card>
       ) : dailyVerse ? (
-        <Card>
-          <CardContent className="pt-6">
-            <p className="text-lg leading-relaxed">{dailyVerse.content}</p>
-            <p className="text-sm text-muted-foreground mt-2">
-              {dailyVerse.book} {dailyVerse.chapter}:{dailyVerse.section}
-            </p>
-          </CardContent>
-        </Card>
+        <div className="text-center py-8 px-6">
+          <p className="text-xl leading-relaxed max-w-[66%] mx-auto">{dailyVerse.content}</p>
+          <p className="text-sm text-muted-foreground mt-4">
+            {dailyVerse.book} {dailyVerse.chapter}:{dailyVerse.section}
+          </p>
+        </div>
       ) : null}
 
       <Card className="mt-auto shadow-md border-muted/60">
