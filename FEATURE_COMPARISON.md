@@ -34,7 +34,7 @@
 | # | 功能点 | 旧项目实现 | 新项目状态 | 优先级 | 工作量 |
 |---|--------|-----------|-----------|--------|--------|
 | B1 | 今日任务列表 | getTodayTasks() 按计划范围取经文 | ✅ learnService.getTodayTasks()（已修复数组切片） | - | - |
-| B2 | 任务列表 — 章节导航 | 快速跳转按钮（按章分组） | ❌ 缺失 | P2 | S |
+| B2 | 任务列表 — 章节导航 | 快速跳转按钮（按章分组） | ✅ 章节 chip 条（含计数） | - | - |
 | B3 | 经文展示 View | VerseView：大字体 + 中/EN 切换 | ✅ LearnClient ViewMode | - | - |
 | B4 | 背诵模式 Recite | textarea 全文字输入 + Enter 提交 | ✅ ReciteMode（全文模式） | - | - |
 | B5 | 填空模式 Fill | generateFillBlanks() 随机挖空 + inline inputs | ✅ ReciteMode（填空模式） | - | - |
@@ -128,11 +128,11 @@
 
 | # | 功能点 | 旧项目实现 | 新项目状态 | 优先级 | 工作量 |
 |---|--------|-----------|-----------|--------|--------|
-| F1 | 纲目（Outlines） | 可折叠 details + 层级缩进 | ❌ 缺失 | P2 | M |
-| F2 | 注解（Footnotes） | 可折叠 details + 序号列表 | ❌ 缺失 | P2 | M |
-| F3 | 串珠（Cross-refs） | 可折叠 details + 交叉引用 | ❌ 缺失 | P2 | M |
+| F1 | 纲目（Outlines） | 可折叠 details + 层级缩进 | ✅ AnnotationPanel 组件 | - | - |
+| F2 | 注解（Footnotes） | 可折叠 details + 序号列表 | ✅ AnnotationPanel 组件 | - | - |
+| F3 | 串珠（Cross-refs） | 可折叠 details + 交叉引用 | ✅ AnnotationPanel 组件 | - | - |
 | F4 | 注解数据 | 罗马书 54 纲目/254 注解/277 串珠 + 约翰一书 | ✅ 数据库已入库（2 卷，371 条） | - | - |
-| F5 | 注解查询 API | 无（本地 JSON） | ⚠️ verseDb 有查询但前端未使用 | P2 | S |
+| F5 | 注解查询 API | 无（本地 JSON） | ✅ GET /api/annotation?verseId= | - | - |
 
 **方案**：在学习/复习的 ResultMode 中增加 AnnotationPanel 组件（shadcn Collapsible/Accordion），从 `verseDb.getVerseAnnotations(verseId)` 获取数据。
 
@@ -145,10 +145,10 @@
 | G1 | PWA Service Worker | 网络优先策略 + 缓存回退 | ❌ 缺失 | P3 | M |
 | G2 | PWA Manifest | standalone, portrait, 自定义主题色 | ❌ 缺失 | P3 | S |
 | G3 | 离线支持 | SW 缓存经文 JSON | ❌ 缺失 | P3 | M |
-| G4 | 错误边界 | 无 | ❌ AGENTS.md 标记待做 | P2 | M |
-| G5 | 加载状态/Skeleton | 无 | ❌ AGENTS.md 标记待做 | P2 | M |
+| G4 | 错误边界 | 无 | ✅ app/error.tsx + not-found.tsx | - | - |
+| G5 | 加载状态/Skeleton | 无 | ✅ app/loading.tsx 全局骨架屏 | - | - |
 | G6 | 移动端适配 | max-width 480px 居中 | ✅ Tailwind responsive | - | - |
-| G7 | 底部导航图标 | SVG 矢量图标 | ⚠️ 所有图标使用同一 SVG path（占位符） | P2 | S |
+| G7 | 底部导航图标 | SVG 矢量图标 | ✅ 5 个独立图标（计划/学习/复习/笔记/设置） | - | - |
 | G8 | 静默更新 SW | _app.js 中 SW 更新 + 自动 reload | ❌ 不适用（SSR + 非 PWA） | P3 | - |
 | G9 | Hydration 修复 | _app.js 中 mounted 状态 | ❌ 无（App Router 处理方式不同） | P2 | S |
 | G10 | 服务部署脚本 | 无 | ❌ AGENTS.md 标记待做 | P3 | M |
@@ -194,15 +194,15 @@
 
 ### 第三批：P2 体验优化（迭代完善）
 
-| # | 任务 | 涉及文件 | 预估 |
-|---|------|---------|------|
-| P2-1 | 注解面板（学习/复习结果页） | 新组件 AnnotationPanel.tsx | 2h |
-| P2-2 | 加载状态 Skeleton | 各页面 | 1.5h |
-| P2-3 | 错误边界 | 新文件 error.tsx (App Router) | 1h |
-| P2-4 | 底部导航真实图标 | BottomNav.tsx | 30min |
-| P2-5 | 笔记列表空状态 | NotesClient.tsx | 15min |
-| P2-6 | 快速章节导航 | LearnClient.tsx | 1h |
-| P2-7 | 撤销功能 | LearnClient.tsx + ReviewClient.tsx | 1h |
+| # | 任务 | 涉及文件 | 预估 | 状态 |
+|---|------|---------|------|------|
+| P2-1 | 注解面板（学习/复习结果页） | AnnotationPanel.tsx + api/annotation + VerseStudy | 2h | ✅ |
+| P2-2 | 加载状态 Skeleton | app/loading.tsx | 1.5h | ✅ |
+| P2-3 | 错误边界 | app/error.tsx + not-found.tsx | 1h | ✅ |
+| P2-4 | 底部导航真实图标 | BottomNav.tsx | 30min | ✅ |
+| P2-5 | 笔记列表空状态 | NotesClient.tsx | 15min | ✅ |
+| P2-6 | 快速章节导航 | LearnClient.tsx | 1h | ✅ |
+| P2-7 | 撤销功能 | LearnClient.tsx + ReviewClient.tsx | 1h | ⏸ |
 
 ### 第四批：P3 增强（择时推进）
 
