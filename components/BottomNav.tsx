@@ -4,11 +4,54 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const navItems = [
-  { href: "/plan", label: "计划", icon: "M12 2L2 7v14h6v-6h8v6h6V7L12 2z" },
-  { href: "/learn", label: "学习", icon: "M12 2L2 7v14h6v-6h8v6h6V7L12 2z" },
-  { href: "/review", label: "复习", icon: "M12 2L2 7v14h6v-6h8v6h6V7L12 2z" },
-  { href: "/notes", label: "笔记", icon: "M12 2L2 7v14h6v-6h8v6h6V7L12 2z" },
-  { href: "/settings", label: "设置", icon: "M12 2L2 7v14h6v-6h8v6h6V7L12 2z" },
+  {
+    href: "/plan",
+    label: "计划",
+    icon: [
+      "M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2",
+      "M15 2H9a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1z",
+      "M9 13l2 2 4-4",
+    ],
+  },
+  {
+    href: "/learn",
+    label: "学习",
+    icon: [
+      "M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5A1 1 0 0 1 5.5 21H20",
+      "M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z",
+    ],
+  },
+  {
+    href: "/review",
+    label: "复习",
+    icon: [
+      "M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z",
+      "M12 6v6l4 2",
+    ],
+  },
+  {
+    href: "/notes",
+    label: "笔记",
+    icon: [
+      "M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z",
+      "M15 5l4 4",
+    ],
+  },
+  {
+    href: "/settings",
+    label: "设置",
+    icon: [
+      "M4 21v-7",
+      "M4 10V3",
+      "M12 21v-9",
+      "M12 8V3",
+      "M20 21v-5",
+      "M20 12V3",
+      "M1 14h6",
+      "M9 8h6",
+      "M17 16h6",
+    ],
+  },
 ];
 
 export default function BottomNav() {
@@ -32,14 +75,16 @@ export default function BottomNav() {
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 24 24"
-                fill={isActive ? "currentColor" : "none"}
+                fill="none"
                 stroke="currentColor"
                 strokeWidth={2}
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 className="w-5 h-5"
               >
-                <path d={item.icon} />
+                {item.icon.map((d, i) => (
+                  <path key={i} d={d} />
+                ))}
               </svg>
               <span>{item.label}</span>
             </Link>
