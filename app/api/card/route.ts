@@ -1,0 +1,92 @@
+import { NextResponse } from "next/server";
+import * as cardDb from "@/db/card";
+import {
+  updateCard,
+  RATING,
+} from "@/lib/fsrs";
+import type { FsrsCard, Rating } from "@/lib/fsrs";
+
+export async function POST(request: Request) {
+  try {
+    const text = await request.text();
+    if (!text) return NextResponse.json({ error: "请求体为空" }, { status: 400 });
+    const body = JSON.parse(text);
+    const { cardId, verseId, rating } = body;
+
+    if ((!cardId && !verseId) || rating === undefined) {
+      return NextResponse.json({ error: "缺少参数 (cardId 或 verseId)" }, { status: 400 });
+    }
+
+    if (![RATING.AGAIN, RATING.HARD, RATING.GOOD, RATING.EASY].includes(rating)) {
+      return NextResponse.json({ error: "无效评级" }, { status: 400 });
+    }
+
+    // Get current card from DB
+    let existingCard;
+    if (cardId) {
+      existingCard = await cardDb.getCardById(cardId);
+    } else if (verseId) {
+      const cards = await cardDb.getCardsForVerse(verseId);
+      // Use the most recent card (last in array — ordered by creation)
+      existingCard = cards.length > 0 ? cards[cards.length - 1] : null;
+    }
+    if (!existingCard) {
+      return NextResponse.json({ error: "卡片不存在" }, { status: 404 });
+    }
+
+    // Convert DB card to FsrsCard format
+    const fsrsCard: FsrsCard = {
+      id: existingCard.id,
+      verseId: existingCard.verseId,
+      stability: existingCard.stability,
+      difficulty: existingCard.difficulty,
+      reps: existingCard.reps,
+      lapses: existingCard.lapses,
+      state: existingCard.state as FsrsCard["state"],
+      lastReview: existingCard.lastReview,
+      due: existingCard.due,
+    };
+
+    // Apply FSRS update
+    const updated = updateCard(fsrsCard, rating as Rating);
+
+    // Save to DB (use existingCard.id which is always available)
+    const savedCard = await cardDb.updateCard(existingCard.id, {
+      stability: updated.stability,
+      difficulty: updated.difficulty,
+      reps: updated.reps,
+      lapses: updated.lapses,
+      state: updated.state,
+      lastReview: updated.lastReview,
+      due: updated.due,
+    });
+
+    return NextResponse.json({
+      card: savedCard,
+      nextInterval: Math.round(
+        (updated.due.getTime() - Date.now()) / 86400000
+      ),
+    });
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : "更新卡片失败";
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
+}
+
+export async function GET(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const verseId = searchParams.get("verseId");
+
+    if (verseId) {
+      const cards = await cardDb.getCardsForVerse(parseInt(verseId));
+      return NextResponse.json({ cards });
+    }
+
+    const cards = await cardDb.getDueCards();
+    return NextResponse.json({ cards });
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : "获取卡片失败";
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
+}
