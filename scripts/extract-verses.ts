@@ -1,5 +1,5 @@
 /**
- * 从 bible 项目抽取书卷经文 → public/data/
+ * 从 bible 项目抽取书卷经文 → data/
  * 使用 TypeScript + sql.js（纯 JS SQLite 实现，无需 native 依赖）
  *
  * 用法：npx tsx scripts/extract-verses.ts [书卷索引 ...]
@@ -15,8 +15,8 @@ const PYTHON_SCRIPT = resolve(
   "../../bible-memorize/scripts/extract_verses.py"
 );
 
-// 直接复用 bible-memorize 的 Python 提取脚本，输出到 logos/public/data/
-const LOGOS_OUT = resolve(__dirname, "../public/data");
+// 直接复用 bible-memorize 的 Python 提取脚本，输出到 logos/data/
+const LOGOS_OUT = resolve(__dirname, "../data");
 
 const args = process.argv.slice(2);
 console.log("Extracting verses from bible project...");

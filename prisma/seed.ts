@@ -38,15 +38,16 @@ interface AnnotationFile {
 }
 
 async function main() {
-  const dataDir = resolve(__dirname, "../public/data");
+  const dataDir = resolve(__dirname, "../data");
   let files: string[];
   try {
     files = readdirSync(dataDir).filter(
       (f) => /^\d+-.+\.json$/.test(f) && !f.includes("-annotations")
     );
   } catch {
-    console.log("No public/data directory. Run extract-verses first.");
+    console.log("No data directory. Run extract-verses first.");
     return;
+  }
   }
 
   if (files.length === 0) {
