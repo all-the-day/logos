@@ -48,10 +48,9 @@ async function main() {
     console.log("No data directory. Run extract-verses first.");
     return;
   }
-  }
 
   if (files.length === 0) {
-    console.log("No verse JSON files found in public/data/");
+    console.log("No verse JSON files found in data/");
     return;
   }
 
