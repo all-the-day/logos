@@ -43,6 +43,15 @@ export default function LearnClient({ plan, tasks }: Props) {
   const task = tasks[currentIdx];
   const totalTasks = tasks.length;
 
+  // Group tasks by chapter for quick navigation
+  const chapterGroups = tasks.reduce((acc, t, idx) => {
+    const ch = t.chapter;
+    if (!acc.get(ch)) acc.set(ch, { chapter: ch, firstIdx: idx, count: 0 });
+    acc.get(ch)!.count++;
+    return acc;
+  }, new Map<number, { chapter: number; firstIdx: number; count: number }>());
+  const chapters = Array.from(chapterGroups.values());
+
   const handleStartRecite = useCallback(() => {
     setUserInput("");
     setSegments([]);
@@ -159,12 +168,39 @@ export default function LearnClient({ plan, tasks }: Props) {
       </div>
 
       {mode === "view" && (
-        <VerseViewer
-          verse={task}
-          showKJV={showKJV}
-          onStart={handleStartRecite}
-          showFillOption
-        />
+        <>
+          <VerseViewer
+            verse={task}
+            showKJV={showKJV}
+            onStart={handleStartRecite}
+            showFillOption
+          />
+          {/* Chapter quick nav */}
+          {chapters.length > 1 && (
+            <div className="space-y-1">
+              <p className="text-xs text-muted-foreground">快速跳转</p>
+              <div className="flex flex-wrap gap-1.5">
+                {chapters.map((ch) => {
+                  const isCurrent = ch.chapter === task.chapter;
+                  return (
+                    <button
+                      key={ch.chapter}
+                      onClick={() => setCurrentIdx(ch.firstIdx)}
+                      className={cn(
+                        "px-2.5 py-1 text-xs rounded-full border transition-colors",
+                        isCurrent
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "bg-background text-muted-foreground hover:text-foreground hover:border-foreground/30"
+                      )}
+                    >
+                      {ch.chapter} ({ch.count})
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       {mode === "recite" && (
@@ -197,6 +233,7 @@ export default function LearnClient({ plan, tasks }: Props) {
           onRate={handleRate}
           onNext={handleNext}
           nextLabel={currentIdx >= totalTasks - 1 ? "完成" : "下一节"}
+          verseId={task.id}
         />
       )}
     </div>
