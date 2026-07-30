@@ -163,9 +163,11 @@ function StatsCard() {
 
 function ImportBooksCard() {
   const router = useRouter();
-  const [books, setBooks] = useState<Array<{ id: number; name: string; imported: boolean }>>([]);
+  const [books, setBooks] = useState<Array<{ id: number; name: string; chapters: number; imported: boolean }>>([]);
   const [loading, setLoading] = useState(true);
   const [importing, setImporting] = useState<number | null>(null);
+  const [selectedNt, setSelectedNt] = useState<number>(0);
+  const [selectedOt, setSelectedOt] = useState<number>(0);
   const [lastImported, setLastImported] = useState<string | null>(null);
 
   useEffect(() => {
@@ -232,44 +234,72 @@ function ImportBooksCard() {
         {notImported.length === 0 ? (
           <p className="text-sm text-muted-foreground">全部 66 卷已导入 ✓</p>
         ) : (
-          <>
+          <div className="space-y-4">
             {ntAvail.length > 0 && (
-              <div>
-                <span className="text-xs text-muted-foreground block mb-1.5">新约</span>
-                <div className="flex flex-wrap gap-1">
-                  {ntAvail.map((b) => (
-                    <Button key={`nt-${b.id}`} variant="outline" size="sm"
-                      disabled={importing !== null}
-                      onClick={() => handleImport(b.id, b.name)}>
-                      {importing === b.id ? (
-                        <span className="flex items-center gap-1">
-                          <span className="animate-spin inline-block">⟳</span> 导入中
-                        </span>
-                      ) : b.name}
-                    </Button>
-                  ))}
+              <div className="flex gap-2 items-end">
+                <div className="flex-1">
+                  <label className="text-xs text-muted-foreground block mb-1">新约</label>
+                  <select
+                    className="w-full px-3 py-2 border rounded-md bg-background text-sm"
+                    value={selectedNt}
+                    onChange={(e) => setSelectedNt(Number(e.target.value))}
+                    disabled={importing !== null}
+                  >
+                    <option value={0} disabled>选择新约书卷...</option>
+                    {ntAvail.map((b) => (
+                      <option key={`nt-${b.id}`} value={b.id}>
+                        {b.name}（{b.chapters} 章）
+                      </option>
+                    ))}
+                  </select>
                 </div>
+                <Button variant="outline" size="sm"
+                  disabled={!selectedNt || importing !== null}
+                  onClick={() => {
+                    const b = ntAvail.find((x) => x.id === selectedNt);
+                    if (b) handleImport(b.id, b.name);
+                  }}>
+                  {importing ? (
+                    <span className="flex items-center gap-1">
+                      <span className="animate-spin inline-block">⟳</span> 导入中
+                    </span>
+                  ) : "导入"}
+                </Button>
               </div>
             )}
             {otAvail.length > 0 && (
-              <div>
-                <span className="text-xs text-muted-foreground block mb-1.5">旧约</span>
-                <div className="flex flex-wrap gap-1">
-                  {otAvail.map((b) => (
-                    <Button key={`ot-${b.id}`} variant="outline" size="sm"
-                      disabled={importing !== null}
-                      onClick={() => handleImport(b.id, b.name)}>
-                      {importing === b.id ? (
-                        <span className="flex items-center gap-1">
-                          <span className="animate-spin inline-block">⟳</span> 导入中
-                        </span>
-                      ) : b.name}
-                    </Button>
-                  ))}
+              <div className="flex gap-2 items-end">
+                <div className="flex-1">
+                  <label className="text-xs text-muted-foreground block mb-1">旧约</label>
+                  <select
+                    className="w-full px-3 py-2 border rounded-md bg-background text-sm"
+                    value={selectedOt}
+                    onChange={(e) => setSelectedOt(Number(e.target.value))}
+                    disabled={importing !== null}
+                  >
+                    <option value={0} disabled>选择旧约书卷...</option>
+                    {otAvail.map((b) => (
+                      <option key={`ot-${b.id}`} value={b.id}>
+                        {b.name}（{b.chapters} 章）
+                      </option>
+                    ))}
+                  </select>
                 </div>
+                <Button variant="outline" size="sm"
+                  disabled={!selectedOt || importing !== null}
+                  onClick={() => {
+                    const b = otAvail.find((x) => x.id === selectedOt);
+                    if (b) handleImport(b.id, b.name);
+                  }}>
+                  {importing ? (
+                    <span className="flex items-center gap-1">
+                      <span className="animate-spin inline-block">⟳</span> 导入中
+                    </span>
+                  ) : "导入"}
+                </Button>
               </div>
             )}
-          </>
+          </div>
         )}
       </CardContent>
     </Card>
