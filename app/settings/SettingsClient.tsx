@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { useToast } from "@/components/ToastProvider";
@@ -161,34 +162,53 @@ function StatsCard() {
 }
 
 function ImportBooksCard() {
+  const router = useRouter();
   const [books, setBooks] = useState<Array<{ id: number; name: string; imported: boolean }>>([]);
+  const [loading, setLoading] = useState(true);
   const [importing, setImporting] = useState<number | null>(null);
+  const [lastImported, setLastImported] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/book/import")
       .then((r) => r.json())
       .then((d) => setBooks(d.books || []))
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, []);
 
-  const notImported = books.filter((b) => !b.imported);
-  if (notImported.length === 0) return null;
-
-  const handleImport = async (bookId: number) => {
+  const handleImport = useCallback(async (bookId: number, name: string) => {
     setImporting(bookId);
     try {
-      await fetch("/api/book/import", {
+      const res = await fetch("/api/book/import", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ bookId }),
       });
-      setBooks((prev) => prev.map((b) => b.id === bookId ? { ...b, imported: true } : b));
-      setTimeout(() => window.location.reload(), 800);
+      if (res.ok) {
+        setBooks((prev) => prev.map((b) => b.id === bookId ? { ...b, imported: true } : b));
+        setLastImported(name);
+        setTimeout(() => setLastImported(null), 3000);
+        router.refresh();
+      }
     } catch { /* ignore */ }
     setImporting(null);
-  };
+  }, [router]);
+
+  if (loading) {
+    return (
+      <Card>
+        <CardHeader><CardTitle className="text-base">导入书卷</CardTitle></CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <span className="animate-spin">◌</span> 加载书卷列表...
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   const imported = books.filter((b) => b.imported);
+  const notImported = books.filter((b) => !b.imported);
   const otAvail = notImported.filter((b) => b.id <= 39);
   const ntAvail = notImported.filter((b) => b.id > 39);
 
@@ -198,34 +218,58 @@ function ImportBooksCard() {
         <CardTitle className="text-base">导入书卷</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        <p className="text-xs text-muted-foreground">已导入 {imported.length}/66 卷</p>
-        {ntAvail.length > 0 && (
-          <div>
-            <span className="text-xs text-muted-foreground block mb-1.5">新约</span>
-            <div className="flex flex-wrap gap-1">
-              {ntAvail.map((b) => (
-                <Button key={`nt-${b.id}`} variant="outline" size="sm"
-                  disabled={importing === b.id}
-                  onClick={() => handleImport(b.id)}>
-                  {importing === b.id ? "..." : b.name}
-                </Button>
-              ))}
-            </div>
+        <p className="text-xs text-muted-foreground">
+          已导入 {imported.length}/66 卷
+          {lastImported && (
+            <span className="text-green-600 ml-2">✓ {lastImported} 已导入</span>
+          )}
+        </p>
+        {importing && (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
+            <span className="animate-spin inline-block">⟳</span> 正在导入经文、注解和 KJV 对照...
           </div>
         )}
-        {otAvail.length > 0 && (
-          <div>
-            <span className="text-xs text-muted-foreground block mb-1.5">旧约</span>
-            <div className="flex flex-wrap gap-1">
-              {otAvail.map((b) => (
-                <Button key={`ot-${b.id}`} variant="outline" size="sm"
-                  disabled={importing === b.id}
-                  onClick={() => handleImport(b.id)}>
-                  {importing === b.id ? "..." : b.name}
-                </Button>
-              ))}
-            </div>
-          </div>
+        {notImported.length === 0 ? (
+          <p className="text-sm text-muted-foreground">全部 66 卷已导入 ✓</p>
+        ) : (
+          <>
+            {ntAvail.length > 0 && (
+              <div>
+                <span className="text-xs text-muted-foreground block mb-1.5">新约</span>
+                <div className="flex flex-wrap gap-1">
+                  {ntAvail.map((b) => (
+                    <Button key={`nt-${b.id}`} variant="outline" size="sm"
+                      disabled={importing !== null}
+                      onClick={() => handleImport(b.id, b.name)}>
+                      {importing === b.id ? (
+                        <span className="flex items-center gap-1">
+                          <span className="animate-spin inline-block">⟳</span> 导入中
+                        </span>
+                      ) : b.name}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
+            {otAvail.length > 0 && (
+              <div>
+                <span className="text-xs text-muted-foreground block mb-1.5">旧约</span>
+                <div className="flex flex-wrap gap-1">
+                  {otAvail.map((b) => (
+                    <Button key={`ot-${b.id}`} variant="outline" size="sm"
+                      disabled={importing !== null}
+                      onClick={() => handleImport(b.id, b.name)}>
+                      {importing === b.id ? (
+                        <span className="flex items-center gap-1">
+                          <span className="animate-spin inline-block">⟳</span> 导入中
+                        </span>
+                      ) : b.name}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
         )}
       </CardContent>
     </Card>
