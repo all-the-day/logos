@@ -73,6 +73,8 @@ export default function SettingsClient() {
   return (
     <div className="max-w-lg mx-auto p-4 space-y-4">
 
+      <ImportBooksCard />
+
       <Card>
         <CardHeader><CardTitle>数据管理</CardTitle></CardHeader>
         <CardContent className="space-y-3">
@@ -152,6 +154,78 @@ function StatsCard() {
           </div>
         ) : (
           <p className="text-sm text-muted-foreground">加载中...</p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function ImportBooksCard() {
+  const [books, setBooks] = useState<Array<{ id: number; name: string; imported: boolean }>>([]);
+  const [importing, setImporting] = useState<number | null>(null);
+
+  useEffect(() => {
+    fetch("/api/book/import")
+      .then((r) => r.json())
+      .then((d) => setBooks(d.books || []))
+      .catch(() => {});
+  }, []);
+
+  const notImported = books.filter((b) => !b.imported);
+  if (notImported.length === 0) return null;
+
+  const handleImport = async (bookId: number) => {
+    setImporting(bookId);
+    try {
+      await fetch("/api/book/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bookId }),
+      });
+      setBooks((prev) => prev.map((b) => b.id === bookId ? { ...b, imported: true } : b));
+      setTimeout(() => window.location.reload(), 800);
+    } catch { /* ignore */ }
+    setImporting(null);
+  };
+
+  const imported = books.filter((b) => b.imported);
+  const otAvail = notImported.filter((b) => b.id <= 39);
+  const ntAvail = notImported.filter((b) => b.id > 39);
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">导入书卷</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <p className="text-xs text-muted-foreground">已导入 {imported.length}/66 卷</p>
+        {ntAvail.length > 0 && (
+          <div>
+            <span className="text-xs text-muted-foreground block mb-1.5">新约</span>
+            <div className="flex flex-wrap gap-1">
+              {ntAvail.map((b) => (
+                <Button key={b.id} variant="outline" size="sm"
+                  disabled={importing === b.id}
+                  onClick={() => handleImport(b.id)}>
+                  {importing === b.id ? "..." : b.name}
+                </Button>
+              ))}
+            </div>
+          </div>
+        )}
+        {otAvail.length > 0 && (
+          <div>
+            <span className="text-xs text-muted-foreground block mb-1.5">旧约</span>
+            <div className="flex flex-wrap gap-1">
+              {otAvail.map((b) => (
+                <Button key={b.id} variant="outline" size="sm"
+                  disabled={importing === b.id}
+                  onClick={() => handleImport(b.id)}>
+                  {importing === b.id ? "..." : b.name}
+                </Button>
+              ))}
+            </div>
+          </div>
         )}
       </CardContent>
     </Card>
