@@ -38,16 +38,22 @@ export interface BookListItem {
 
 export function getAllBookList(): BookListItem[] {
   const bible = getBibleDb();
+  // book_name 表每个 index 有中英文两行，过滤只取中文名
   const rows = bible.prepare(
     "SELECT book_index, name FROM book_name ORDER BY book_index"
   ).all() as { book_index: number; name: string }[];
 
-  return rows.map((r) => {
-    const chapters = bible.prepare(
-      "SELECT COUNT(DISTINCT chapter) AS c FROM content WHERE book_index = ? AND flag = 0"
-    ).get(r.book_index) as { c: number };
-    return { id: r.book_index, name: r.name, chapters: chapters.c, imported: false };
-  });
+  const seen = new Set<number>();
+  const isChinese = (s: string) => /[\u4e00-\u9fff]/.test(s);
+
+  return rows
+    .filter((r) => isChinese(r.name) && !seen.has(r.book_index) && seen.add(r.book_index))
+    .map((r) => {
+      const chapters = bible.prepare(
+        "SELECT COUNT(DISTINCT chapter) AS c FROM content WHERE book_index = ? AND flag = 0"
+      ).get(r.book_index) as { c: number };
+      return { id: r.book_index, name: r.name, chapters: chapters.c, imported: false };
+    });
 }
 
 // ── 检查书卷是否已导入 ────────────────────────────

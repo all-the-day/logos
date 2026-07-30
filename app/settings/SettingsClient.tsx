@@ -204,7 +204,7 @@ function ImportBooksCard() {
             <span className="text-xs text-muted-foreground block mb-1.5">新约</span>
             <div className="flex flex-wrap gap-1">
               {ntAvail.map((b) => (
-                <Button key={b.id} variant="outline" size="sm"
+                <Button key={`nt-${b.id}`} variant="outline" size="sm"
                   disabled={importing === b.id}
                   onClick={() => handleImport(b.id)}>
                   {importing === b.id ? "..." : b.name}
@@ -218,7 +218,7 @@ function ImportBooksCard() {
             <span className="text-xs text-muted-foreground block mb-1.5">旧约</span>
             <div className="flex flex-wrap gap-1">
               {otAvail.map((b) => (
-                <Button key={b.id} variant="outline" size="sm"
+                <Button key={`ot-${b.id}`} variant="outline" size="sm"
                   disabled={importing === b.id}
                   onClick={() => handleImport(b.id)}>
                   {importing === b.id ? "..." : b.name}
