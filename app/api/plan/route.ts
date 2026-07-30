@@ -3,7 +3,6 @@ import * as planService from "@/services/plan";
 import * as planDb from "@/db/plan";
 import * as cardDb from "@/db/card";
 import * as verseDb from "@/db/verse";
-import { importBookIfNeeded } from "@/lib/import-book";
 
 export async function GET() {
   try {
@@ -32,12 +31,6 @@ export async function POST(request: Request) {
     const existing = await planDb.getActivePlan();
     if (existing) {
       await planDb.deletePlan(existing.id);
-    }
-
-    // 按需导入书卷（如果尚未在本地 DB 中）
-    const imported = await importBookIfNeeded(bookId);
-    if (imported) {
-      console.log(`Book ${bookId} imported on demand`);
     }
 
     const plan = await planService.initializePlan(bookId, versesPerDay);

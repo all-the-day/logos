@@ -1,7 +1,7 @@
 "use client";
 
 interface BookSelectorProps {
-  books: Array<{ id: number; name: string; imported?: boolean }>;
+  books: Array<{ id: number; name: string }>;
   selectedId: number | null;
   onSelect: (id: number) => void;
 }
@@ -29,26 +29,21 @@ export default function BookSelector({
       >
         <option value="" disabled>选择{label}书卷...</option>
         {list.map((book) => (
-          <option key={`${ntFilter ? "nt" : "ot"}-${book.id}`} value={book.id}>
+          <option key={book.id} value={book.id}>
             {book.name}
           </option>
         ))}
       </select>
-      <p className="text-xs text-muted-foreground mt-1">
-        {list.filter((b) => b.imported).length}/{list.length} 已缓存
-      </p>
     </div>
   );
 
   return (
     <div className="space-y-3">
-      {renderSelect(nt, "新约", true)}
-      {renderSelect(ot, "旧约", false)}
-
+      {nt.length > 0 && renderSelect(nt, "新约", true)}
+      {ot.length > 0 && renderSelect(ot, "旧约", false)}
       {selectedId && (
         <p className="text-xs text-muted-foreground">
           已选：{books.find((b) => b.id === selectedId)?.name}
-          {!books.find((b) => b.id === selectedId)?.imported && "（首次将自动导入）"}
         </p>
       )}
     </div>

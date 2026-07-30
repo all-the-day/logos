@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -23,7 +23,7 @@ interface PlanClientProps {
     workdays: number;
   } | null;
   progress: CardProgress | null;
-  books: Array<BookInfo & { imported?: boolean }>;
+  books: BookInfo[];
   checkin: { checkedIn: boolean; streak: number };
   dailyVerse: DailyVerse | null;
 }
@@ -81,8 +81,9 @@ export default function PlanClient({
     return (
       <div className="max-w-lg mx-auto p-4 space-y-6">
         <p className="text-muted-foreground">
-          还没有学习计划，创建一个开始背经吧。
+          已经导入 {books.length} 卷，可用的书卷：
         </p>
+        <ImportSection existingBooks={books} />
         <Card>
           <CardHeader>
             <CardTitle>新建背诵计划</CardTitle>
@@ -194,5 +195,77 @@ export default function PlanClient({
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+function ImportSection({ existingBooks }: { existingBooks: BookInfo[] }) {
+  const [avail, setAvail] = useState<Array<{ id: number; name: string; imported: boolean }>>([]);
+  const [importing, setImporting] = useState<number | null>(null);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/book/import")
+      .then((r) => r.json())
+      .then((d) => setAvail(d.books || []))
+      .catch(() => {});
+  }, [existingBooks]);
+
+  const notImported = avail.filter((b) => !b.imported);
+  if (notImported.length === 0) return null;
+
+  const handleImport = async (bookId: number) => {
+    setImporting(bookId);
+    try {
+      await fetch("/api/book/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bookId }),
+      });
+      setAvail((prev) => prev.map((b) => b.id === bookId ? { ...b, imported: true } : b));
+      // 刷新页面以更新书卷列表
+      setTimeout(() => window.location.reload(), 500);
+    } catch { /* ignore */ }
+    setImporting(null);
+  };
+
+  const ot = notImported.filter((b) => b.id <= 39);
+  const nt = notImported.filter((b) => b.id > 39);
+
+  return (
+    <Card>
+      <CardHeader className="cursor-pointer" onClick={() => setOpen(!open)}>
+        <CardTitle className="text-sm">
+          导入书卷 {open ? "▲" : "▼"} <span className="text-muted-foreground font-normal">({notImported.length} 卷可用)</span>
+        </CardTitle>
+      </CardHeader>
+      {open && (
+        <CardContent className="space-y-3 pt-0">
+          {nt.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              <span className="text-xs text-muted-foreground w-full mb-1">新约</span>
+              {nt.map((b) => (
+                <Button key={b.id} variant="outline" size="sm"
+                  disabled={importing === b.id}
+                  onClick={() => handleImport(b.id)}>
+                  {importing === b.id ? "导入中..." : b.name}
+                </Button>
+              ))}
+            </div>
+          )}
+          {ot.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              <span className="text-xs text-muted-foreground w-full mb-1">旧约</span>
+              {ot.map((b) => (
+                <Button key={b.id} variant="outline" size="sm"
+                  disabled={importing === b.id}
+                  onClick={() => handleImport(b.id)}>
+                  {importing === b.id ? "导入中..." : b.name}
+                </Button>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      )}
+    </Card>
   );
 }
