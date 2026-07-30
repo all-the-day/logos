@@ -18,7 +18,7 @@ export default async function PlanPage() {
     progress = await cardDb.getCardProgress(planDetails.plan.bookId);
   }
 
-  const books = await verseDb.getAllBooks();
+  const books = await verseDb.getAllBooksWithImportStatus();
   const checkin = await checkinService.getCheckinStatus();
   const dailyVerse = await getDailyVerse();
 

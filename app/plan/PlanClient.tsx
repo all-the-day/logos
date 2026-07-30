@@ -23,7 +23,7 @@ interface PlanClientProps {
     workdays: number;
   } | null;
   progress: CardProgress | null;
-  books: BookInfo[];
+  books: Array<BookInfo & { imported?: boolean }>;
   checkin: { checkedIn: boolean; streak: number };
   dailyVerse: DailyVerse | null;
 }
