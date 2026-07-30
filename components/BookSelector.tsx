@@ -29,8 +29,8 @@ export default function BookSelector({
       >
         <option value="" disabled>选择{label}书卷...</option>
         {list.map((book) => (
-          <option key={book.id} value={book.id}>
-            {book.name}{book.imported ? "" : ""}
+          <option key={`${ntFilter ? "nt" : "ot"}-${book.id}`} value={book.id}>
+            {book.name}
           </option>
         ))}
       </select>
