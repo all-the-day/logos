@@ -88,3 +88,11 @@ model Checkin {
 
   @@unique([date])
 }
+
+model Feedback {
+  id        Int      @id @default(autoincrement())
+  type      String   // bug | suggestion | other
+  content   String
+  status    String   @default("open") // open | resolved
+  createdAt DateTime @default(now())
+}

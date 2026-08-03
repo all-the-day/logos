@@ -112,6 +112,8 @@ export default function SettingsClient() {
 
       <StatsCard />
 
+      <FeedbackCard />
+
       <Card>
         <CardHeader><CardTitle>关于</CardTitle></CardHeader>
         <CardContent>
@@ -159,6 +161,125 @@ function StatsCard() {
           </div>
         ) : (
           <p className="text-sm text-muted-foreground">加载中...</p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function FeedbackCard() {
+  const [type, setType] = useState("suggestion");
+  const [content, setContent] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [list, setList] = useState<Array<{ id: number; type: string; content: string; status: string; createdAt: string }>>([]);
+  const [notice, setNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/feedback")
+      .then((r) => r.json())
+      .then((d) => setList(d.feedback || []))
+      .catch(() => {});
+  }, []);
+
+  const handleSubmit = async () => {
+    if (!content.trim()) return;
+    setSubmitting(true);
+    try {
+      const res = await fetch("/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type, content: content.trim() }),
+      });
+      if (res.ok) {
+        setContent("");
+        setNotice("已提交，感谢反馈！");
+        const data = await res.json();
+        setList((prev) => [data.feedback, ...prev]);
+      } else {
+        const data = await res.json().catch(() => null);
+        setNotice(data?.error || "提交失败");
+      }
+    } catch {
+      setNotice("网络错误，提交失败");
+    }
+    setSubmitting(false);
+    setTimeout(() => setNotice(null), 3000);
+  };
+
+  const handleToggle = async (id: number, status: string) => {
+    const newStatus = status === "open" ? "resolved" : "open";
+    await fetch("/api/feedback", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, status: newStatus }),
+    });
+    setList((prev) => prev.map((f) => f.id === id ? { ...f, status: newStatus } : f));
+  };
+
+  const typeLabel: Record<string, string> = { bug: "Bug", suggestion: "优化建议", other: "其他" };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">反馈</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="flex gap-2">
+          <select
+            className="flex-none px-3 py-2 border rounded-md bg-background text-sm"
+            value={type}
+            onChange={(e) => setType(e.target.value)}
+          >
+            <option value="bug">Bug</option>
+            <option value="suggestion">优化建议</option>
+            <option value="other">其他</option>
+          </select>
+          <textarea
+            className="flex-1 px-3 py-2 border rounded-md bg-background text-sm resize-none"
+            rows={2}
+            placeholder="记录你遇到的问题或功能建议..."
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+          />
+        </div>
+        <div className="flex items-center justify-between">
+          {notice ? (
+            <span className="text-xs text-muted-foreground">{notice}</span>
+          ) : <span />}
+          <Button size="sm" disabled={!content.trim() || submitting}
+            onClick={handleSubmit}>
+            {submitting ? "提交中..." : "提交"}
+          </Button>
+        </div>
+
+        {list.length > 0 && (
+          <div className="space-y-2 pt-2 border-t">
+            <p className="text-xs text-muted-foreground">历史反馈 ({list.length})</p>
+            {list.map((f) => (
+              <div key={f.id} className="flex items-start justify-between gap-2 p-2 rounded-md bg-secondary/40">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs px-1.5 py-0.5 rounded bg-primary/10 text-primary">
+                      {typeLabel[f.type] || f.type}
+                    </span>
+                    <span className={`text-xs ${f.status === "open" ? "text-amber-600" : "text-green-600"}`}>
+                      {f.status === "open" ? "待处理" : "已处理"}
+                    </span>
+                  </div>
+                  <p className="text-sm mt-1 whitespace-pre-wrap break-words">{f.content}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {new Date(f.createdAt).toLocaleString("zh-CN")}
+                  </p>
+                </div>
+                <button
+                  className="flex-none text-xs text-muted-foreground hover:text-foreground cursor-pointer"
+                  onClick={() => handleToggle(f.id, f.status)}
+                >
+                  {f.status === "open" ? "标记已处理" : "重开"}
+                </button>
+              </div>
+            ))}
+          </div>
         )}
       </CardContent>
     </Card>
