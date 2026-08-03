@@ -92,7 +92,7 @@ export async function importBookIfNeeded(bookIndex: number): Promise<boolean> {
   });
 
   // KJV 匹配
-  let kjvVerses: Map<string, string> = new Map();
+  const kjvVerses: Map<string, string> = new Map();
   if (kjv) {
     try {
       const kjvBook = kjv.prepare(
