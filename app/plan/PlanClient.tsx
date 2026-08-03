@@ -38,19 +38,28 @@ export default function PlanClient({
   const [selectedBook, setSelectedBook] = useState<number | null>(null);
   const [versesPerDay, setVersesPerDay] = useState(3);
   const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
   const [checkinState, setCheckinState] = useState(checkin);
   const [deleting, setDeleting] = useState(false);
 
   const handleCreate = useCallback(async () => {
     if (!selectedBook) return;
     setCreating(true);
+    setCreateError(null);
     try {
       const res = await fetch("/api/plan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ bookId: selectedBook, versesPerDay }),
       });
-      if (res.ok) window.location.reload();
+      if (res.ok) {
+        window.location.reload();
+      } else {
+        const data = await res.json().catch(() => null);
+        setCreateError(data?.error || `创建失败 (${res.status})`);
+      }
+    } catch (e) {
+      setCreateError(`网络错误：${e instanceof Error ? e.message : "无法连接服务器"}`);
     } finally {
       setCreating(false);
     }
@@ -126,6 +135,9 @@ export default function PlanClient({
               onClick={handleCreate}>
               {creating ? "创建中..." : "开始背诵"}
             </Button>
+            {createError && (
+              <p className="text-sm text-red-600">{createError}</p>
+            )}
           </CardContent>
         </Card>
       </div>
