@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import { BottomNavWrapper } from "@/components/BottomNavWrapper";
-import { SWRegister } from "@/components/SWRegister";
 import { ToastProvider } from "@/components/ToastProvider";
 import "./globals.css";
 
@@ -23,7 +22,6 @@ export default function RootLayout({
     <html lang="zh-CN">
       <body className="antialiased min-h-screen pb-16">
         <ToastProvider>
-        <SWRegister />
         {children}
         <BottomNavWrapper />
         </ToastProvider>

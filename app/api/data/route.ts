@@ -3,7 +3,6 @@ import * as planDb from "@/db/plan";
 import * as cardDb from "@/db/card";
 import * as noteDb from "@/db/note";
 import * as checkinDb from "@/db/checkin";
-import { verifyAdminPin } from "@/lib/admin";
 
 export async function GET() {
   try {
@@ -84,18 +83,7 @@ export async function POST(request: Request) {
   }
 }
 
-export async function DELETE(request: Request) {
-  // 需管理 PIN 验证
-  let pin: unknown = null;
-  try {
-    const text = await request.text();
-    if (text) pin = JSON.parse(text).pin;
-  } catch { /* 无 body 时 pin 保持 null */ }
-
-  if (!verifyAdminPin(pin)) {
-    return NextResponse.json({ error: "需要管理 PIN" }, { status: 401 });
-  }
-
+export async function DELETE() {
   try {
     await cardDb.deleteAllCards();
     await noteDb.deleteAllNotes();
