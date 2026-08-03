@@ -62,8 +62,18 @@ export default function SettingsClient() {
 
   const handleClear = async () => {
     if (!confirm("确定要清除所有数据吗？此操作不可恢复。")) return;
+    const pin = prompt("输入管理 PIN 以确认清除：");
+    if (!pin) return;
     try {
-      await fetch("/api/data", { method: "DELETE" });
+      const res = await fetch("/api/data", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pin }),
+      });
+      if (!res.ok) {
+        toast("PIN 不正确", "error");
+        return;
+      }
       toast("数据已清除", "success");
       setTimeout(() => window.location.reload(), 800);
     } catch {

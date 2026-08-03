@@ -58,9 +58,15 @@ export default function PlanClient({
 
   const handleDelete = useCallback(async () => {
     if (!confirm("确定要删除当前计划吗？")) return;
+    const pin = prompt("输入管理 PIN 以确认删除：");
+    if (!pin) return;
     setDeleting(true);
     try {
-      const res = await fetch("/api/plan", { method: "DELETE" });
+      const res = await fetch("/api/plan", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pin }),
+      });
       if (res.ok) window.location.reload();
     } finally {
       setDeleting(false);
