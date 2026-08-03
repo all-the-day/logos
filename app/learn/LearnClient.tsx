@@ -90,9 +90,7 @@ export default function LearnClient({ plan, tasks }: Props) {
 
   const handleRate = useCallback(
     async (rating: Rating) => {
-      setRatingDone(true);
-      setUndoAvailable(false);
-      undoCardRef.current = null;
+      if (ratingDone) return;
       try {
         // Save current card state for undo before rating
         const res = await fetch(`/api/card?verseId=${task.id}`);
@@ -100,18 +98,22 @@ export default function LearnClient({ plan, tasks }: Props) {
         if (data.cards?.length > 0) {
           undoCardRef.current = data.cards[data.cards.length - 1];
         }
-        await fetch("/api/card", {
+        const rateRes = await fetch("/api/card", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            verseId: task.id,
-            rating,
-          }),
+          body: JSON.stringify({ verseId: task.id, rating }),
         });
+        if (!rateRes.ok) {
+          console.error("评分保存失败", await rateRes.text());
+          return; // 不置 ratingDone，允许重试
+        }
+        setRatingDone(true);
         if (undoCardRef.current) setUndoAvailable(true);
-      } catch { /* ignore */ }
+      } catch (e) {
+        console.error("评分请求异常", e);
+      }
     },
-    [task]
+    [task, ratingDone]
   );
 
   const handleUndo = useCallback(async () => {

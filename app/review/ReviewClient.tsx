@@ -66,9 +66,7 @@ export default function ReviewClient({ cards: initialCards }: Props) {
 
   const handleRate = useCallback(
     async (rating: Rating) => {
-      if (!card) return;
-      setRatingDone(true);
-      setUndoAvailable(false);
+      if (!card || ratingDone) return;
       // Save current card state for undo
       undoCardRef.current = {
         id: card.id,
@@ -81,15 +79,22 @@ export default function ReviewClient({ cards: initialCards }: Props) {
         due: card.due,
       };
       try {
-        await fetch("/api/card", {
+        const res = await fetch("/api/card", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ cardId: card.id, rating }),
         });
+        if (!res.ok) {
+          console.error("评分保存失败", await res.text());
+          return; // 允许重试
+        }
+        setRatingDone(true);
         setUndoAvailable(true);
-      } catch { /* ignore */ }
+      } catch (e) {
+        console.error("评分请求异常", e);
+      }
     },
-    [card]
+    [card, ratingDone]
   );
 
   const handleUndo = useCallback(async () => {

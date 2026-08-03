@@ -28,6 +28,8 @@ function getKjvDb() {
   return kjvDb;
 }
 
+const isChinese = (s: string) => /[\u4e00-\u9fff]/.test(s);
+
 // ── 获取全本 66 卷列表 ────────────────────────────
 export interface BookListItem {
   id: number;
@@ -44,7 +46,6 @@ export function getAllBookList(): BookListItem[] {
   ).all() as { book_index: number; name: string }[];
 
   const seen = new Set<number>();
-  const isChinese = (s: string) => /[\u4e00-\u9fff]/.test(s);
 
   return rows
     .filter((r) => isChinese(r.name) && !seen.has(r.book_index) && seen.add(r.book_index))
@@ -69,27 +70,29 @@ export async function importBookIfNeeded(bookIndex: number): Promise<boolean> {
   const bible = getBibleDb();
   const kjv = getKjvDb();
 
-  // 书卷名称
-  const bookRow = bible.prepare(
-    "SELECT name FROM book_name WHERE book_index = ?"
-  ).get(bookIndex) as { name: string } | undefined;
+  // 书卷名称（只取中文行）
+  const bookRows = bible.prepare(
+    "SELECT name FROM book_name WHERE book_index = ? ORDER BY book_index"
+  ).all(bookIndex) as { name: string }[];
 
-  if (!bookRow) throw new Error(`书卷索引 ${bookIndex} 不存在`);
+  const bookName = bookRows.find((r) => isChinese(r.name))?.name;
+  if (!bookName) throw new Error(`书卷索引 ${bookIndex} 不存在`);
 
   // 经文
   const verses = bible.prepare(
     "SELECT chapter, section, content FROM content WHERE book_index = ? AND flag = 0 ORDER BY chapter, section"
   ).all(bookIndex) as { chapter: number; section: number; content: string }[];
 
+  if (verses.length === 0) throw new Error(`书卷 ${bookName} 无正文数据`);
+
+  // id 公式 bookIndex*100000 + chapter*1000 + section 要求 chapter<1000 且 section<1000
+  const MAX = verses.reduce((m, v) => Math.max(m, v.chapter, v.section), 0);
+  if (MAX >= 1000) throw new Error(`书卷 ${bookName} 章节/节数超限（≥1000）`);
+
   const chapterSet = new Set<number>();
   for (const v of verses) chapterSet.add(v.chapter);
 
-  console.log(`Importing ${bookRow.name} (${verses.length} verses, ${chapterSet.size} chapters)...`);
-
-  // 创建 Book
-  await prisma.book.create({
-    data: { id: bookIndex, name: bookRow.name, chapters: chapterSet.size },
-  });
+  console.log(`Importing ${bookName} (${verses.length} verses, ${chapterSet.size} chapters)...`);
 
   // KJV 匹配
   const kjvVerses: Map<string, string> = new Map();
@@ -107,18 +110,7 @@ export async function importBookIfNeeded(bookIndex: number): Promise<boolean> {
     } catch { /* OK */ }
   }
 
-  // 批量插入经文
-  for (const v of verses) {
-    const id = bookIndex * 100000 + v.chapter * 1000 + v.section;
-    const kjvText = kjvVerses.get(`${v.chapter}:${v.section}`) || null;
-    await prisma.verse.create({
-      data: { id, bookId: bookIndex, chapter: v.chapter, verse: v.section, content: v.content, kjv: kjvText },
-    });
-  }
-
-  // 注解
-  const verseKeys = new Set<string>();
-
+  // ── 注解数据 ──
   const outlines = bible.prepare(
     "SELECT chapter, section, level, outline FROM outline WHERE book_index = ? AND flag = 0 ORDER BY chapter, section, level"
   ).all(bookIndex) as { chapter: number; section: number; level: number; outline: string }[];
@@ -128,7 +120,6 @@ export async function importBookIfNeeded(bookIndex: number): Promise<boolean> {
     const key = `${o.chapter}:${o.section}`;
     if (!outlineMap.has(key)) outlineMap.set(key, []);
     outlineMap.get(key)!.push({ level: o.level, content: o.outline });
-    verseKeys.add(key);
   }
 
   const footnotes = bible.prepare(
@@ -140,7 +131,6 @@ export async function importBookIfNeeded(bookIndex: number): Promise<boolean> {
     const key = `${f.chapter}:${f.section}`;
     if (!footnoteMap.has(key)) footnoteMap.set(key, []);
     footnoteMap.get(key)!.push({ seq: f.seq, content: f.note });
-    verseKeys.add(key);
   }
 
   const beads = bible.prepare(
@@ -152,26 +142,47 @@ export async function importBookIfNeeded(bookIndex: number): Promise<boolean> {
     const key = `${b.chapter}:${b.section}`;
     if (!beadMap.has(key)) beadMap.set(key, []);
     beadMap.get(key)!.push({ ref: b.seq, content: b.bead });
-    verseKeys.add(key);
   }
 
-  let annCount = 0;
-  for (const key of verseKeys) {
+  // 收集注解
+  const annotationKeys = new Set([
+    ...outlineMap.keys(), ...footnoteMap.keys(), ...beadMap.keys(),
+  ]);
+  const annotations: { verseId: number; outline: string | null; footnote: string | null; crossref: string | null }[] = [];
+  for (const key of annotationKeys) {
     const [ch, sec] = key.split(":").map(Number);
     const verseId = bookIndex * 100000 + ch * 1000 + sec;
     const outlineJson = outlineMap.get(key)?.length ? JSON.stringify(outlineMap.get(key)) : null;
     const footnoteJson = footnoteMap.get(key)?.length ? JSON.stringify(footnoteMap.get(key)) : null;
     const beadJson = beadMap.get(key)?.length ? JSON.stringify(beadMap.get(key)) : null;
     if (outlineJson || footnoteJson || beadJson) {
-      await prisma.annotation.upsert({
-        where: { verseId },
-        create: { verseId, outline: outlineJson, footnote: footnoteJson, crossref: beadJson },
-        update: {},
-      });
-      annCount++;
+      annotations.push({ verseId, outline: outlineJson, footnote: footnoteJson, crossref: beadJson });
     }
   }
 
-  console.log(`  ${verses.length} verses, ${annCount} annotated`);
+  // ── 事务导入：Book + Verses + Annotations 原子写入 ──
+  // 失败时整体回滚，不会留下残缺书卷
+  await prisma.$transaction(async (tx) => {
+    await tx.book.create({
+      data: { id: bookIndex, name: bookName, chapters: chapterSet.size },
+    });
+
+    await tx.verse.createMany({
+      data: verses.map((v) => ({
+        id: bookIndex * 100000 + v.chapter * 1000 + v.section,
+        bookId: bookIndex,
+        chapter: v.chapter,
+        verse: v.section,
+        content: v.content,
+        kjv: kjvVerses.get(`${v.chapter}:${v.section}`) || null,
+      })),
+    });
+
+    if (annotations.length > 0) {
+      await tx.annotation.createMany({ data: annotations });
+    }
+  });
+
+  console.log(`  ${verses.length} verses, ${annotations.length} annotated`);
   return true;
 }

@@ -5,14 +5,17 @@ export async function getCardById(cardId: number) {
 }
 
 export async function getCardsForVerse(verseId: number) {
-  return prisma.card.findMany({ where: { verseId } });
+  return prisma.card.findMany({
+    where: { verseId },
+    orderBy: { id: "asc" },
+  });
 }
 
 export async function getDueCards(limit?: number) {
   return prisma.card.findMany({
     where: { due: { lte: new Date() } },
-    orderBy: { stability: "asc" },
-    ...(limit ? { take: limit } : {}),
+    orderBy: [{ stability: "asc" }, { due: "asc" }],
+    take: limit ?? 30, // 单次复习上限，防止整本书全量加载
     include: { verse: true },
   });
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -169,6 +169,20 @@ function ImportBooksCard() {
   const [selectedNt, setSelectedNt] = useState<number>(0);
   const [selectedOt, setSelectedOt] = useState<number>(0);
   const [lastImported, setLastImported] = useState<string | null>(null);
+  const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // 清理未完成的提示定时器
+  useEffect(() => {
+    return () => {
+      if (noticeTimer.current) clearTimeout(noticeTimer.current);
+    };
+  }, []);
+
+  const showNotice = useCallback((msg: string, ms = 3000) => {
+    setLastImported(msg);
+    if (noticeTimer.current) clearTimeout(noticeTimer.current);
+    noticeTimer.current = setTimeout(() => setLastImported(null), ms);
+  }, []);
 
   useEffect(() => {
     fetch("/api/book/import")
@@ -188,13 +202,22 @@ function ImportBooksCard() {
       });
       if (res.ok) {
         setBooks((prev) => prev.map((b) => b.id === bookId ? { ...b, imported: true } : b));
-        setLastImported(name);
-        setTimeout(() => setLastImported(null), 3000);
+        showNotice(name, 3000);
+        // 重置选择，避免选中已消失的选项
+        setSelectedNt(0);
+        setSelectedOt(0);
         router.refresh();
+      } else {
+        const data = await res.json().catch(() => null);
+        console.error("导入失败", data?.error || res.status);
+        showNotice(`导入失败：${data?.error || res.status}`, 4000);
       }
-    } catch { /* ignore */ }
+    } catch (e) {
+      console.error("导入请求异常", e);
+      showNotice("导入失败：网络错误", 4000);
+    }
     setImporting(null);
-  }, [router]);
+  }, [router, showNotice]);
 
   if (loading) {
     return (
@@ -223,7 +246,10 @@ function ImportBooksCard() {
         <p className="text-xs text-muted-foreground">
           已导入 {imported.length}/66 卷
           {lastImported && (
-            <span className="text-green-600 ml-2">✓ {lastImported} 已导入</span>
+            <span className={cn("ml-2", lastImported.startsWith("导入失败") ? "text-red-600" : "text-green-600")}>
+              {lastImported.startsWith("导入失败") ? "✗ " : "✓ "}
+              {lastImported}
+            </span>
           )}
         </p>
         {importing && (
