@@ -27,10 +27,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "缺少参数" }, { status: 400 });
     }
 
-    // Deactivate existing plan
+    // Deactivate existing plan and clean up its cards
     const existing = await planDb.getActivePlan();
     if (existing) {
+      const oldBookId = existing.bookId;
       await planDb.deletePlan(existing.id);
+      // 删除旧书卷的卡片，避免重复累积
+      await cardDb.deleteCardsByBook(oldBookId);
     }
 
     const plan = await planService.initializePlan(bookId, versesPerDay);

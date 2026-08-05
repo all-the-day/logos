@@ -51,7 +51,7 @@ model Plan {
 
 model Card {
   id            Int       @id @default(autoincrement())
-  verseId       Int
+  verseId       Int       @unique
   stability     Float     @default(2.5)
   difficulty    Float     @default(0.3)
   elapsedDays   Int       @default(0)
