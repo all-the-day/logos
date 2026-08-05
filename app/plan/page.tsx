@@ -30,7 +30,7 @@ export default async function PlanPage() {
 
   return (
     <PlanClient
-      user={{ id: user.id, email: user.email, name: user.name, role: user.role }}
+      user={{ id: user.id, username: user.username, name: user.name, role: user.role }}
       planDetails={JSON.parse(JSON.stringify(planDetails))}
       progress={JSON.parse(JSON.stringify(progress))}
       books={JSON.parse(JSON.stringify(books))}

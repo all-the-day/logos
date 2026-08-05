@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 
 interface UserInfo {
   id: number;
-  email: string;
+  username: string;
   name: string;
   role: string;
 }
@@ -26,7 +26,7 @@ export default function AdminClient({ user }: { user: UserInfo }) {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold">后台管理</h1>
-          <p className="text-sm text-muted-foreground">{user.name} · {user.email}</p>
+          <p className="text-sm text-muted-foreground">{user.name} · {user.username}</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={() => router.push("/plan")}>
@@ -45,12 +45,12 @@ export default function AdminClient({ user }: { user: UserInfo }) {
 }
 
 function AccountAdminCard() {
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [creating, setCreating] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
-  const [users, setUsers] = useState<Array<{ id: number; email: string; name: string; role: string; createdAt: string }>>([]);
+  const [users, setUsers] = useState<Array<{ id: number; username: string; name: string; role: string; createdAt: string }>>([]);
 
   useEffect(() => {
     fetch("/api/users")
@@ -60,8 +60,8 @@ function AccountAdminCard() {
   }, []);
 
   const handleCreate = async () => {
-    if (!email || !name || !password) {
-      setNotice("请填写邮箱、昵称和密码");
+    if (!username || !name || !password) {
+      setNotice("请填写账号、昵称和密码");
       setTimeout(() => setNotice(null), 3000);
       return;
     }
@@ -76,12 +76,12 @@ function AccountAdminCard() {
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, name, password }),
+        body: JSON.stringify({ username, name, password }),
       });
       const data = await res.json().catch(() => null);
       if (res.ok) {
         setNotice("账号创建成功");
-        setEmail(""); setName(""); setPassword("");
+        setUsername(""); setName(""); setPassword("");
         const usersRes = await fetch("/api/users");
         const usersData = await usersRes.json();
         setUsers(usersData.users || []);
@@ -103,11 +103,11 @@ function AccountAdminCard() {
       <CardContent className="space-y-3">
         <div className="space-y-2">
           <input
-            type="email"
-            placeholder="邮箱"
+            type="text"
+            placeholder="账号"
             className="w-full px-3 py-2 border rounded-md bg-background text-sm"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
           />
           <input
             type="text"
@@ -138,7 +138,7 @@ function AccountAdminCard() {
               <div key={u.id} className="flex items-center justify-between text-sm p-2 rounded-md bg-secondary/40">
                 <div className="min-w-0">
                   <span className="font-medium">{u.name}</span>
-                  <span className="text-muted-foreground text-xs ml-2">{u.email}</span>
+                  <span className="text-muted-foreground text-xs ml-2">{u.username}</span>
                 </div>
                 <span className={`text-xs ${u.role === "admin" ? "text-primary" : "text-muted-foreground"}`}>
                   {u.role === "admin" ? "管理员" : "用户"}

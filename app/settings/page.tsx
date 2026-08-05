@@ -14,7 +14,7 @@ export default async function SettingsPage() {
 
   return (
     <SettingsClient
-      user={{ id: user.id, email: user.email, name: user.name, role: user.role }}
+      user={{ id: user.id, username: user.username, name: user.name, role: user.role }}
     />
   );
 }

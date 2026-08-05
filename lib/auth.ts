@@ -48,7 +48,7 @@ export async function destroySession(): Promise<void> {
 
 export interface CurrentUser {
   id: number;
-  email: string;
+  username: string;
   name: string;
   role: string;
 }
@@ -67,7 +67,7 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
 
   return {
     id: session.user.id,
-    email: session.user.email,
+    username: session.user.username,
     name: session.user.name,
     role: session.user.role,
   };

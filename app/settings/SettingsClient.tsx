@@ -7,7 +7,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { useToast } from "@/components/ToastProvider";
 import { cn } from "@/lib/utils";
 
-export default function SettingsClient({ user }: { user: { id: number; email: string; name: string; role: string } }) {
+export default function SettingsClient({ user }: { user: { id: number; username: string; name: string; role: string } }) {
   const [exporting, setExporting] = useState(false);
   const [importing, setImporting] = useState(false);
   const { toast } = useToast();
@@ -88,7 +88,7 @@ export default function SettingsClient({ user }: { user: { id: number; email: st
           <div className="flex items-center justify-between">
             <div>
               <div className="font-medium">{user.name}</div>
-              <div className="text-sm text-muted-foreground">{user.email}</div>
+              <div className="text-sm text-muted-foreground">{user.username}</div>
               {user.role === "admin" && (
                 <span className="text-xs px-1.5 py-0.5 rounded bg-primary/10 text-primary">管理员</span>
               )}

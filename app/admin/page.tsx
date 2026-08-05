@@ -14,7 +14,7 @@ export default async function AdminPage() {
 
   return (
     <AdminClient
-      user={{ id: admin.id, email: admin.email, name: admin.name, role: admin.role }}
+      user={{ id: admin.id, username: admin.username, name: admin.name, role: admin.role }}
     />
   );
 }

@@ -16,7 +16,7 @@ import type {
 } from "@/types";
 
 interface PlanClientProps {
-  user: { id: number; email: string; name: string; role: string };
+  user: { id: number; username: string; name: string; role: string };
   planDetails: {
     plan: PlanInfo | null;
     book: BookInfo | null;
