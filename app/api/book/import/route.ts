@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { importBookIfNeeded, getAllBookList } from "@/lib/import-book";
 import { prisma } from "@/lib/prisma";
+import { requireAdmin } from "@/lib/auth";
 
 export async function GET() {
   try {
@@ -20,6 +21,10 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  // 书卷导入是全局数据操作，仅管理员可执行
+  const admin = await requireAdmin();
+  if (!admin) return NextResponse.json({ error: "需要管理员权限" }, { status: 403 });
+
   let bookId: number | null = null;
   try {
     const text = await request.text();

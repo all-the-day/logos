@@ -5,8 +5,12 @@ import {
   RATING,
 } from "@/lib/fsrs";
 import type { FsrsCard, Rating } from "@/lib/fsrs";
+import { requireUser } from "@/lib/auth";
 
 export async function POST(request: Request) {
+  const user = await requireUser();
+  if (!user) return NextResponse.json({ error: "未登录" }, { status: 401 });
+
   try {
     const text = await request.text();
     if (!text) return NextResponse.json({ error: "请求体为空" }, { status: 400 });
@@ -21,12 +25,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "无效评级" }, { status: 400 });
     }
 
-    // Get current card from DB
+    // Get current card from DB (scoped to user)
     let existingCard;
     if (cardId) {
-      existingCard = await cardDb.getCardById(cardId);
+      existingCard = await cardDb.getCardById(cardId, user.id);
     } else if (verseId) {
-      const cards = await cardDb.getCardsForVerse(verseId);
+      const cards = await cardDb.getCardsForVerse(verseId, user.id);
       // Use the most recent card (last in array — ordered by creation)
       existingCard = cards.length > 0 ? cards[cards.length - 1] : null;
     }
@@ -50,8 +54,8 @@ export async function POST(request: Request) {
     // Apply FSRS update
     const updated = updateCard(fsrsCard, rating as Rating);
 
-    // Save to DB (use existingCard.id which is always available)
-    const savedCard = await cardDb.updateCard(existingCard.id, {
+    // Save to DB (scoped to user)
+    const savedCard = await cardDb.updateCard(existingCard.id, user.id, {
       stability: updated.stability,
       difficulty: updated.difficulty,
       reps: updated.reps,
@@ -60,6 +64,10 @@ export async function POST(request: Request) {
       lastReview: updated.lastReview,
       due: updated.due,
     });
+
+    if (!savedCard) {
+      return NextResponse.json({ error: "卡片不存在" }, { status: 404 });
+    }
 
     return NextResponse.json({
       card: savedCard,
@@ -74,16 +82,19 @@ export async function POST(request: Request) {
 }
 
 export async function GET(request: Request) {
+  const user = await requireUser();
+  if (!user) return NextResponse.json({ error: "未登录" }, { status: 401 });
+
   try {
     const { searchParams } = new URL(request.url);
     const verseId = searchParams.get("verseId");
 
     if (verseId) {
-      const cards = await cardDb.getCardsForVerse(parseInt(verseId));
+      const cards = await cardDb.getCardsForVerse(parseInt(verseId), user.id);
       return NextResponse.json({ cards });
     }
 
-    const cards = await cardDb.getDueCards();
+    const cards = await cardDb.getDueCards(user.id);
     return NextResponse.json({ cards });
   } catch (error) {
     const msg = error instanceof Error ? error.message : "获取卡片失败";
@@ -92,6 +103,9 @@ export async function GET(request: Request) {
 }
 
 export async function PUT(request: Request) {
+  const user = await requireUser();
+  if (!user) return NextResponse.json({ error: "未登录" }, { status: 401 });
+
   try {
     const text = await request.text();
     if (!text) return NextResponse.json({ error: "请求体为空" }, { status: 400 });
@@ -101,7 +115,7 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: "缺少 cardId" }, { status: 400 });
     }
 
-    const restored = await cardDb.updateCard(cardId, {
+    const restored = await cardDb.updateCard(cardId, user.id, {
       stability,
       difficulty,
       reps,
@@ -110,6 +124,10 @@ export async function PUT(request: Request) {
       lastReview: lastReview ? new Date(lastReview) : null,
       due: due ? new Date(due) : undefined,
     });
+
+    if (!restored) {
+      return NextResponse.json({ error: "卡片不存在" }, { status: 404 });
+    }
 
     return NextResponse.json({ card: restored });
   } catch (error) {

@@ -7,6 +7,34 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id           Int      @id @default(autoincrement())
+  email        String   @unique
+  name         String
+  passwordHash String
+  role         String   @default("user") // user | admin
+  createdAt    DateTime @default(now())
+
+  plans     Plan[]
+  cards     Card[]
+  notes     Note[]
+  checkins  Checkin[]
+  feedbacks Feedback[]
+  sessions  Session[]
+}
+
+model Session {
+  id        Int      @id @default(autoincrement())
+  token     String   @unique
+  userId    Int
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+}
+
 model Book {
   id       Int     @id
   name     String
@@ -41,17 +69,23 @@ model Annotation {
 
 model Plan {
   id           Int      @id @default(autoincrement())
+  userId       Int
   bookId       Int
   versesPerDay Int      @default(3)
   startDate    DateTime @default(now())
   status       String   @default("active")
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
 }
 
 model Card {
   id            Int       @id @default(autoincrement())
-  verseId       Int       @unique
+  userId        Int
+  verseId       Int
   stability     Float     @default(2.5)
   difficulty    Float     @default(0.3)
   elapsedDays   Int       @default(0)
@@ -63,36 +97,52 @@ model Card {
   due           DateTime  @default(now())
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
-  verse         Verse     @relation(fields: [verseId], references: [id])
 
+  verse Verse @relation(fields: [verseId], references: [id])
+  user  User  @relation(fields: [userId], references: [id])
+
+  @@unique([userId, verseId])
   @@index([due])
   @@index([verseId])
+  @@index([userId])
 }
 
 model Note {
   id        Int      @id @default(autoincrement())
+  userId    Int
   verseId   Int
   content   String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  verse     Verse    @relation(fields: [verseId], references: [id])
+
+  verse Verse @relation(fields: [verseId], references: [id])
+  user  User  @relation(fields: [userId], references: [id])
 
   @@index([verseId])
+  @@index([userId])
 }
 
 model Checkin {
   id        Int      @id @default(autoincrement())
+  userId    Int
   date      String
   verseText String?
   createdAt DateTime @default(now())
 
-  @@unique([date])
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, date])
 }
 
 model Feedback {
   id        Int      @id @default(autoincrement())
+  userId    Int
   type      String   // bug | suggestion | other
   content   String
   status    String   @default("open") // open | resolved
   createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
 }

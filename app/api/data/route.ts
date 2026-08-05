@@ -3,13 +3,17 @@ import * as planDb from "@/db/plan";
 import * as cardDb from "@/db/card";
 import * as noteDb from "@/db/note";
 import * as checkinDb from "@/db/checkin";
+import { requireUser } from "@/lib/auth";
 
 export async function GET() {
+  const user = await requireUser();
+  if (!user) return NextResponse.json({ error: "未登录" }, { status: 401 });
+
   try {
-    const plan = await planDb.getActivePlan();
-    const cards = await cardDb.getAllCards();
-    const notes = await noteDb.getAllNotes();
-    const checkins = await checkinDb.getAllCheckins();
+    const plan = await planDb.getActivePlan(user.id);
+    const cards = await cardDb.getAllCards(user.id);
+    const notes = await noteDb.getAllNotes(user.id);
+    const checkins = await checkinDb.getAllCheckins(user.id);
 
     const data = { plan, cards, notes, checkins, exportedAt: new Date().toISOString() };
     return NextResponse.json(data);
@@ -20,30 +24,33 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const user = await requireUser();
+  if (!user) return NextResponse.json({ error: "未登录" }, { status: 401 });
+
   try {
     const text = await request.text();
     if (!text) return NextResponse.json({ error: "请求体为空" }, { status: 400 });
     const data = JSON.parse(text);
 
     if (data.plan) {
-      const existing = await planDb.getActivePlan();
-      if (existing) await planDb.deletePlan(existing.id);
-      await planDb.createPlan(data.plan.bookId, data.plan.versesPerDay);
+      const existing = await planDb.getActivePlan(user.id);
+      if (existing) await planDb.deletePlan(existing.id, user.id);
+      await planDb.createPlan(user.id, data.plan.bookId, data.plan.versesPerDay);
     }
 
     if (data.cards && Array.isArray(data.cards)) {
-      const existingCardIds = (await cardDb.getAllCards()).map((c) => c.verseId);
+      const existingCardIds = (await cardDb.getAllCards(user.id)).map((c) => c.verseId);
       for (const c of data.cards) {
         // Skip if card for this verse already exists
         if (existingCardIds.includes(c.verseId)) continue;
         try {
-          await cardDb.createCard(c.verseId);
+          await cardDb.createCard(user.id, c.verseId);
           // Restore FSRS state if available
           if (c.stability !== undefined || c.state !== undefined) {
-            const cards = await cardDb.getCardsForVerse(c.verseId);
+            const cards = await cardDb.getCardsForVerse(c.verseId, user.id);
             const card = cards[cards.length - 1];
             if (card) {
-              await cardDb.updateCard(card.id, {
+              await cardDb.updateCard(card.id, user.id, {
                 stability: c.stability ?? card.stability,
                 difficulty: c.difficulty ?? card.difficulty,
                 reps: c.reps ?? card.reps,
@@ -62,7 +69,7 @@ export async function POST(request: Request) {
       for (const n of data.notes) {
         if (!n.verseId || !n.content) continue;
         try {
-          await noteDb.createNote(n.verseId, n.content);
+          await noteDb.createNote(user.id, n.verseId, n.content);
         } catch { /* skip duplicates */ }
       }
     }
@@ -71,7 +78,7 @@ export async function POST(request: Request) {
       for (const c of data.checkins) {
         if (!c.date) continue;
         try {
-          await checkinDb.createCheckin(c.date, c.verseText);
+          await checkinDb.createCheckin(user.id, c.date, c.verseText);
         } catch { /* skip duplicates */ }
       }
     }
@@ -84,11 +91,14 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE() {
+  const user = await requireUser();
+  if (!user) return NextResponse.json({ error: "未登录" }, { status: 401 });
+
   try {
-    await cardDb.deleteAllCards();
-    await noteDb.deleteAllNotes();
-    await checkinDb.deleteAllCheckins();
-    await planDb.deleteAllPlans();
+    await cardDb.deleteAllCards(user.id);
+    await noteDb.deleteAllNotes(user.id);
+    await checkinDb.deleteAllCheckins(user.id);
+    await planDb.deleteAllPlans(user.id);
     return NextResponse.json({ success: true });
   } catch (error) {
     const msg = error instanceof Error ? error.message : "清除失败";

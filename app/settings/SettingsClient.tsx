@@ -7,10 +7,15 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { useToast } from "@/components/ToastProvider";
 import { cn } from "@/lib/utils";
 
-export default function SettingsClient() {
+export default function SettingsClient({ user }: { user: { id: number; email: string; name: string; role: string } }) {
   const [exporting, setExporting] = useState(false);
   const [importing, setImporting] = useState(false);
   const { toast } = useToast();
+
+  const handleLogout = async () => {
+    await fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
+    window.location.href = "/login";
+  };
 
   const handleExport = async () => {
     setExporting(true);
@@ -77,6 +82,25 @@ export default function SettingsClient() {
 
   return (
     <div className="max-w-lg mx-auto p-4 space-y-4">
+
+      <Card>
+        <CardContent className="pt-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="font-medium">{user.name}</div>
+              <div className="text-sm text-muted-foreground">{user.email}</div>
+              {user.role === "admin" && (
+                <span className="text-xs px-1.5 py-0.5 rounded bg-primary/10 text-primary">管理员</span>
+              )}
+            </div>
+            <Button variant="outline" size="sm" onClick={handleLogout}>
+              退出登录
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {user.role === "admin" && <AccountAdminCard />}
 
       <ImportBooksCard />
 
@@ -450,6 +474,103 @@ function ImportBooksCard() {
                 </Button>
               </div>
             )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function AccountAdminCard() {
+  const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
+  const [password, setPassword] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [users, setUsers] = useState<Array<{ id: number; email: string; name: string; role: string; createdAt: string }>>([]);
+
+  useEffect(() => {
+    fetch("/api/users")
+      .then((r) => r.json())
+      .then((d) => setUsers(d.users || []))
+      .catch(() => {});
+  }, []);
+
+  const handleCreate = async () => {
+    if (!email || !name || !password) return;
+    setCreating(true);
+    setNotice(null);
+    try {
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, name, password }),
+      });
+      const data = await res.json().catch(() => null);
+      if (res.ok) {
+        setNotice("账号创建成功");
+        setEmail(""); setName(""); setPassword("");
+        const usersRes = await fetch("/api/users");
+        const usersData = await usersRes.json();
+        setUsers(usersData.users || []);
+      } else {
+        setNotice(data?.error || "创建失败");
+      }
+    } catch {
+      setNotice("网络错误");
+    }
+    setCreating(false);
+    setTimeout(() => setNotice(null), 3000);
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">账号管理</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="space-y-2">
+          <input
+            type="email"
+            placeholder="邮箱"
+            className="w-full px-3 py-2 border rounded-md bg-background text-sm"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+          <input
+            type="text"
+            placeholder="昵称"
+            className="w-full px-3 py-2 border rounded-md bg-background text-sm"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+          <input
+            type="password"
+            placeholder="初始密码（至少 6 位）"
+            className="w-full px-3 py-2 border rounded-md bg-background text-sm"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+          <Button className="w-full" size="sm" onClick={handleCreate} disabled={creating}>
+            {creating ? "创建中..." : "创建账号"}
+          </Button>
+          {notice && <p className="text-xs text-muted-foreground">{notice}</p>}
+        </div>
+
+        {users.length > 0 && (
+          <div className="space-y-1.5 pt-2 border-t">
+            <p className="text-xs text-muted-foreground">用户列表 ({users.length})</p>
+            {users.map((u) => (
+              <div key={u.id} className="flex items-center justify-between text-sm p-2 rounded-md bg-secondary/40">
+                <div className="min-w-0">
+                  <span className="font-medium">{u.name}</span>
+                  <span className="text-muted-foreground text-xs ml-2">{u.email}</span>
+                </div>
+                <span className={`text-xs ${u.role === "admin" ? "text-primary" : "text-muted-foreground"}`}>
+                  {u.role === "admin" ? "管理员" : "用户"}
+                </span>
+              </div>
+            ))}
           </div>
         )}
       </CardContent>

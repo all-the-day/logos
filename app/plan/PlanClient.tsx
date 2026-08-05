@@ -16,6 +16,7 @@ import type {
 } from "@/types";
 
 interface PlanClientProps {
+  user: { id: number; email: string; name: string; role: string };
   planDetails: {
     plan: PlanInfo | null;
     book: BookInfo | null;
@@ -29,6 +30,7 @@ interface PlanClientProps {
 }
 
 export default function PlanClient({
+  user,
   planDetails,
   progress,
   books,
@@ -84,6 +86,11 @@ export default function PlanClient({
         setCheckinState({ checkedIn: true, streak: data.streak });
       }
     } catch { /* ignore */ }
+  }, []);
+
+  const handleLogout = useCallback(async () => {
+    await fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
+    window.location.href = "/login";
   }, []);
 
   if (!planDetails?.plan) {
@@ -142,6 +149,16 @@ export default function PlanClient({
 
   return (
     <div className="max-w-lg mx-auto px-4 pt-4 flex flex-col min-h-[calc(100vh-5rem)] space-y-4">
+
+      <div className="flex items-center justify-between text-sm">
+        <span className="text-muted-foreground">{user.name}</span>
+        <button
+          className="text-xs text-muted-foreground hover:text-foreground cursor-pointer"
+          onClick={handleLogout}
+        >
+          退出登录
+        </button>
+      </div>
 
       {!checkinState.checkedIn ? (
         <Card>

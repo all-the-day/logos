@@ -1,34 +1,31 @@
 import { prisma } from "@/lib/prisma";
 
-export async function getNotesByVerse(verseId: number) {
+export async function getNotesByVerse(verseId: number, userId: number) {
   return prisma.note.findMany({
-    where: { verseId },
+    where: { verseId, userId },
     orderBy: { createdAt: "desc" },
   });
 }
 
-export async function getAllNotes() {
+export async function getAllNotes(userId: number) {
   return prisma.note.findMany({
-    include: { verse: true },
+    where: { userId },
     orderBy: { createdAt: "desc" },
   });
 }
 
-export async function createNote(verseId: number, content: string) {
-  return prisma.note.create({ data: { verseId, content } });
+export async function createNote(userId: number, verseId: number, content: string) {
+  return prisma.note.create({ data: { userId, verseId, content } });
 }
 
-export async function deleteNote(noteId: number) {
-  return prisma.note.delete({ where: { id: noteId } });
+export async function deleteNote(noteId: number, userId: number) {
+  return prisma.note.deleteMany({ where: { id: noteId, userId } });
 }
 
-export async function updateNote(noteId: number, content: string) {
-  return prisma.note.update({
-    where: { id: noteId },
-    data: { content },
-  });
+export async function updateNote(noteId: number, userId: number, content: string) {
+  return prisma.note.updateMany({ where: { id: noteId, userId }, data: { content } });
 }
 
-export async function deleteAllNotes() {
-  return prisma.note.deleteMany();
+export async function deleteAllNotes(userId: number) {
+  return prisma.note.deleteMany({ where: { userId } });
 }

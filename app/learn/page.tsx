@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import * as learnService from "@/services/learn";
+import { requireUser } from "@/lib/auth";
 import LearnClient from "./LearnClient";
 
 export const metadata: Metadata = {
@@ -7,7 +9,10 @@ export const metadata: Metadata = {
 };
 
 export default async function LearnPage() {
-  const result = await learnService.getTodayTasks();
+  const user = await requireUser();
+  if (!user) redirect("/login");
+
+  const result = await learnService.getTodayTasks(user.id);
 
   return (
     <LearnClient

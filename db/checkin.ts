@@ -1,20 +1,21 @@
 import { prisma } from "@/lib/prisma";
 import { getDateString } from "@/lib/date";
 
-export async function getCheckinByDate(date: string) {
-  return prisma.checkin.findUnique({ where: { date } });
+export async function getCheckinByDate(date: string, userId: number) {
+  return prisma.checkin.findUnique({ where: { userId_date: { userId, date } } });
 }
 
-export async function getAllCheckins() {
-  return prisma.checkin.findMany({ orderBy: { date: "desc" } });
+export async function getAllCheckins(userId: number) {
+  return prisma.checkin.findMany({ where: { userId }, orderBy: { date: "desc" } });
 }
 
-export async function createCheckin(date: string, verseText?: string) {
-  return prisma.checkin.create({ data: { date, verseText } });
+export async function createCheckin(userId: number, date: string, verseText?: string) {
+  return prisma.checkin.create({ data: { userId, date, verseText } });
 }
 
-export async function getCheckinStreak(): Promise<number> {
+export async function getCheckinStreak(userId: number): Promise<number> {
   const checkins = await prisma.checkin.findMany({
+    where: { userId },
     orderBy: { date: "desc" },
   });
   if (checkins.length === 0) return 0;
@@ -36,6 +37,6 @@ export async function getCheckinStreak(): Promise<number> {
   return streak;
 }
 
-export async function deleteAllCheckins() {
-  return prisma.checkin.deleteMany();
+export async function deleteAllCheckins(userId: number) {
+  return prisma.checkin.deleteMany({ where: { userId } });
 }

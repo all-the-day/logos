@@ -3,8 +3,8 @@ import * as verseDb from "@/db/verse";
 import * as cardDb from "@/db/card";
 import { getTodayString } from "@/lib/date";
 
-export async function getTodayTasks() {
-  const plan = await planDb.getActivePlan();
+export async function getTodayTasks(userId: number) {
+  const plan = await planDb.getActivePlan(userId);
   if (!plan) return { plan: null, tasks: [] };
 
   const today = getTodayString();
