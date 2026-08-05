@@ -60,7 +60,16 @@ function AccountAdminCard() {
   }, []);
 
   const handleCreate = async () => {
-    if (!email || !name || !password) return;
+    if (!email || !name || !password) {
+      setNotice("请填写邮箱、昵称和密码");
+      setTimeout(() => setNotice(null), 3000);
+      return;
+    }
+    if (password.length < 6) {
+      setNotice("密码至少 6 位");
+      setTimeout(() => setNotice(null), 3000);
+      return;
+    }
     setCreating(true);
     setNotice(null);
     try {
@@ -117,7 +126,9 @@ function AccountAdminCard() {
           <Button className="w-full" size="sm" onClick={handleCreate} disabled={creating}>
             {creating ? "创建中..." : "创建账号"}
           </Button>
-          {notice && <p className="text-xs text-muted-foreground">{notice}</p>}
+          {notice && (
+            <p className={`text-sm ${notice.includes("成功") ? "text-green-600" : "text-red-600"}`}>{notice}</p>
+          )}
         </div>
 
         {users.length > 0 && (
