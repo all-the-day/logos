@@ -185,36 +185,28 @@ npm run db:studio   # Prisma 数据库管理界面
 
 | 项 | 值 |
 |----|-----|
-| 服务器 IP | 124.222.74.115 |
+| 服务器 IP | 101.132.34.193（rike，腾讯云） |
 | SSH | root / password auth |
 | 应用路径 | /root/logos |
-| PM2 进程名 | logos |
-| 内部端口 | 3000 |
-| Caddy 代理 | :8443 → 127.0.0.1:3000 (TLS, self-signed) |
-| 访问 URL | https://124.222.74.115:8443 |
+| PM2 进程名 | logos（pm2 需完整路径，node 在 nvm） |
+| 内部端口 | 3001 |
+| Caddy 代理 | logos.duoban.xyz → 127.0.0.1:3001（Let's Encrypt） |
+| 访问 URL | https://logos.duoban.xyz |
 | Git 仓库 | https://github.com/all-the-day/logos |
+
+> 旧服务器 124.222.74.115 已弃用（自签名证书问题），访问走域名 logos.duoban.xyz。
 
 ### 部署流程
 
 ```bash
-# 方式 1：本地 skill 一键部署
-python .codebuddy/skills/server-ops/scripts/server-ops.py deploy
-
-# 方式 2：手动 SSH
-ssh root@124.222.74.115
-cd /root/logos
-git pull && npm install && npm run build && pm2 restart logos
+# 本地 skill 一键部署（自动处理 nvm PATH / prisma generate）
+python D:/coder/aiWorkSpace/server-ops/server-ops.py deploy
+python D:/coder/aiWorkSpace/server-ops/server-ops.py -s logos status
 ```
 
-### 可用 skill 命令
+### 服务器差异注意
 
-```bash
-python .codebuddy/skills/server-ops/scripts/server-ops.py status   # 查看状态
-python .codebuddy/skills/server-ops/scripts/server-ops.py deploy   # 一键部署
-python .codebuddy/skills/server-ops/scripts/server-ops.py logs     # 查看日志
-python .codebuddy/skills/server-ops/scripts/server-ops.py seed     # 重新导入数据
-```
-
-### MCP（备用）
-
-已配置 `ssh-mcp-server`（`~/.codebuddy/.mcp.json` + `.mcp.json`），需要重启 CodeBuddy 生效。当前用 paramiko skill 替代。
+- rike 上 node 装在 nvm（v22.22.3），pm2 不在 PATH，脚本已通过 `node_prefix` 处理
+- 应用端口 3001（3000 被 duoban.xyz 主站占用）
+- 有真实域名 → Caddy 自动签 Let's Encrypt 证书，HTTPS/SW 正常
+- 部署脚本含 `prisma db push + generate` 步骤（schema 变更时必需）
