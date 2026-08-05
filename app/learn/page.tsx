@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+export const dynamic = "force-dynamic";
 import { redirect } from "next/navigation";
 import * as learnService from "@/services/learn";
 import { requireUser } from "@/lib/auth";

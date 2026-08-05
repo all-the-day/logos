@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+export const dynamic = "force-dynamic";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import AdminClient from "./AdminClient";

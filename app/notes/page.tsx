@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+export const dynamic = "force-dynamic";
 import { redirect } from "next/navigation";
 import * as noteDb from "@/db/note";
 import * as verseDb from "@/db/verse";
