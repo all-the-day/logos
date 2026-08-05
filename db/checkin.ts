@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { getDateString } from "@/lib/date";
 
 export async function getCheckinByDate(date: string) {
   return prisma.checkin.findUnique({ where: { date } });
@@ -23,7 +24,7 @@ export async function getCheckinStreak(): Promise<number> {
   for (let i = 0; i < 365; i++) {
     const d = new Date(today);
     d.setDate(d.getDate() - i);
-    const dateStr = d.toISOString().split("T")[0];
+    const dateStr = getDateString(d); // 本地时间，避免 UTC 错位
     if (checkins.some((c) => c.date === dateStr)) {
       streak++;
     } else if (i === 0) {
