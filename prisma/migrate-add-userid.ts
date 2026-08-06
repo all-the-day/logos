@@ -1,6 +1,7 @@
-// 一次性迁移：给老表补 userId 列并指向第一个用户
-// 仅在 "Added the required column `userId`" 报错时执行
-// 手动加载 .env（避免依赖 dotenv 包）
+// 一次性迁移：把 pre-auth 时代的 DB 升级到多用户 schema
+// 1. 创建 User 表 + 插入占位用户
+// 2. 创建 Session 表
+// 3. 给 Card/Plan/Feedback/Note/Checkin 加 userId 列（NOT NULL DEFAULT 1）
 import { readFileSync } from "fs";
 import { PrismaClient } from "@prisma/client";
 
@@ -14,40 +15,84 @@ try {
   }
 } catch {}
 
-if (!process.env.DATABASE_URL) {
-  throw new Error("DATABASE_URL 未设置，请先 source .env 或手动 export");
-}
-
 const p = new PrismaClient();
 
-(async () => {
-  // 找到第一个用户（新数据归它）
-  const firstUser = await p.user.findFirst({ orderBy: { id: "asc" } });
-  if (!firstUser) {
-    throw new Error("无用户存在，请先创建用户再迁移");
-  }
-  const uid = firstUser.id;
-  console.log(`Will assign userId=${uid} (${firstUser.username}) to legacy rows`);
+async function tableExists(name: string): Promise<boolean> {
+  const rows = await p.$queryRawUnsafe<any[]>(
+    `SELECT name FROM sqlite_master WHERE type='table' AND name='${name}'`
+  );
+  return rows.length > 0;
+}
 
-  const tables = ["Card", "Plan", "Feedback"];
+async function columnExists(table: string, col: string): Promise<boolean> {
+  const cols = await p.$queryRawUnsafe<any[]>(`PRAGMA table_info(${table})`);
+  return cols.some((c: any) => c.name === col);
+}
+
+(async () => {
+  // 1) User 表
+  if (!(await tableExists("User"))) {
+    await p.$executeRawUnsafe(`
+      CREATE TABLE User (
+        id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+        username TEXT NOT NULL UNIQUE,
+        name TEXT NOT NULL,
+        passwordHash TEXT NOT NULL,
+        role TEXT NOT NULL DEFAULT 'user',
+        createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    console.log("User table created");
+  } else {
+    console.log("User table exists");
+  }
+
+  // 2) Session 表
+  if (!(await tableExists("Session"))) {
+    await p.$executeRawUnsafe(`
+      CREATE TABLE Session (
+        id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+        token TEXT NOT NULL UNIQUE,
+        userId INTEGER NOT NULL,
+        expiresAt DATETIME NOT NULL,
+        createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    await p.$executeRawUnsafe(`CREATE INDEX Session_userId_idx ON Session(userId)`);
+    console.log("Session table created");
+  } else {
+    console.log("Session table exists");
+  }
+
+  // 3) 占位用户
+  const existing = await p.$queryRawUnsafe<any[]>(
+    `SELECT id FROM User WHERE id=1`
+  );
+  if (existing.length === 0) {
+    const passwordHash =
+      // 与注册时生成的格式兼容：使用 argon2 之外的占位（不会登录）
+      "legacy-migration-placeholder";
+    await p.$executeRawUnsafe(
+      `INSERT INTO User (id, username, name, passwordHash, role) VALUES (1, 'legacy', '历史数据占位', ?, 'user')`
+    );
+    console.log("Placeholder User (id=1) created");
+  } else {
+    console.log("User id=1 exists");
+  }
+
+  // 4) 给老表加 userId
+  const tables = ["Card", "Plan", "Feedback", "Note", "Checkin"];
   for (const t of tables) {
-    try {
+    if (await columnExists(t, "userId")) {
+      console.log(`${t}.userId already exists`);
+    } else {
       await p.$executeRawUnsafe(
-        `ALTER TABLE ${t} ADD COLUMN userId INTEGER NOT NULL DEFAULT ${uid}`
+        `ALTER TABLE ${t} ADD COLUMN userId INTEGER NOT NULL DEFAULT 1`
       );
-      console.log(`${t}.userId added (default ${uid})`);
-    } catch (e) {
-      if (e.message.includes("duplicate column")) {
-        console.log(`${t}.userId already exists`);
-      } else {
-        throw e;
-      }
+      console.log(`${t}.userId added (default 1)`);
     }
   }
 
-  const cards = await p.card.count();
-  const plans = await p.plan.count();
-  console.log(`Migration done. Cards: ${cards}, Plans: ${plans}`);
-
+  console.log("Migration complete.");
   await p.$disconnect();
 })();
