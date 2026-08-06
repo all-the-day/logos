@@ -69,11 +69,9 @@ async function columnExists(table: string, col: string): Promise<boolean> {
     `SELECT id FROM User WHERE id=1`
   );
   if (existing.length === 0) {
-    const passwordHash =
-      // 与注册时生成的格式兼容：使用 argon2 之外的占位（不会登录）
-      "legacy-migration-placeholder";
+    const passwordHash = "legacy-migration-placeholder";
     await p.$executeRawUnsafe(
-      `INSERT INTO User (id, username, name, passwordHash, role) VALUES (1, 'legacy', '历史数据占位', ?, 'user')`
+      `INSERT INTO User (id, username, name, passwordHash, role) VALUES (1, 'legacy', '历史数据占位', '${passwordHash}', 'user')`
     );
     console.log("Placeholder User (id=1) created");
   } else {
