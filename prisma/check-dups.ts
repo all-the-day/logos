@@ -9,10 +9,10 @@ const p = new PrismaClient();
     `SELECT COUNT(DISTINCT verseId) as v FROM Card`
   );
   console.log("total cards:", total);
-  console.log("distinct verses:", JSON.stringify(verses));
+  console.log("distinct verses:", String(verses[0]?.v));
   console.log("duplicates:", dups.length);
   if (dups.length > 0) {
-    console.log("first 5 dups:", JSON.stringify(dups.slice(0, 5)));
+    console.log("first 5 dups:", JSON.stringify(dups.slice(0, 5), (_, v) => typeof v === 'bigint' ? v.toString() : v));
   }
   await p.$disconnect();
 })();
