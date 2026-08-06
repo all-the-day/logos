@@ -1,6 +1,23 @@
 // 一次性迁移：给老表补 userId 列并指向第一个用户
 // 仅在 "Added the required column `userId`" 报错时执行
-const { PrismaClient } = require("@prisma/client");
+// 手动加载 .env（避免依赖 dotenv 包）
+import { readFileSync } from "fs";
+import { PrismaClient } from "@prisma/client";
+
+try {
+  const envText = readFileSync(".env", "utf-8");
+  for (const line of envText.split("\n")) {
+    const m = line.match(/^([A-Z_][A-Z0-9_]*)\s*=\s*(.*)$/);
+    if (m && !process.env[m[1]]) {
+      process.env[m[1]] = m[2].replace(/^['"]|['"]$/g, "");
+    }
+  }
+} catch {}
+
+if (!process.env.DATABASE_URL) {
+  throw new Error("DATABASE_URL 未设置，请先 source .env 或手动 export");
+}
+
 const p = new PrismaClient();
 
 (async () => {
