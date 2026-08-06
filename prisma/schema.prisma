@@ -86,8 +86,8 @@ model Card {
   id            Int       @id @default(autoincrement())
   userId        Int
   verseId       Int
-  stability     Float     @default(2.5)
-  difficulty    Float     @default(0.3)
+  stability     Float     @default(2.0)  // FSRS 新卡初始值，对应 lib/fsrs.ts INITIAL_STABILITY
+  difficulty    Float     @default(5.0)  // FSRS 难度 1-10 中位，对应 INITIAL_DIFFICULTY
   elapsedDays   Int       @default(0)
   scheduledDays Int       @default(0)
   reps          Int       @default(0)

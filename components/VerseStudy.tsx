@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { RATING } from "@/lib/fsrs";
 import { generateFillBlanks } from "@/lib/compare";
+import { cn } from "@/lib/utils";
 import AnnotationPanel from "./AnnotationPanel";
 import VerseNotes from "./VerseNotes";
 import type { DiffSegment } from "@/lib/compare";
@@ -134,6 +135,7 @@ export function VerseResult({
   nextLabel,
   verseId,
   onUndo,
+  recommendedRating,
 }: {
   verse: VerseRef;
   segments: DiffSegment[];
@@ -144,6 +146,7 @@ export function VerseResult({
   nextLabel?: string;
   verseId?: number;
   onUndo?: () => void;
+  recommendedRating?: Rating;
 }) {
   return (
     <div className="space-y-4">
@@ -191,17 +194,22 @@ export function VerseResult({
             <div className="grid grid-cols-4 gap-2">
               {([RATING.AGAIN, RATING.HARD, RATING.GOOD, RATING.EASY] as Rating[]).map((r) => {
                 const labels: Record<number, string> = { 1: "忘记", 2: "困难", 3: "正确", 4: "容易" };
+                const isRecommended = recommendedRating === r;
                 return (
-                  <Button key={r} variant={r === RATING.GOOD ? "default" : "outline"}
-                    onClick={() => onRate(r)} className="flex-col py-4 h-auto">
-                    <span>{labels[r]}</span>
+                  <Button
+                    key={r}
+                    variant={isRecommended ? "default" : "outline"}
+                    onClick={() => onRate(r)}
+                    className={cn("flex-col py-4 h-auto", isRecommended && "ring-2 ring-primary ring-offset-2")}
+                  >
+                    <span>{labels[r]}{isRecommended && " ★"}</span>
                     <span className="text-xs text-muted-foreground mt-1">{r}</span>
                   </Button>
                 );
               })}
             </div>
             <p className="text-xs text-muted-foreground text-center mt-3">
-              按 1-4 评分 · 空格跳过
+              {recommendedRating ? "★ 智能推荐 · 按 1-4 评分 · 空格跳过" : "按 1-4 评分 · 空格跳过"}
             </p>
           </CardContent>
         </Card>

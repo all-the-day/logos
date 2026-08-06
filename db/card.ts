@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { INITIAL_STABILITY, INITIAL_DIFFICULTY } from "@/lib/fsrs";
 
 export async function getCardById(cardId: number, userId: number) {
   return prisma.card.findFirst({ where: { id: cardId, userId } });
@@ -53,12 +54,24 @@ export async function updateCard(
 }
 
 export async function createCard(userId: number, verseId: number) {
-  return prisma.card.create({ data: { userId, verseId } });
+  return prisma.card.create({
+    data: {
+      userId,
+      verseId,
+      stability: INITIAL_STABILITY,
+      difficulty: INITIAL_DIFFICULTY,
+    },
+  });
 }
 
 export async function createCards(userId: number, verseIds: number[]) {
   return prisma.card.createMany({
-    data: verseIds.map((verseId) => ({ userId, verseId })),
+    data: verseIds.map((verseId) => ({
+      userId,
+      verseId,
+      stability: INITIAL_STABILITY,
+      difficulty: INITIAL_DIFFICULTY,
+    })),
   });
 }
 

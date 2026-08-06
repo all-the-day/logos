@@ -14,6 +14,18 @@ export interface VerseData {
   kjv: string | null;
 }
 
+// 学习任务：verse 字段 + 卡片状态，供 UI 用
+export interface TaskData extends VerseData {
+  cardId: number;
+  cardState: string;
+  cardStability: number;
+  cardDifficulty: number;
+  cardReps: number;
+  cardLapses: number;
+  cardLastReview: Date | null;
+  cardDue: Date;
+}
+
 // Plan
 export interface PlanInfo {
   id: number;

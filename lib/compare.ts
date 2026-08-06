@@ -112,10 +112,14 @@ export interface CompareResult {
   accuracy: number;
 }
 
+/**
+ * 比对经文，返回分段差异与准确率。
+ * 默认忽略标点与空白差异——中文标点（、，；。：）和英文逗号句号混用是常态。
+ */
 export function compareVerse(
   userInput: string,
   original: string,
-  ignorePunctuation = false
+  ignorePunctuation: boolean = true
 ): CompareResult {
   const u = normalize(userInput, ignorePunctuation);
   const o = normalize(original, ignorePunctuation);
@@ -130,7 +134,10 @@ export function compareVerse(
   return { segments, accuracy };
 }
 
-export function generateFillBlanks(text: string): {
+export function generateFillBlanks(
+  text: string,
+  density: number = 0.33
+): {
   display: string;
   blanks: string[];
 } {
@@ -140,9 +147,12 @@ export function generateFillBlanks(text: string): {
   }
   if (chars.length === 0) return { display: text, blanks: [] };
 
+  // density=0.5 → 挖 1/2；0.33 → 1/3；0.2 → 1/5；0.1 → 1/10
+  const step = density > 0 ? Math.max(1, Math.round(1 / density)) : 1;
+  const startOffset = Math.max(0, step - 1);
+
   const blankCharIndices = new Set<number>();
-  // Deterministic selection: blank every 3rd non-space character starting from index 2
-  for (let i = 2; i < chars.length; i += 3) {
+  for (let i = startOffset; i < chars.length; i += step) {
     blankCharIndices.add(i);
   }
 
@@ -164,4 +174,22 @@ export function generateFillBlanks(text: string): {
   }
 
   return { display, blanks };
+}
+
+/**
+ * 根据卡片稳定性与状态返回填空密度。
+ * - 未学（new）：0.1（极轻提示，几乎不挖）
+ * - 学习中（< 5 天）：0.2
+ * - 复习期（5-20 天）：0.33
+ * - 已掌握（≥ 21 天）：0.5（深挖）
+ */
+export function densityForStability(
+  stability: number,
+  state: string
+): number {
+  if (state === "new") return 0.1;
+  if (stability >= 21) return 0.5;
+  if (stability >= 5) return 0.33;
+  if (stability >= 1) return 0.2;
+  return 0.1;
 }

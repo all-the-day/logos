@@ -44,6 +44,10 @@ const MAX_INTERVAL = 1825; // 5 年
 const LEARNING_THRESHOLD = 3;
 const DAY_MS = 86400000;
 
+// 新卡初始值（与 prisma/schema.prisma 中 Card 默认值保持一致）
+export const INITIAL_STABILITY = 2.0;
+export const INITIAL_DIFFICULTY = 5.0;
+
 const D_DELTA: Record<Rating, number> = {
   [RATING.AGAIN]: 1.0,
   [RATING.HARD]: 0.5,
@@ -127,4 +131,18 @@ function calcState(
     return STATE.LEARNING;
   }
   return STATE.REVIEW;
+}
+
+/**
+ * 根据 LCS 比对准确率推荐评级（用户可手动覆盖）。
+ * - ≥ 0.95：基本正确，记 EASY
+ * - ≥ 0.85：少量错误，记 GOOD
+ * - ≥ 0.6：明显卡顿，记 HARD
+ * - < 0.6：多半忘了，记 AGAIN
+ */
+export function recommendRating(accuracy: number): Rating {
+  if (accuracy >= 0.95) return RATING.EASY;
+  if (accuracy >= 0.85) return RATING.GOOD;
+  if (accuracy >= 0.6) return RATING.HARD;
+  return RATING.AGAIN;
 }

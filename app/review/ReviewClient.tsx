@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { compareVerse } from "@/lib/compare";
 import { VerseViewer, VerseReciter, VerseResult } from "@/components/VerseStudy";
+import { recommendRating } from "@/lib/fsrs";
 import type { DiffSegment } from "@/lib/compare";
 import type { Rating } from "@/lib/fsrs";
 import type { CardData } from "@/types";
@@ -268,6 +269,7 @@ export default function ReviewClient({ cards: initialCards }: Props) {
           }
           verseId={card.verseId}
           onUndo={undoAvailable ? handleUndo : undefined}
+          recommendedRating={recommendRating(accuracy)}
         />
       )}
     </div>

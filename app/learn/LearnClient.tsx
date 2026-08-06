@@ -5,23 +5,14 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { compareVerse, generateFillBlanks } from "@/lib/compare";
+import { compareVerse, generateFillBlanks, densityForStability } from "@/lib/compare";
 import { VerseViewer, VerseReciter, VerseResult } from "@/components/VerseStudy";
-import type { Rating } from "@/lib/fsrs";
-import type { PlanInfo } from "@/types";
-
-interface Task {
-  id: number;
-  bookId: number;
-  chapter: number;
-  verse: number;
-  content: string;
-  kjv: string | null;
-}
+import { recommendRating, type Rating } from "@/lib/fsrs";
+import type { PlanInfo, TaskData } from "@/types";
 
 interface Props {
   plan: PlanInfo | null;
-  tasks: Task[];
+  tasks: TaskData[];
 }
 
 type Mode = "view" | "recite" | "result";
@@ -70,7 +61,8 @@ export default function LearnClient({ plan, tasks }: Props) {
     setRatingDone(false);
     setShowOriginal(false);
     if (fillMode) {
-      const blanks = generateFillBlanks(task.content);
+      const density = densityForStability(task.cardStability, task.cardState);
+      const blanks = generateFillBlanks(task.content, density);
       setFillInputs(new Array(blanks.blanks.length).fill(""));
     }
     setMode("recite");
@@ -92,23 +84,28 @@ export default function LearnClient({ plan, tasks }: Props) {
     async (rating: Rating) => {
       if (ratingDone) return;
       try {
-        // Save current card state for undo before rating
-        const res = await fetch(`/api/card?verseId=${task.id}`);
-        const data = await res.json();
-        if (data.cards?.length > 0) {
-          undoCardRef.current = data.cards[data.cards.length - 1];
-        }
+        // 用 task 快照做撤销（task 来自本次会话加载，与 cardId 一致）
+        undoCardRef.current = {
+          id: task.cardId,
+          stability: task.cardStability,
+          difficulty: task.cardDifficulty,
+          reps: task.cardReps,
+          lapses: task.cardLapses,
+          state: task.cardState,
+          lastReview: task.cardLastReview,
+          due: task.cardDue,
+        };
         const rateRes = await fetch("/api/card", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ verseId: task.id, rating }),
+          body: JSON.stringify({ cardId: task.cardId, rating }),
         });
         if (!rateRes.ok) {
           console.error("评分保存失败", await rateRes.text());
           return; // 不置 ratingDone，允许重试
         }
         setRatingDone(true);
-        if (undoCardRef.current) setUndoAvailable(true);
+        setUndoAvailable(true);
       } catch (e) {
         console.error("评分请求异常", e);
       }
@@ -195,12 +192,19 @@ export default function LearnClient({ plan, tasks }: Props) {
     );
   }
 
+  const isReview = task.cardState !== "new";
+
   return (
     <div className="max-w-lg mx-auto p-4 space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="font-medium text-muted-foreground">
-          {task.chapter}:{task.verse}
-        </h2>
+        <div className="flex items-center gap-2">
+          <h2 className="font-medium text-muted-foreground">
+            {task.chapter}:{task.verse}
+          </h2>
+          <Badge variant={isReview ? "default" : "secondary"}>
+            {isReview ? "复习" : "新卡"}
+          </Badge>
+        </div>
         <div className="flex items-center gap-2">
           {task.kjv && (
             <Button variant="ghost" size="sm" onClick={() => setShowKJV(!showKJV)}>
@@ -285,6 +289,7 @@ export default function LearnClient({ plan, tasks }: Props) {
           nextLabel={currentIdx >= totalTasks - 1 ? "完成" : "下一节"}
           verseId={task.id}
           onUndo={undoAvailable ? handleUndo : undefined}
+          recommendedRating={recommendRating(accuracy)}
         />
       )}
     </div>
