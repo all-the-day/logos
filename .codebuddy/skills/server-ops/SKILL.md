@@ -1,59 +1,54 @@
 ---
 name: server-ops
-description: Logos server deployment & management via SSH. Run status, deploy, restart, seed, view logs, or execute commands on the remote server (124.222.74.115). Uses Python paramiko for SSH, zero external deps after pip install paramiko.
+description: Logos server deployment & management via SSH. 正确服务器是阿里云 101.132.34.193（域名 logos.duoban.xyz）。真实运维脚本在 D:/coder/aiWorkSpace/server-ops/server-ops.py（不是本目录下的脚本）。
 ---
 
 # Logos Server Operations
 
-Use this skill to manage the Logos production server.
+管理 Logos 生产服务器。**注意：本目录旧脚本已废弃（指向腾讯云），真实运维请用独立仓库脚本。**
 
-## Prerequisites
-
-The script requires `paramiko`. It should already be installed; if not:
+## ⚠️ 重要：正确运维入口
 
 ```bash
-python -m pip install paramiko -q
+python D:/coder/aiWorkSpace/server-ops/server-ops.py <command>   # 默认 aliyun-logos
+python D:/coder/aiWorkSpace/server-ops/server-ops.py -s <server> <command>
 ```
 
-## Commands
+可用服务器：`aliyun-logos`（本应用）、`aliyun-rike`、`tencent-hymn`。
 
-All commands run from the project root:
+## 服务器信息（正确）
 
-```bash
-# View server status (PM2, memory, disk, API health)
-python .codebuddy/skills/server-ops/scripts/server-ops.py status
-
-# Full deploy: git pull → npm install → build → restart PM2 → verify
-python .codebuddy/skills/server-ops/scripts/server-ops.py deploy
-
-# View recent server logs
-python .codebuddy/skills/server-ops/scripts/server-ops.py logs
-
-# Re-seed database (import verses from bible.db)
-python .codebuddy/skills/server-ops/scripts/server-ops.py seed
-
-# Upload a local file to server
-python .codebuddy/skills/server-ops/scripts/server-ops.py upload <local-path> <remote-path>
-
-# Execute arbitrary command (use sparingly, prefer specific commands)
-python .codebuddy/skills/server-ops/scripts/server-ops.py exec "<command>"
-```
-
-## Server Info
-
-| Field | Value |
-|-------|-------|
-| IP | 124.222.74.115 |
+| 字段 | 值 |
+|-------|-----|
+| IP | 101.132.34.193（阿里云，有域名） |
 | App path | /root/logos |
 | PM2 name | logos |
-| Internal port | 3000 |
-| Caddy TLS | :8443 → 3000 |
-| Access URL | https://124.222.74.115:8443 |
+| 内部端口 | 3001（3000 被 rike 主站占用） |
+| Caddy | logos.duoban.xyz → 127.0.0.1:3001（Let's Encrypt） |
+| 访问 URL | https://logos.duoban.xyz |
+| Node | nvm v22.22.3（需 node_prefix） |
+| Git 代理 | 仓库已配 http.proxy=127.0.0.1:7890（mihomo），git pull 走代理 |
 
-## When to use each command
+## 常用命令
 
-- **status** — User asks "server status", "how's the server", "check pm2"
-- **deploy** — User pushes code and wants to update production
-- **logs** — Debugging errors, user asks "why isn't it working"
-- **seed** — After adding bible.db data or resetting database
-- **upload** — Transfer files that aren't in git (e.g., updated bible.db)
+```bash
+# 状态
+python D:/coder/aiWorkSpace/server-ops/server-ops.py status
+
+# 一键部署（git pull → install → prisma push+generate → build → restart → verify）
+python D:/coder/aiWorkSpace/server-ops/server-ops.py deploy
+
+# 日志
+python D:/coder/aiWorkSpace/server-ops/server-ops.py logs 50
+
+# 执行命令（node 不在 PATH，需 node_prefix）
+python D:/coder/aiWorkSpace/server-ops/server-ops.py exec "export PATH=/root/.nvm/versions/node/v22.22.3/bin:\$PATH && <cmd>"
+
+# 远端 CodeBuddy CLI
+python D:/coder/aiWorkSpace/server-ops/server-ops.py cli "<prompt>" --save name
+```
+
+## 废弃信息（勿用）
+
+- 腾讯云 124.222.74.115（旧服务器，自签名证书，已弃用）
+- 本目录 `scripts/server-ops.py`（指向腾讯云的过时脚本）
