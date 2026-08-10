@@ -6,6 +6,7 @@ import {
 } from "@/lib/fsrs";
 import type { FsrsCard, Rating } from "@/lib/fsrs";
 import { requireUser } from "@/lib/auth";
+import { parseDateInput } from "@/lib/date";
 
 export async function POST(request: Request) {
   const user = await requireUser();
@@ -115,14 +116,21 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: "缺少 cardId" }, { status: 400 });
     }
 
+    // 边界校验：只允许合法日期写入 DB（DB 层只接收 Date）
+    const parsedLastReview = parseDateInput(lastReview);
+    const parsedDue = parseDateInput(due);
+    if ((lastReview != null && !parsedLastReview) || (due != null && !parsedDue)) {
+      return NextResponse.json({ error: "无效的日期字段" }, { status: 400 });
+    }
+
     const restored = await cardDb.updateCard(cardId, user.id, {
       stability,
       difficulty,
       reps,
       lapses,
       state,
-      lastReview: lastReview ? new Date(lastReview) : null,
-      due: due ? new Date(due) : undefined,
+      lastReview: parsedLastReview,
+      due: parsedDue ?? undefined,
     });
 
     if (!restored) {

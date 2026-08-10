@@ -4,6 +4,7 @@ import * as cardDb from "@/db/card";
 import * as noteDb from "@/db/note";
 import * as checkinDb from "@/db/checkin";
 import { requireUser } from "@/lib/auth";
+import { parseDateInput } from "@/lib/date";
 
 export async function GET() {
   const user = await requireUser();
@@ -50,14 +51,23 @@ export async function POST(request: Request) {
             const cards = await cardDb.getCardsForVerse(c.verseId, user.id);
             const card = cards[cards.length - 1];
             if (card) {
+              // 边界校验：非法日期直接跳过该卡，不产生半成品
+              const parsedLastReview = parseDateInput(c.lastReview);
+              const parsedDue = parseDateInput(c.due);
+              if (
+                (c.lastReview != null && !parsedLastReview) ||
+                (c.due != null && !parsedDue)
+              ) {
+                continue;
+              }
               await cardDb.updateCard(card.id, user.id, {
                 stability: c.stability ?? card.stability,
                 difficulty: c.difficulty ?? card.difficulty,
                 reps: c.reps ?? card.reps,
                 lapses: c.lapses ?? card.lapses,
                 state: c.state ?? card.state,
-                lastReview: c.lastReview ? new Date(c.lastReview) : null,
-                due: c.due ? new Date(c.due) : card.due,
+                lastReview: parsedLastReview,
+                due: parsedDue ?? card.due,
               });
             }
           }
