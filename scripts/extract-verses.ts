@@ -7,7 +7,7 @@
  *   npx tsx scripts/extract-verses.ts 45 46 47     # 抽取指定书卷
  */
 import { execSync } from "child_process";
-import { existsSync } from "fs";
+import { existsSync, mkdirSync } from "fs";
 import { resolve } from "path";
 
 const PYTHON_SCRIPT = resolve(
@@ -24,7 +24,6 @@ console.log(`Output: ${LOGOS_OUT}`);
 
 // Create output directory
 if (!existsSync(LOGOS_OUT)) {
-  const { mkdirSync } = require("fs");
   mkdirSync(LOGOS_OUT, { recursive: true });
 }
 
