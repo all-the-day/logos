@@ -7,6 +7,13 @@ description: Logos server deployment & management via SSH. 正确服务器是阿
 
 管理 Logos 生产服务器。**注意：本目录旧脚本已废弃（指向腾讯云），真实运维请用独立仓库脚本。**
 
+> 生产运维配置以仓库外
+> `D:/coder/aiWorkSpace/server-ops/server-ops.py`
+> 中的当前配置为唯一权威来源。
+>
+> 若该工具不存在、无法读取或与本文档冲突，必须停止并报告；
+> 不得退回旧腾讯云配置，不得自行拼接 SSH、PM2 或数据库命令。
+
 ## ⚠️ 重要：正确运维入口
 
 ```bash
@@ -51,4 +58,8 @@ python D:/coder/aiWorkSpace/server-ops/server-ops.py cli "<prompt>" --save name
 ## 废弃信息（勿用）
 
 - 腾讯云 124.222.74.115（旧服务器，自签名证书，已弃用）
-- 本目录 `scripts/server-ops.py`（指向腾讯云的过时脚本）
+- 本目录 `scripts/` 已删除（原 server-ops.py 指向腾讯云的过时脚本）
+
+## 详细运维信息
+
+非凭据的服务器参数、命令与差异说明见仓库内 `docs/OPERATIONS.md`；凭据只存在于 `D:/coder/aiWorkSpace/server-ops/config.json`（不入库）。
