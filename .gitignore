@@ -42,6 +42,10 @@ next-env.d.ts
 
 # prisma
 prisma/dev.db
+prisma/test.db*
+
+# 归档/无用文件（不参与 git）
+/archive/
 
 # source databases
 data/*.db

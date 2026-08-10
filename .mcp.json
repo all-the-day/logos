@@ -11,6 +11,9 @@
         "--password", "duoban@0118",
         "--blacklist", "^rm -rf .*,^shutdown.*,^reboot.*,^dd .*,^mkfs.*"
       ]
+    },
+    "Pixso MCP": {
+      "url": "http://localhost:3667/mcp"
     }
   }
 }
