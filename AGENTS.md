@@ -153,7 +153,7 @@ logos/
 ├── .codebuddy/skills/server-ops/ # 服务器运维 skill
 │   ├── SKILL.md
 │   └── scripts/server-ops.py
-├── .mcp.json                    # MCP server 配置（ssh-mcp-server）
+├── .mcp.json                    # MCP server 配置（Pixso MCP；ssh-mcp-server 已移除——部署走本地 server-ops 项目）
 ├── data/                        # 种子数据（不入 git）
 │   ├── bible.db                 # 恢复本 66 卷全本
 │   └── bible_kjv.db             # KJV 英文圣经
