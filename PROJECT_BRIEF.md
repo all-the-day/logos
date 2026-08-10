@@ -225,7 +225,7 @@ FSRS 卡状态机：`NEW → LEARNING → REVIEW`，AGAIN 时进入 `RELEARNING`
 
 - 生产服务器：**101.132.34.193（rike）**，域名 https://logos.duoban.xyz；运维脚本：`D:/coder/aiWorkSpace/server-ops/server-ops.py`（本地 skill 一键部署）
 - 运行方式：PM2 进程 `logos`，内部端口 **3001**，Caddy 代理 + Let's Encrypt（HTTPS/SW 正常）
-- 旧服务器 124.222.74.115 已弃用（注意 `.mcp.json` 里的 ssh 配置仍指向旧服务器，勿用于部署）
+- 旧服务器 124.222.74.115 已弃用；`.mcp.json` 已删除（无任何 MCP，部署仅走本地 server-ops 项目）
 - 服务器仅 1.6G 内存，构建/进程资源有限
 - **约定：未经明确确认不部署、不 push 生产**
 
@@ -236,5 +236,5 @@ FSRS 卡状态机：`NEW → LEARNING → REVIEW`，AGAIN 时进入 `RELEARNING`
 1. **测试体系**：单元 + 集成已落地（56 用例），E2E 与 API 鉴权测试是下一块
 2. **Undo 架构重构**（客户端快照 → 服务端撤销）与 `compare.ts` 空原文缺陷修复
 3. **结果页研读内容整合**（待规划）
-4. **UI 设计落地**：Pixso 设计稿已存在（`xwvHjMQp80mM79a8Z0jQLg`），可通过 Pixso MCP（本地 `localhost:3667/mcp`，需用户在 Pixso 桌面端开启）读取；按 `.codebuddy/plan/ui-designer-brief.md` 对照落地
+4. **UI 设计落地**：Pixso 设计稿已存在（`xwvHjMQp80mM79a8Z0jQLg`，需登录）；读取方式为导出 PNG 到项目（MCP 已移除）；按 `.codebuddy/plan/ui-designer-brief.md` 对照落地
 5. **chore**：`lib/auth.ts` 未使用导入、`date-fns` 依赖清理
