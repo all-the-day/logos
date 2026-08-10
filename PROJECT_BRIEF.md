@@ -1,7 +1,7 @@
 # Logos — 项目简报（交接 GPT-5.6 Sol Max）
 
 > 本文件是给外部 AI（GPT-5.6 Sol Max）指导开发与测试的交接上下文。
-> 生成日期：2026-08-07。**注意：`AGENTS.md` 是早期迁移文档，结构描述已过时，以本文件为准。**
+> 生成日期：2026-08-07，最近同步：2026-08-10。**当前状态以 `AGENTS.md`（已同步）与本文件为准。**
 
 ---
 
@@ -189,18 +189,21 @@ FSRS 卡状态机：`NEW → LEARNING → REVIEW`，AGAIN 时进入 `RELEARNING`
 ## 9. 已知问题 / 待办（未做）
 
 1. **结果页塞研读内容**：`/learn` 结果态接入注解/笔记的问题 —— **本次明确不做，另开 plan**
-2. **Undo 评分重构**：`LearnClient.handleUndo` 用"评分前快照 + PUT 整卡恢复"，脆弱，需重构 —— **未做**
-3. **`getDueCards` 语义问题**（`db/card.ts:15`）：不过滤 `state != "new"`、不按书卷过滤，新卡会泄漏进复习队列；`api/card` GET 保留给未来复用，但需注意
-4. **SQLite DateTime 存储不一致**：`createMany` 写入整数毫秒，`updateCard` 写入文本字符串 —— 直接 SQL 操作日期列时易踩坑（比较要用统一格式）
-5. **`lib/auth.ts:7` ESLint warning**：`userDb` 未使用
-6. **`AGENTS.md` 过时**：描述的是 v1 结构（含已删除的 review/目录）
-7. **无任何测试**：无 vitest/jest/playwright，无 test/spec 文件（见下）
+2. **Undo 评分重构**：`LearnClient.handleUndo` 用"评分前快照 + PUT 整卡恢复"，脆弱，需重构 —— **未做**（已加日期边界校验，架构重构仍待规划）
+3. ~~**`getDueCards` 新卡泄漏**~~ —— **已修复**（2026-08-10，补 `state != "new"` 过滤，含失败测试）
+4. ~~**SQLite DateTime 混合存储**~~ —— **已确认一致**（当前 Prisma 所有写入路径均存整数毫秒；dev.db 审计 433 张卡全 INTEGER，无需迁移）
+5. **`lib/auth.ts:7` ESLint warning**：`userDb` 未使用（留作单独 chore）
+6. **`date-fns` 依赖未使用**（可清理，另开 chore）
 
 ---
 
-## 10. 测试现状与建议（重点请 GPT-5.6 指导）
+## 10. 测试现状与建议
 
-**现状**：零测试设施。无单元测试、无 E2E、无 CI。`npm run build` 通过是当前唯一"验收"手段；本地 dev 人工过场景。
+**现状（2026-08-10 已落地 Vitest 基建）**：
+- 单元测试：`lib/fsrs`（14）、`lib/compare`（17，含全组合还原 + `it.fails` 记录空原文缺陷）、`lib/date`（10，含 `parseDateInput`）
+- 集成测试：学习队列 12 场景（隔离/排序/上限 50/统一 `now`）、`getDueCards` 新卡泄漏、Card DateTime 存储诊断
+- 测试库隔离：`prisma/test.db` + `tests/fixtures/setup.ts` 进程级校验 + `reset-test-db.ts` 精确路径保护（拒绝 dev.db）
+- 当前共 **56 个用例**，`npm run test` / `test:coverage`（覆盖率约 85% stmts）/ `test:db:reset`
 
 **功能验收基线**（Plan v2 时人工验证过，可作为回归清单）：
 1. 无计划：/plan 显示创建表单
@@ -211,17 +214,18 @@ FSRS 卡状态机：`NEW → LEARNING → REVIEW`，AGAIN 时进入 `RELEARNING`
 6. 删除计划仅在 `…` 菜单
 7. 学习流：查看→背诵→评分，快捷键 1-4/u/Space，Undo 生效
 
-**建议引入**：
-- 单元测试：`lib/fsrs.ts`（FSRS 算法状态转移）、`lib/compare.ts`（LCS 比对/填空生成）、`lib/date.ts`、`services/learn.ts` 的 `getTodaySummary` 与 `getTodayTasks` 一致性
-- 集成测试：API routes（card/plan/checkin/note/data）鉴权与幂等
-- E2E：Playwright 过一遍主流程（登录→建计划→学习→签到→笔记→导出）
+**下一步建议**：
+- E2E：Playwright（未装），配置 `serviceWorkers: "block"` 避免 PWA 缓存干扰；主流程登录→建计划→学习→签到→笔记→导出
+- API 鉴权集成测试：未登录写接口 401、跨用户隔离、重复签到幂等、建计划事务性
+- 修复 `compare.ts` 空原文缺陷（`it.fails` 已标注，修复后移除 `.fails`）
 
 ---
 
 ## 11. 部署（重要）
 
-- 生产服务器：**阿里云 101.132.34.193**（域名 logos.duoban.xyz）；运维脚本：`D:/coder/aiWorkSpace/server-ops/server-ops.py`（**勿用 .codebuddy 里旧的腾讯云配置**）
-- 部署方式：`npm run build` + `npm start` 单进程；`scripts/deploy.ps1` 在仓库内
+- 生产服务器：**101.132.34.193（rike）**，域名 https://logos.duoban.xyz；运维脚本：`D:/coder/aiWorkSpace/server-ops/server-ops.py`（本地 skill 一键部署）
+- 运行方式：PM2 进程 `logos`，内部端口 **3001**，Caddy 代理 + Let's Encrypt（HTTPS/SW 正常）
+- 旧服务器 124.222.74.115 已弃用（注意 `.mcp.json` 里的 ssh 配置仍指向旧服务器，勿用于部署）
 - 服务器仅 1.6G 内存，构建/进程资源有限
 - **约定：未经明确确认不部署、不 push 生产**
 
@@ -229,8 +233,8 @@ FSRS 卡状态机：`NEW → LEARNING → REVIEW`，AGAIN 时进入 `RELEARNING`
 
 ## 12. 给 GPT-5.6 Sol Max 的关注点建议
 
-1. **测试体系搭建**（当前最大短板）
-2. **Undo 重构**与 `getDueCards` 语义修复（数据正确性）
+1. **测试体系**：单元 + 集成已落地（56 用例），E2E 与 API 鉴权测试是下一块
+2. **Undo 架构重构**（客户端快照 → 服务端撤销）与 `compare.ts` 空原文缺陷修复
 3. **结果页研读内容整合**（待规划）
 4. **UI 设计落地**：Pixso 设计稿已存在（`xwvHjMQp80mM79a8Z0jQLg`），可通过 Pixso MCP（本地 `localhost:3667/mcp`，需用户在 Pixso 桌面端开启）读取；按 `.codebuddy/plan/ui-designer-brief.md` 对照落地
-5. **功能测试计划**：按 §10 回归清单设计自动化
+5. **chore**：`lib/auth.ts` 未使用导入、`date-fns` 依赖清理
