@@ -14,10 +14,23 @@ export async function getCardsForVerse(verseId: number, userId: number) {
 
 export async function getDueCards(userId: number, limit?: number) {
   return prisma.card.findMany({
-    where: { userId, due: { lte: new Date() } },
+    where: { userId, state: { not: "new" }, due: { lte: new Date() } },
     orderBy: [{ stability: "asc" }, { due: "asc" }],
     take: limit ?? 30, // 单次复习上限，防止整本书全量加载
     include: { verse: true },
+  });
+}
+
+export async function getTodayReviewedCount(userId: number, bookId: number) {
+  // 用本地时间零点（勿用 UTC），参考 lib/date.ts 风格
+  const startOfDay = new Date();
+  startOfDay.setHours(0, 0, 0, 0);
+  return prisma.card.count({
+    where: {
+      userId,
+      verse: { bookId },
+      lastReview: { gte: startOfDay },
+    },
   });
 }
 

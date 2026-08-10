@@ -8,6 +8,7 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import ProgressBar from "@/components/ProgressBar";
 import BookSelector from "@/components/BookSelector";
+import { getTodayLabel } from "@/lib/date";
 import type {
   BookInfo,
   PlanInfo,
@@ -16,7 +17,6 @@ import type {
 } from "@/types";
 
 interface PlanClientProps {
-  user: { id: number; username: string; name: string; role: string };
   planDetails: {
     plan: PlanInfo | null;
     book: BookInfo | null;
@@ -27,15 +27,18 @@ interface PlanClientProps {
   books: BookInfo[];
   checkin: { checkedIn: boolean; streak: number };
   dailyVerse: DailyVerse | null;
+  todaySummary: { review: number; new: number } | null;
+  todayReviewed: number;
 }
 
 export default function PlanClient({
-  user,
   planDetails,
   progress,
   books,
   checkin,
   dailyVerse,
+  todaySummary,
+  todayReviewed,
 }: PlanClientProps) {
   const [selectedBook, setSelectedBook] = useState<number | null>(null);
   const [versesPerDay, setVersesPerDay] = useState(3);
@@ -86,11 +89,6 @@ export default function PlanClient({
         setCheckinState({ checkedIn: true, streak: data.streak });
       }
     } catch { /* ignore */ }
-  }, []);
-
-  const handleLogout = useCallback(async () => {
-    await fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
-    window.location.href = "/login";
   }, []);
 
   if (!planDetails?.plan) {
@@ -145,21 +143,43 @@ export default function PlanClient({
     );
   }
 
-  const { plan, book, totalVerses, workdays } = planDetails;
+  const { plan, book, totalVerses } = planDetails;
+  const review = todaySummary?.review ?? 0;
+  const newCount = todaySummary?.new ?? 0;
+  const hasTasks = review + newCount > 0;
 
   return (
     <div className="max-w-lg mx-auto px-4 pt-4 flex flex-col min-h-[calc(100vh-5rem)] space-y-4">
 
-      <div className="flex items-center justify-between text-sm">
-        <span className="text-muted-foreground">{user.name}</span>
-        <button
-          className="text-xs text-muted-foreground hover:text-foreground cursor-pointer"
-          onClick={handleLogout}
-        >
-          退出登录
-        </button>
+      <div className="text-sm text-muted-foreground">
+        {getTodayLabel()}
       </div>
 
+      {/* 今日任务卡（唯一 CTA → /learn） */}
+      <Card>
+        <CardHeader>
+          <CardTitle>今日任务</CardTitle>
+          <div className="text-sm text-muted-foreground">
+            待复习 {review} 节 · 新经文 {newCount} 节
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {hasTasks ? (
+            <Link href="/learn" className={cn(buttonVariants({}), "w-full")}>
+              开始今日学习
+            </Link>
+          ) : (
+            <Button className="w-full" disabled>
+              今日已完成
+            </Button>
+          )}
+          <div className="text-sm text-muted-foreground text-center">
+            今日已完成 {todayReviewed} 节
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* 签到→金句槽位（原样保留）：未签到显示签到卡，已签到显示每日金句 */}
       {!checkinState.checkedIn ? (
         <Card>
           <CardContent className="pt-4">
@@ -186,16 +206,44 @@ export default function PlanClient({
         </div>
       ) : null}
 
+      {/* 书卷进度卡（纯展示 + "…"菜单删除计划） */}
       <Card className="mt-auto shadow-md border-muted/60">
         <CardHeader>
           <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>{book?.name}</CardTitle>
-              <div className="text-sm text-muted-foreground mt-1">
-                每日 {plan.versesPerDay} 节 · {totalVerses} 节 · {workdays} 个工作日
-              </div>
+            <CardTitle>{book?.name}</CardTitle>
+            <div className="flex items-center gap-1">
+              <Badge variant="secondary">学习中</Badge>
+              <details className="relative">
+                <summary
+                  className="list-none cursor-pointer p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary"
+                  aria-label="更多操作"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="w-4 h-4"
+                  >
+                    <circle cx="12" cy="5" r="1" />
+                    <circle cx="12" cy="12" r="1" />
+                    <circle cx="12" cy="19" r="1" />
+                  </svg>
+                </summary>
+                <div className="absolute right-0 mt-2 w-36 rounded-md border bg-background shadow-md z-10 overflow-hidden">
+                  <button
+                    className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-secondary cursor-pointer"
+                    onClick={handleDelete}
+                    disabled={deleting}
+                  >
+                    {deleting ? "删除中..." : "删除计划"}
+                  </button>
+                </div>
+              </details>
             </div>
-            <Badge variant="secondary">学习中</Badge>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -207,19 +255,9 @@ export default function PlanClient({
               total={progress.total}
             />
           )}
-          <div className="flex gap-2">
-            <Link href="/learn" className={cn(buttonVariants({}), "flex-1")}>
-              开始学习
-            </Link>
-            <Link href="/review" className={cn(buttonVariants({ variant: "outline" }), "flex-1")}>
-              复习
-            </Link>
+          <div className="text-sm text-muted-foreground">
+            每日 {plan.versesPerDay} 节 · 已学 {progress?.total ?? 0}/{totalVerses}
           </div>
-          <Button variant="ghost" size="sm"
-            className="w-full text-muted-foreground"
-            onClick={handleDelete} disabled={deleting}>
-            {deleting ? "删除中..." : "删除计划"}
-          </Button>
         </CardContent>
       </Card>
     </div>

@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 import BottomNav from "./BottomNav";
 
 // Only show bottom nav on main pages
-const NAV_PAGES = ["/plan", "/learn", "/review", "/notes", "/settings"];
+const NAV_PAGES = ["/plan", "/learn", "/notes", "/settings"];
 
 export function BottomNavWrapper() {
   const pathname = usePathname();
