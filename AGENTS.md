@@ -35,8 +35,9 @@ Node.js ≥ 22（`lib/import-book.ts` 依赖 `node:sqlite`；以 `package.json#e
 - "开始今日学习"是 Plan 页唯一主 CTA，指向 `/learn`。
 - 删除计划只能位于书卷进度卡的更多菜单（"…"）中，并要求确认。
 - 今日任务摘要必须与 `/learn` 实际队列一致（共享查询条件）。
-- 复习队列不得包含 `state = new` 的卡片；新卡必须受当前计划书卷和每日数量（`versesPerDay`）限制。
-- 学习页核心动线（查看 → 背诵 → 比对 → 四键评分）与快捷键（1-4 / u / Space）不得破坏。
+- 复习队列不得包含 `state = new` 的卡片；复习队列跨全部已学书卷（卡片是用户永久学习资产：换计划、删除计划都不删除卡片；真正重置学习进度只能在设置页"清除数据"）。
+- 新卡仅从当前计划书卷引入，且每日受配额限制：今日新卡数 ≤ `versesPerDay − 今日首次引入数`（`Card.introducedAt` 记录首次离开 `new` 态的时间，重学不重复计数）。
+- 学习页动线：新卡先查看后背诵；复习卡（learning/review/relearning）默认直接进入背诵态，保留"查看原文"；一旦查看原文，本次推荐评分封顶"困难"（不再推荐"正确/容易"）。四键评分与快捷键（1-4 / u / Space）不得破坏。
 
 ## 4. 架构边界
 
@@ -65,6 +66,7 @@ SQLite (prisma/dev.db)
 ## 5. 数据、鉴权、日期规则
 
 - SQLite 单文件 `prisma/dev.db`，Prisma schema 10 张表：Book / Verse / Annotation / Card / Note / Plan / Checkin / User / Session / Feedback。
+- Card 的 `introducedAt`（首次离开 `new` 态的时间）用于每日新卡配额；首次评分时由 `services/card.ts#rateCard` 写入。
 - 数据源为 `data/bible.db`（恢复本）与 `data/bible_kjv.db`（KJV），经 `lib/import-book.ts` 用 `node:sqlite` 直读导入（`prisma/seed.ts` 复用），不经过 JSON 中间产物。`npm run db:seed` 已实测可重复执行：连续运行不重复导入、不产生唯一约束错误、不触碰用户数据。
 - 鉴权：scrypt 密码哈希 + session cookie（`logos_session`）；写接口用 `requireUser()` 校验登录态。
 - 时间：签到日期按本地日期字符串 `YYYY-MM-DD` 存储；服务端 / 测试 TZ=Asia/Shanghai。
@@ -85,6 +87,7 @@ npm run db:generate / db:studio
 
 - Node.js ≥ 22；不得假定 Node 20 可运行种子导入（`node:sqlite`）。
 - TypeScript 严格模式；改动核心算法（FSRS、LCS 比对、日期）必须新增或更新单元测试。
+- `next dev` 与 `next build` 共用 `.next` 目录：不要在同一工作区内无清理地交替运行两者，否则可能触发 `MODULE_NOT_FOUND`/500。切换模式前先停服务并删除 `.next`。
 
 ## 7. 测试数据库安全
 

@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { INITIAL_STABILITY, INITIAL_DIFFICULTY } from "@/lib/fsrs";
+import { startOfLocalDay } from "@/lib/date";
 
 export async function getCardById(cardId: number, userId: number) {
   return prisma.card.findFirst({ where: { id: cardId, userId } });
@@ -21,14 +22,12 @@ export async function getDueCards(userId: number, limit?: number) {
   });
 }
 
-export async function getTodayReviewedCount(userId: number, bookId: number) {
+export async function getTodayReviewedCount(userId: number) {
   // 用本地时间零点（勿用 UTC），参考 lib/date.ts 风格
-  const startOfDay = new Date();
-  startOfDay.setHours(0, 0, 0, 0);
+  const startOfDay = startOfLocalDay();
   return prisma.card.count({
     where: {
       userId,
-      verse: { bookId },
       lastReview: { gte: startOfDay },
     },
   });
@@ -59,6 +58,7 @@ export async function updateCard(
     state?: string;
     lastReview?: Date | null;
     due?: Date;
+    introducedAt?: Date;
   }
 ) {
   return prisma.card.updateMany({ where: { id: cardId, userId }, data }).then(
@@ -88,10 +88,14 @@ export async function createCards(userId: number, verseIds: number[]) {
   });
 }
 
-export async function deleteCardsByBook(bookId: number, userId: number) {
-  return prisma.card.deleteMany({
-    where: { userId, verse: { bookId } },
+/** 返回用户已拥有的卡片 verseId 集合（用于幂等建卡） */
+export async function getExistingCardVerseIds(userId: number, verseIds: number[]): Promise<Set<number>> {
+  if (verseIds.length === 0) return new Set();
+  const rows = await prisma.card.findMany({
+    where: { userId, verseId: { in: verseIds } },
+    select: { verseId: true },
   });
+  return new Set(rows.map((r) => r.verseId));
 }
 
 export async function getAllCards(userId: number) {

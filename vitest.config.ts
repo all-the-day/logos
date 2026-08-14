@@ -3,6 +3,7 @@ import tsconfigPaths from "vite-tsconfig-paths";
 
 export default defineConfig({
   plugins: [tsconfigPaths()],
+  esbuild: { jsx: "automatic" }, // 与 Next.js 的 JSX 运行时保持一致（组件无需手动 import React）
   test: {
     environment: "node",
     // 业务时区固定为 Asia/Shanghai（避免开发机/服务器时区差异影响日期类断言）
@@ -11,7 +12,7 @@ export default defineConfig({
       TZ: "Asia/Shanghai",
       DATABASE_URL: "file:./test.db",
     },
-    include: ["tests/**/*.test.ts"],
+    include: ["tests/**/*.test.{ts,tsx}"],
     setupFiles: ["tests/fixtures/setup.ts"],
     // SQLite 单 worker 串行执行，避免写锁竞争
     maxWorkers: 1,

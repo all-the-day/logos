@@ -34,20 +34,23 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "缺少参数" }, { status: 400 });
     }
 
-    // Deactivate existing plan and clean up its cards
+    // 停用旧计划（软删）；不删除旧书卷卡片——卡片是永久学习资产，旧书卷到期卡继续进复习
     const existing = await planDb.getActivePlan(user.id);
     if (existing) {
-      const oldBookId = existing.bookId;
       await planDb.deletePlan(existing.id, user.id);
-      // 删除旧书卷的卡片，避免重复累积
-      await cardDb.deleteCardsByBook(oldBookId, user.id);
     }
 
     const plan = await planService.initializePlan(user.id, bookId, versesPerDay);
 
-    // Initialize cards for all verses in the book (batch)
+    // 为新书卷补建缺失卡片（幂等：已存在的卡不重复创建，避免 @@unique([userId, verseId]) 冲突）
     const verses = await verseDb.getVersesByBook(bookId);
-    await cardDb.createCards(user.id, verses.map((v) => v.id));
+    if (verses.length > 0) {
+      const existingCards = await cardDb.getExistingCardVerseIds(user.id, verses.map((v) => v.id));
+      const toCreate = verses.map((v) => v.id).filter((id) => !existingCards.has(id));
+      if (toCreate.length > 0) {
+        await cardDb.createCards(user.id, toCreate);
+      }
+    }
 
     return NextResponse.json({ plan });
   } catch (error) {
@@ -63,9 +66,7 @@ export async function DELETE() {
   try {
     const plan = await planDb.getActivePlan(user.id);
     if (plan) {
-      // Clean up cards for this book
-      await cardDb.deleteCardsByBook(plan.bookId, user.id);
-      // Soft-delete plan
+      // 只软删计划，不删卡片（卡片是永久学习资产，旧书卷到期卡继续进复习队列）
       await planDb.deletePlan(plan.id, user.id);
     }
     return NextResponse.json({ success: true });

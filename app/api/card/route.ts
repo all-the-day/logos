@@ -1,10 +1,7 @@
 import { NextResponse } from "next/server";
 import * as cardDb from "@/db/card";
-import {
-  updateCard,
-  RATING,
-} from "@/lib/fsrs";
-import type { FsrsCard, Rating } from "@/lib/fsrs";
+import * as cardService from "@/services/card";
+import { RATING } from "@/lib/fsrs";
 import { requireUser } from "@/lib/auth";
 import { parseDateInput } from "@/lib/date";
 
@@ -26,7 +23,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "无效评级" }, { status: 400 });
     }
 
-    // Get current card from DB (scoped to user)
+    // 解析出卡片 id（scoped to user）
     let existingCard;
     if (cardId) {
       existingCard = await cardDb.getCardById(cardId, user.id);
@@ -39,42 +36,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "卡片不存在" }, { status: 404 });
     }
 
-    // Convert DB card to FsrsCard format
-    const fsrsCard: FsrsCard = {
-      id: existingCard.id,
-      verseId: existingCard.verseId,
-      stability: existingCard.stability,
-      difficulty: existingCard.difficulty,
-      reps: existingCard.reps,
-      lapses: existingCard.lapses,
-      state: existingCard.state as FsrsCard["state"],
-      lastReview: existingCard.lastReview,
-      due: existingCard.due,
-    };
-
-    // Apply FSRS update
-    const updated = updateCard(fsrsCard, rating as Rating);
-
-    // Save to DB (scoped to user)
-    const savedCard = await cardDb.updateCard(existingCard.id, user.id, {
-      stability: updated.stability,
-      difficulty: updated.difficulty,
-      reps: updated.reps,
-      lapses: updated.lapses,
-      state: updated.state,
-      lastReview: updated.lastReview,
-      due: updated.due,
-    });
-
-    if (!savedCard) {
+    const result = await cardService.rateCard(user.id, existingCard.id, rating);
+    if (!result) {
       return NextResponse.json({ error: "卡片不存在" }, { status: 404 });
     }
 
     return NextResponse.json({
-      card: savedCard,
-      nextInterval: Math.round(
-        (updated.due.getTime() - Date.now()) / 86400000
-      ),
+      card: result.card,
+      nextInterval: result.nextInterval,
     });
   } catch (error) {
     const msg = error instanceof Error ? error.message : "更新卡片失败";

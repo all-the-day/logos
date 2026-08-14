@@ -160,4 +160,18 @@ describe("recommendRating 准确率边界", () => {
     expect(recommendRating(0.5999)).toBe(RATING.AGAIN);
     expect(recommendRating(0)).toBe(RATING.AGAIN);
   });
+
+  it("查看原文后（peeked），推荐评分封顶 HARD，不再推荐 正确/容易", () => {
+    expect(recommendRating(1, { peeked: true })).toBe(RATING.HARD);
+    expect(recommendRating(0.95, { peeked: true })).toBe(RATING.HARD);
+    expect(recommendRating(0.9, { peeked: true })).toBe(RATING.HARD);
+    expect(recommendRating(0.85, { peeked: true })).toBe(RATING.HARD);
+    expect(recommendRating(0.7, { peeked: true })).toBe(RATING.HARD);
+    expect(recommendRating(0.6, { peeked: true })).toBe(RATING.HARD);
+    // 准确率过低仍建议忘记
+    expect(recommendRating(0.5999, { peeked: true })).toBe(RATING.AGAIN);
+    expect(recommendRating(0, { peeked: true })).toBe(RATING.AGAIN);
+    // 默认参数（未查看原文）行为不变
+    expect(recommendRating(1)).toBe(RATING.EASY);
+  });
 });

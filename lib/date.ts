@@ -20,6 +20,13 @@ export function getTodayLabel(date: Date = new Date()): string {
   return `${WEEKDAYS[date.getDay()]} · ${date.getMonth() + 1}月${date.getDate()}日`;
 }
 
+/** 本地时区当日零点（业务"一天"的起点，用于每日新卡配额 / 今日已完成统计） */
+export function startOfLocalDay(date: Date = new Date()): Date {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
 /**
  * 解析 API 边界传入的日期值（JSON 反序列化后可能是字符串/数字/Date）。
  * - null / undefined / 空串 → null

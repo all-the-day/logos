@@ -1,5 +1,6 @@
 import * as planDb from "@/db/plan";
 import { prisma } from "@/lib/prisma";
+import { startOfLocalDay } from "@/lib/date";
 import type { Prisma } from "@prisma/client";
 import type { TaskData } from "@/types";
 
@@ -7,20 +8,20 @@ const MAX_REVIEW_PER_DAY = 50;
 
 /**
  * 复习队列查询条件 —— 任务与摘要共享，防止两处条件漂移。
- * 约束：当前书卷、非新卡、已到期（due <= now）。
+ * 约束：跨全部已学书卷、非新卡、已到期（due <= now）。
+ * 卡片是用户的永久学习资产；换计划/删除计划不删卡，旧书卷到期卡继续进入复习。
  */
-function reviewWhere(userId: number, bookId: number, now: Date): Prisma.CardWhereInput {
+function reviewWhere(userId: number, now: Date): Prisma.CardWhereInput {
   return {
     userId,
     state: { not: "new" },
     due: { lte: now },
-    verse: { bookId },
   };
 }
 
 /**
  * 新卡队列查询条件 —— 任务与摘要共享。
- * 约束：当前书卷、未学习。
+ * 约束：当前计划书卷、未学习。
  */
 function newWhere(userId: number, bookId: number): Prisma.CardWhereInput {
   return {
@@ -30,25 +31,50 @@ function newWhere(userId: number, bookId: number): Prisma.CardWhereInput {
   };
 }
 
+/**
+ * 今日剩余新卡配额 = versesPerDay - 今日首次引入数（introducedAt >= 本地零点）。
+ * introducedAt 在卡片首次离开 new 态时写入，重学不会重复计数。
+ */
+async function getRemainingNewQuota(
+  userId: number,
+  bookId: number,
+  versesPerDay: number,
+  now: Date
+): Promise<number> {
+  const startOfDay = startOfLocalDay(now);
+  const introducedToday = await prisma.card.count({
+    where: {
+      userId,
+      verse: { bookId },
+      introducedAt: { gte: startOfDay },
+    },
+  });
+  return Math.max(0, versesPerDay - introducedToday);
+}
+
 export async function getTodayTasks(userId: number, now: Date = new Date()) {
   const plan = await planDb.getActivePlan(userId);
   if (!plan) return { plan: null, tasks: [] as TaskData[] };
 
-  // 1) 复习队列：当前书卷的已到期且非新卡
+  // 1) 复习队列：跨书卷的已到期且非新卡
   const reviewCards = await prisma.card.findMany({
-    where: reviewWhere(userId, plan.bookId, now),
+    where: reviewWhere(userId, now),
     include: { verse: true },
-    orderBy: [{ due: "asc" }, { stability: "asc" }],
+    orderBy: [{ due: "asc" }, { stability: "asc" }, { verseId: "asc" }],
     take: MAX_REVIEW_PER_DAY,
   });
 
-  // 2) 新卡队列：当前书卷的未学卡片，按章节/节顺序取 versesPerDay 个
-  const newCards = await prisma.card.findMany({
-    where: newWhere(userId, plan.bookId),
-    include: { verse: true },
-    orderBy: [{ verse: { chapter: "asc" } }, { verse: { verse: "asc" } }],
-    take: plan.versesPerDay,
-  });
+  // 2) 新卡队列：当前书卷的未学卡片，按章节/节顺序取今日剩余配额个
+  const newLimit = await getRemainingNewQuota(userId, plan.bookId, plan.versesPerDay, now);
+  const newCards =
+    newLimit > 0
+      ? await prisma.card.findMany({
+          where: newWhere(userId, plan.bookId),
+          include: { verse: true },
+          orderBy: [{ verse: { chapter: "asc" } }, { verse: { verse: "asc" } }],
+          take: newLimit,
+        })
+      : [];
 
   // 3) 合并：复习在前，新卡在后
   const allCards = [...reviewCards, ...newCards];
@@ -75,7 +101,7 @@ export async function getTodayTasks(userId: number, now: Date = new Date()) {
 }
 
 /**
- * 今日任务摘要 — 与 getTodayTasks 共享查询条件（reviewWhere/newWhere），
+ * 今日任务摘要 — 与 getTodayTasks 共享查询条件（reviewWhere/newWhere 与配额），
  * 保证摘要数字与 /learn 队列实际数量相符。
  * now 默认在每次调用时生成一次；测试可传入固定时间点。
  */
@@ -84,15 +110,17 @@ export async function getTodaySummary(userId: number, now: Date = new Date()) {
   if (!plan) return { review: 0, new: 0 };
 
   const review = await prisma.card.count({
-    where: reviewWhere(userId, plan.bookId, now),
+    where: reviewWhere(userId, now),
   });
 
   const newCount = await prisma.card.count({
     where: newWhere(userId, plan.bookId),
   });
 
+  const newLimit = await getRemainingNewQuota(userId, plan.bookId, plan.versesPerDay, now);
+
   return {
     review: Math.min(review, MAX_REVIEW_PER_DAY),
-    new: Math.min(newCount, plan.versesPerDay),
+    new: Math.min(newCount, newLimit),
   };
 }

@@ -139,10 +139,20 @@ function calcState(
  * - ≥ 0.85：少量错误，记 GOOD
  * - ≥ 0.6：明显卡顿，记 HARD
  * - < 0.6：多半忘了，记 AGAIN
+ *
+ * options.peeked：本次背诵前查看了原文（短时记忆会虚高准确率），
+ * 推荐评分封顶 HARD —— 只允许 忘记/困难，不再推荐 正确/容易。
  */
-export function recommendRating(accuracy: number): Rating {
-  if (accuracy >= 0.95) return RATING.EASY;
-  if (accuracy >= 0.85) return RATING.GOOD;
-  if (accuracy >= 0.6) return RATING.HARD;
-  return RATING.AGAIN;
+export function recommendRating(
+  accuracy: number,
+  options?: { peeked?: boolean }
+): Rating {
+  let rating: Rating;
+  if (accuracy >= 0.95) rating = RATING.EASY;
+  else if (accuracy >= 0.85) rating = RATING.GOOD;
+  else if (accuracy >= 0.6) rating = RATING.HARD;
+  else rating = RATING.AGAIN;
+
+  if (options?.peeked && rating !== RATING.AGAIN) rating = RATING.HARD;
+  return rating;
 }

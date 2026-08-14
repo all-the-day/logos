@@ -26,7 +26,7 @@ export default async function PlanPage() {
   if (planDetails) {
     progress = await cardDb.getCardProgress(planDetails.plan.bookId, user.id);
     todaySummary = await learnService.getTodaySummary(user.id);
-    todayReviewed = await cardDb.getTodayReviewedCount(user.id, planDetails.plan.bookId);
+    todayReviewed = await cardDb.getTodayReviewedCount(user.id);
   }
 
   const books = await verseDb.getAllBooks();

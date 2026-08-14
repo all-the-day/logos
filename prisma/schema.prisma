@@ -95,6 +95,7 @@ model Card {
   state         String    @default("new")
   lastReview    DateTime?
   due           DateTime  @default(now())
+  introducedAt  DateTime? // 首次离开 new 态的时间，用于每日新卡配额计算
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 

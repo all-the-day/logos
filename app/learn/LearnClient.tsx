@@ -19,7 +19,10 @@ type Mode = "view" | "recite" | "result";
 
 export default function LearnClient({ plan, tasks }: Props) {
   const [currentIdx, setCurrentIdx] = useState(0);
-  const [mode, setMode] = useState<Mode>("view");
+  // 新卡先查看再背诵；复习卡默认直接进入背诵态，避免先看原文削弱检索练习
+  const [mode, setMode] = useState<Mode>(() =>
+    tasks[0] && tasks[0].cardState !== "new" ? "recite" : "view"
+  );
   const [userInput, setUserInput] = useState("");
   const [segments, setSegments] = useState<import("@/lib/compare").DiffSegment[]>([]);
   const [accuracy, setAccuracy] = useState(0);
@@ -28,6 +31,7 @@ export default function LearnClient({ plan, tasks }: Props) {
   const [fillInputs, setFillInputs] = useState<string[]>([]);
   const [ratingDone, setRatingDone] = useState(false);
   const [showOriginal, setShowOriginal] = useState(false);
+  const [peeked, setPeeked] = useState(false); // 本次背诵是否查看过原文
   const [undoAvailable, setUndoAvailable] = useState(false);
 
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -41,6 +45,7 @@ export default function LearnClient({ plan, tasks }: Props) {
     lastReview: Date | string | null;
     due: Date | string;
   } | null>(null);
+  const ratingLockRef = useRef(false); // 防止评分请求在途时连按 1-4 重复提交
 
   const task = tasks[currentIdx];
   const totalTasks = tasks.length;
@@ -54,20 +59,48 @@ export default function LearnClient({ plan, tasks }: Props) {
   }, new Map<number, { chapter: number; firstIdx: number; count: number }>());
   const chapters = Array.from(chapterGroups.values());
 
-  const handleStartRecite = useCallback(() => {
+  const startRecite = useCallback((t: TaskData) => {
     setUserInput("");
     setSegments([]);
     setAccuracy(0);
     setRatingDone(false);
     setShowOriginal(false);
+    setPeeked(false);
     if (fillMode) {
-      const density = densityForStability(task.cardStability, task.cardState);
-      const blanks = generateFillBlanks(task.content, density);
+      const density = densityForStability(t.cardStability, t.cardState);
+      const blanks = generateFillBlanks(t.content, density);
       setFillInputs(new Array(blanks.blanks.length).fill(""));
+    } else {
+      setFillInputs([]);
     }
     setMode("recite");
     setTimeout(() => inputRef.current?.focus(), 100);
-  }, [task, fillMode]);
+  }, [fillMode]);
+
+  const handleStartRecite = useCallback(() => {
+    startRecite(task);
+  }, [task, startRecite]);
+
+  /** 切换到指定任务：原子清空全部单次背诵状态，复习卡直接进背诵态、新卡先进查看态 */
+  const goToTask = useCallback((idx: number) => {
+    const t = tasks[idx];
+    if (!t) return;
+    setCurrentIdx(idx);
+    setUserInput("");
+    setSegments([]);
+    setAccuracy(0);
+    setFillInputs([]);
+    setRatingDone(false);
+    setShowOriginal(false);
+    setPeeked(false);
+    setUndoAvailable(false);
+    undoCardRef.current = null;
+    if (t.cardState !== "new") {
+      startRecite(t); // 复习卡直接背诵（会再初始化填空并聚焦）
+    } else {
+      setMode("view");
+    }
+  }, [tasks, startRecite]);
 
   const handleSubmit = useCallback(() => {
     let finalInput = userInput;
@@ -82,7 +115,8 @@ export default function LearnClient({ plan, tasks }: Props) {
 
   const handleRate = useCallback(
     async (rating: Rating) => {
-      if (ratingDone) return;
+      if (ratingDone || ratingLockRef.current) return;
+      ratingLockRef.current = true;
       try {
         // 用 task 快照做撤销（task 来自本次会话加载，与 cardId 一致）
         undoCardRef.current = {
@@ -108,6 +142,8 @@ export default function LearnClient({ plan, tasks }: Props) {
         setUndoAvailable(true);
       } catch (e) {
         console.error("评分请求异常", e);
+      } finally {
+        ratingLockRef.current = false;
       }
     },
     [task, ratingDone]
@@ -138,39 +174,56 @@ export default function LearnClient({ plan, tasks }: Props) {
   }, []);
 
   const handleNext = useCallback(() => {
-    if (currentIdx < totalTasks - 1) {
-      setCurrentIdx((i) => i + 1);
-      setMode("view");
-      setUserInput("");
-      setSegments([]);
-      setRatingDone(false);
+    if (currentIdx < totalTasks - 1) goToTask(currentIdx + 1);
+  }, [currentIdx, totalTasks, goToTask]);
+
+  // 复习卡初始直接进入背诵态时聚焦输入框
+  useEffect(() => {
+    if (mode === "recite") {
+      const id = setTimeout(() => inputRef.current?.focus(), 100);
+      return () => clearTimeout(id);
     }
-  }, [currentIdx, totalTasks]);
+  }, [mode]);
+
+  // 键盘处理：keydown 只注册一次，通过 ref 读取"最新"的处理器与状态。
+  // 避免切换任务后的一小段窗口内，旧监听器（闭包了上一节 task/输入）把 Enter 或评分误接到上一节，
+  // 导致"页面显示 1:4、比对/评分却用了 1:2"的跨节串扰。
+  const latest = useRef({
+    mode, ratingDone, undoAvailable,
+    submit: handleSubmit, rate: handleRate, next: handleNext, undo: handleUndo,
+  });
+  useEffect(() => {
+    latest.current = {
+      mode, ratingDone, undoAvailable,
+      submit: handleSubmit, rate: handleRate, next: handleNext, undo: handleUndo,
+    };
+  });
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
-      if (mode === "recite" && e.key === "Enter" && !e.shiftKey) {
+      const l = latest.current;
+      if (l.mode === "recite" && e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
-        handleSubmit();
+        l.submit();
       }
-      if (mode === "result" && !ratingDone) {
-        if (e.key === "1") handleRate(1 as Rating);
-        if (e.key === "2") handleRate(2 as Rating);
-        if (e.key === "3") handleRate(3 as Rating);
-        if (e.key === "4") handleRate(4 as Rating);
+      if (l.mode === "result" && !l.ratingDone) {
+        if (e.key === "1") l.rate(1 as Rating);
+        if (e.key === "2") l.rate(2 as Rating);
+        if (e.key === "3") l.rate(3 as Rating);
+        if (e.key === "4") l.rate(4 as Rating);
         if (e.key === " " || e.key === "Spacebar") {
           e.preventDefault();
-          handleNext(); // skip without rating
+          l.next(); // skip without rating
         }
       }
-      if (mode === "result" && ratingDone && undoAvailable && (e.key === "u" || e.key === "U")) {
+      if (l.mode === "result" && l.ratingDone && l.undoAvailable && (e.key === "u" || e.key === "U")) {
         e.preventDefault();
-        handleUndo();
+        l.undo();
       }
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [mode, ratingDone, undoAvailable, handleSubmit, handleRate, handleNext, handleUndo]);
+  }, []);
 
   if (!plan) {
     return (
@@ -239,7 +292,7 @@ export default function LearnClient({ plan, tasks }: Props) {
                   return (
                     <button
                       key={ch.chapter}
-                      onClick={() => setCurrentIdx(ch.firstIdx)}
+                      onClick={() => goToTask(ch.firstIdx)}
                       className={cn(
                         "px-2.5 py-1 text-xs rounded-full border transition-colors",
                         isCurrent
@@ -273,7 +326,10 @@ export default function LearnClient({ plan, tasks }: Props) {
             setUserInput={setUserInput}
             inputRef={inputRef}
             onSubmit={handleSubmit}
-            onViewOriginal={() => setShowOriginal(!showOriginal)}
+            onViewOriginal={() => {
+              setShowOriginal((s) => !s);
+              setPeeked(true);
+            }}
           />
         </>
       )}
@@ -289,7 +345,7 @@ export default function LearnClient({ plan, tasks }: Props) {
           nextLabel={currentIdx >= totalTasks - 1 ? "完成" : "下一节"}
           verseId={task.id}
           onUndo={undoAvailable ? handleUndo : undefined}
-          recommendedRating={recommendRating(accuracy)}
+          recommendedRating={recommendRating(accuracy, { peeked })}
         />
       )}
     </div>

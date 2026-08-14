@@ -5,11 +5,12 @@
  * - alice(1)：活跃计划 → book1(versesPerDay=2)；已删除计划 → book2
  * - bob(2)：无计划
  *
- * alice @ book1 的卡片：
- *   复习队列（due <= now 且非 new）：v202(-3d) v201(-2d) v101(-1d) v102(=now)  → 4 张，按 due asc
+ * alice 的卡片（卡片是永久学习资产，跨书卷）：
+ *   复习队列（due <= now 且非 new，跨 book1+book2）：
+ *     v202(-3d) v201(-2d) v101(-1d) v401(-1d, book2 已删计划) v102(=now) → 5 张，按 due/stability/verseId 排序
  *   未来到期（排除）：v103(+1d, relearning)
- *   新卡（take versesPerDay=2）：v301 v302（按章/节序）→ 2 张；v303 v304 超出取数
- * alice @ book2（已删除计划）：v401(review -1d) v402(new) → 必须排除
+ *   新卡（仅当前计划书卷 book1，take versesPerDay=2）：v301 v302（按章/节序）→ 2 张；v303 v304 超出取数
+ *   book2 的新卡 v402（已删计划）→ 不进入新卡引入
  * bob（其他用户）：v102(review -1d) v301(new) → 必须排除
  */
 import { prisma } from "@/lib/prisma";
