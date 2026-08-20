@@ -2,7 +2,7 @@
 
 > 本文件记录项目当前状态（目录、库存、进度、已知问题、下一步）。
 > 长期规则与不变量见 `AGENTS.md`；运维细节见 `docs/OPERATIONS.md`。
-> 最近同步：2026-08-10。**事实以代码与数据库为准，不凭本文推断。**
+> 最近同步：2026-08-20。**事实以代码与数据库为准，不凭本文推断。**
 
 ---
 
@@ -42,7 +42,9 @@ npm run db:seed      # 从 data/bible*.db 可重复增量导入（跳过已导�
 npm run db:studio    # Prisma Studio
 ```
 
-依赖要点：`@prisma/client`、`next@15.5.22`、`react@19`、`tailwindcss@4`、`shadcn@4`、`@base-ui/react`（shadcn 底层）、`lucide-react`（图标）、`tw-animate-css`。`date-fns` 目前未使用（可清理）。
+**Android APK（方案 A：Capacitor 在线壳）**：APK 由 **GitHub Actions** 构建（`.github/workflows/build-apk.yml`，push 到 master 或手动触发，产物为 Actions artifact `logos-apk`）。本地不在 android 目录手工出包。壳配置 `capacitor.config.json`：appId `com.duoban.logos`、appName `太初有道`、`server.url` 指向线上 `https://logos.duoban.xyz`（WebView 加载远程站点）。`www/` 为占位资源（启动等待页 + icon），`android/` 本地生成不入库。改动壳相关文件后 push 即可自动重新出包。
+
+依赖要点：`@prisma/client`、`next@15.5.22`、`react@19`、`tailwindcss@4`、`shadcn@4`、`@base-ui/react`（shadcn 底层）、`lucide-react`（图标）、`tw-animate-css`、`@capacitor/{core,cli,android}@6`（APK 壳）。`date-fns` 目前未使用（可清理）。
 
 ---
 
@@ -90,8 +92,13 @@ types/index.ts            全局类型
 prisma/    schema.prisma seed.ts
 scripts/   create-local-user.ts(本地造号) deploy.ps1 extract-verses.ts(已废弃)
 public/    manifest.json sw.js icons
+www/       Capacitor 壳占位资源（启动等待页 index.html + icon.png，APK 用）
+capacitor.config.json  APK 壳配置（appId / appName / server.url → 线上站点）
+.github/workflows/build-apk.yml  GitHub Actions 构建 debug APK
 data/      bible.db(恢复本) bible_kjv.db(KJV)  ← 不入 git
 ```
+
+> `android/`（Capacitor 原生工程）由 CI `cap add` 生成，本地存在但不入库（`.gitignore` 已忽略）。
 
 ---
 

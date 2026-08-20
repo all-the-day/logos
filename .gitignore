@@ -49,3 +49,8 @@ prisma/test.db*
 
 # source databases
 data/*.db
+
+# capacitor android（本地生成，不入库；APK 由 GitHub Actions 构建）
+/android/
+*.keystore
+*.jks

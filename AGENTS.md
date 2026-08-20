@@ -88,6 +88,7 @@ npm run db:generate / db:studio
 - Node.js ≥ 22；不得假定 Node 20 可运行种子导入（`node:sqlite`）。
 - TypeScript 严格模式；改动核心算法（FSRS、LCS 比对、日期）必须新增或更新单元测试。
 - `next dev` 与 `next build` 共用 `.next` 目录：不要在同一工作区内无清理地交替运行两者，否则可能触发 `MODULE_NOT_FOUND`/500。切换模式前先停服务并删除 `.next`。
+- **Android APK（Capacitor 在线壳）**：出包走 GitHub Actions（`.github/workflows/build-apk.yml`，push 到 master 或手动触发），产物为 Actions artifact；不在本地手工执行 `./gradlew` 出包。壳配置 `capacitor.config.json`（appId `com.duoban.logos`，`server.url` 指向线上域名）；`android/` 为 CI 生成目录，不入库。
 
 ## 7. 测试数据库安全
 
@@ -105,6 +106,7 @@ npm run db:generate / db:studio
 - 生产运维的唯一权威来源为仓库外的 `D:/coder/aiWorkSpace/server-ops/server-ops.py`（其 `config.json` 含凭据，不入库）；仓库内 `.codebuddy` 中的旧运维配置不得用于生产。
 - 未经用户明确确认，不得部署、SSH、PM2、推送或操作生产环境。
 - 数据迁移、生产数据库修改必须单独确认并先备份。
+- APK 壳发布包（签名 keystore）属生产凭据：不得入库，不得写入 workflow 明文；需要签名发布时单独规划。
 
 ## 9. 文档同步协议（强制）
 

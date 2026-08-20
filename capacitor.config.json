@@ -1,0 +1,12 @@
+{
+  "appId": "com.duoban.logos",
+  "appName": "太初有道",
+  "webDir": "www",
+  "server": {
+    "url": "https://logos.duoban.xyz",
+    "cleartext": false
+  },
+  "android": {
+    "allowMixedContent": false
+  }
+}
