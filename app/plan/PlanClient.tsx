@@ -3,6 +3,12 @@
 import { useState, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button, buttonVariants } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -48,6 +54,18 @@ export default function PlanClient({
   const [createError, setCreateError] = useState<string | null>(null);
   const [checkinState, setCheckinState] = useState(checkin);
   const [deleting, setDeleting] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editVersesPerDay, setEditVersesPerDay] = useState(planDetails?.plan?.versesPerDay ?? 3);
+  const [editBookId, setEditBookId] = useState<number | null>(planDetails?.plan?.bookId ?? null);
+  const [saving, setSaving] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+
+  const openEdit = () => {
+    setEditVersesPerDay(planDetails?.plan?.versesPerDay ?? 3);
+    setEditBookId(planDetails?.plan?.bookId ?? null);
+    setEditError(null);
+    setEditOpen(true);
+  };
 
   const handleCreate = useCallback(async () => {
     if (!selectedBook) return;
@@ -82,6 +100,32 @@ export default function PlanClient({
       setDeleting(false);
     }
   }, []);
+
+  const handleSaveEdit = useCallback(async () => {
+    if (!editVersesPerDay) return;
+    setSaving(true);
+    setEditError(null);
+    try {
+      const res = await fetch("/api/plan", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...(editBookId ? { bookId: editBookId } : {}),
+          versesPerDay: editVersesPerDay,
+        }),
+      });
+      if (res.ok) {
+        window.location.reload();
+      } else {
+        const data = await res.json().catch(() => null);
+        setEditError(data?.error || `保存失败 (${res.status})`);
+      }
+    } catch (e) {
+      setEditError(`网络错误：${e instanceof Error ? e.message : "无法连接服务器"}`);
+    } finally {
+      setSaving(false);
+    }
+  }, [editBookId, editVersesPerDay]);
 
   const handleCheckin = useCallback(async () => {
     try {
@@ -245,6 +289,12 @@ export default function PlanClient({
                 </summary>
                 <div className="absolute right-0 mt-2 w-36 rounded-md border bg-background shadow-md z-10 overflow-hidden">
                   <button
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-secondary cursor-pointer"
+                    onClick={() => { openEdit(); }}
+                  >
+                    修改计划
+                  </button>
+                  <button
                     className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-secondary cursor-pointer"
                     onClick={handleDelete}
                     disabled={deleting}
@@ -270,6 +320,47 @@ export default function PlanClient({
           </div>
         </CardContent>
       </Card>
+
+      {/* 修改计划弹窗：改每日节数，可选换书卷（旧书卷卡片保留） */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>修改计划</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium mb-2 block">选择书卷</label>
+              <BookSelector
+                books={books}
+                selectedId={editBookId}
+                onSelect={setEditBookId}
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-2 block">每日节数</label>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm"
+                  onClick={() => setEditVersesPerDay(Math.max(1, editVersesPerDay - 1))}>
+                  -
+                </Button>
+                <span className="w-12 text-center font-medium">{editVersesPerDay}</span>
+                <Button variant="outline" size="sm"
+                  onClick={() => setEditVersesPerDay(Math.min(10, editVersesPerDay + 1))}>
+                  +
+                </Button>
+                <span className="text-sm text-muted-foreground ml-2">节/天</span>
+              </div>
+            </div>
+            <Button className="w-full" disabled={!editBookId || saving}
+              onClick={handleSaveEdit}>
+              {saving ? "保存中..." : "保存"}
+            </Button>
+            {editError && (
+              <p className="text-sm text-red-600">{editError}</p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

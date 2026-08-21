@@ -15,6 +15,17 @@ export async function deletePlan(planId: number, userId: number) {
   });
 }
 
+export async function updatePlan(
+  planId: number,
+  userId: number,
+  data: { bookId?: number; versesPerDay?: number }
+) {
+  return prisma.plan.update({
+    where: { id: planId },
+    data,
+  });
+}
+
 export async function deleteAllPlans(userId: number) {
   return prisma.plan.deleteMany({ where: { userId } });
 }
