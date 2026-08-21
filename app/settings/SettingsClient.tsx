@@ -4,6 +4,12 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button, buttonVariants } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useToast } from "@/components/ToastProvider";
 import { cn } from "@/lib/utils";
 
@@ -195,18 +201,23 @@ function StatsCard() {
 }
 
 function FeedbackCard() {
+  const [open, setOpen] = useState(false);
   const [type, setType] = useState("suggestion");
   const [content, setContent] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [list, setList] = useState<Array<{ id: number; type: string; content: string; status: string; createdAt: string }>>([]);
   const [notice, setNotice] = useState<string | null>(null);
 
-  useEffect(() => {
+  const load = useCallback(() => {
     fetch("/api/feedback")
       .then((r) => r.json())
       .then((d) => setList(d.feedback || []))
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const handleSubmit = async () => {
     if (!content.trim()) return;
@@ -241,58 +252,74 @@ function FeedbackCard() {
         <CardTitle className="text-base">反馈</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        <div className="flex gap-2">
-          <select
-            className="flex-none px-3 py-2 border rounded-md bg-background text-sm"
-            value={type}
-            onChange={(e) => setType(e.target.value)}
-          >
-            <option value="bug">Bug</option>
-            <option value="suggestion">优化建议</option>
-            <option value="other">其他</option>
-          </select>
-          <textarea
-            className="flex-1 px-3 py-2 border rounded-md bg-background text-sm resize-none"
-            rows={2}
-            placeholder="记录你遇到的问题或功能建议..."
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-          />
-        </div>
         <div className="flex items-center justify-between">
-          {notice ? (
-            <span className="text-xs text-muted-foreground">{notice}</span>
-          ) : <span />}
-          <Button size="sm" disabled={!content.trim() || submitting}
-            onClick={handleSubmit}>
-            {submitting ? "提交中..." : "提交"}
+          <p className="text-sm text-muted-foreground">
+            {list.length > 0 ? `历史反馈 ${list.length} 条` : "遇到问题或有建议？告诉我们"}
+          </p>
+          <Button size="sm" onClick={() => setOpen(true)}>
+            我要反馈
           </Button>
         </div>
 
-        {list.length > 0 && (
-          <div className="space-y-2 pt-2 border-t">
-            <p className="text-xs text-muted-foreground">历史反馈 ({list.length})</p>
-            {list.map((f) => (
-              <div key={f.id} className="flex items-start justify-between gap-2 p-2 rounded-md bg-secondary/40">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-medium text-muted-foreground">#{f.id}</span>
-                    <span className="text-xs px-1.5 py-0.5 rounded bg-primary/10 text-primary">
-                      {typeLabel[f.type] || f.type}
-                    </span>
-                    <span className={`text-xs ${f.status === "open" ? "text-amber-600" : "text-green-600"}`}>
-                      {f.status === "open" ? "待处理" : "已处理"}
-                    </span>
-                  </div>
-                  <p className="text-sm mt-1 whitespace-pre-wrap break-words">{f.content}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {new Date(f.createdAt).toLocaleString("zh-CN")}
-                  </p>
-                </div>
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogContent className="sm:max-w-md max-h-[85vh] flex flex-col">
+            <DialogHeader>
+              <DialogTitle>我要反馈</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3 flex-1 min-h-0 overflow-y-auto pr-1">
+              <div className="flex gap-2">
+                <select
+                  className="flex-none px-3 py-2 border rounded-md bg-background text-sm"
+                  value={type}
+                  onChange={(e) => setType(e.target.value)}
+                >
+                  <option value="bug">Bug</option>
+                  <option value="suggestion">优化建议</option>
+                  <option value="other">其他</option>
+                </select>
+                <textarea
+                  className="flex-1 px-3 py-2 border rounded-md bg-background text-sm resize-none"
+                  rows={2}
+                  placeholder="记录你遇到的问题或功能建议..."
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                />
               </div>
-            ))}
-          </div>
-        )}
+              <div className="flex items-center justify-between">
+                {notice ? (
+                  <span className="text-xs text-muted-foreground">{notice}</span>
+                ) : <span />}
+                <Button size="sm" disabled={!content.trim() || submitting}
+                  onClick={handleSubmit}>
+                  {submitting ? "提交中..." : "提交"}
+                </Button>
+              </div>
+
+              {list.length > 0 && (
+                <div className="space-y-2 pt-2 border-t">
+                  <p className="text-xs text-muted-foreground">历史反馈 ({list.length})</p>
+                  {list.map((f) => (
+                    <div key={f.id} className="p-2 rounded-md bg-secondary/40">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-medium text-muted-foreground">#{f.id}</span>
+                        <span className="text-xs px-1.5 py-0.5 rounded bg-primary/10 text-primary">
+                          {typeLabel[f.type] || f.type}
+                        </span>
+                        <span className={`text-xs ${f.status === "open" ? "text-amber-600" : "text-green-600"}`}>
+                          {f.status === "open" ? "待处理" : "已处理"}
+                        </span>
+                      </div>
+                      <p className="text-sm mt-1 whitespace-pre-wrap break-words">{f.content}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {new Date(f.createdAt).toLocaleString("zh-CN")}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   );

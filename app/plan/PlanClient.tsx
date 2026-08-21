@@ -266,7 +266,7 @@ export default function PlanClient({
             />
           )}
           <div className="text-sm text-muted-foreground">
-            每日 {plan.versesPerDay} 节 · 全书已学 {progress?.total ?? 0}/{totalVerses}
+            每日 {plan.versesPerDay} 节 · 全书已学 {(progress?.mastered ?? 0) + (progress?.learning ?? 0)}/{totalVerses}
           </div>
         </CardContent>
       </Card>
