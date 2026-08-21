@@ -4,18 +4,28 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  BookOpen,
+  Layers,
+  StickyNote,
+  CalendarCheck,
+} from "lucide-react";
 import { useToast } from "@/components/ToastProvider";
 import { cn } from "@/lib/utils";
 
 export default function SettingsClient({ user }: { user: { id: number; username: string; name: string; role: string } }) {
   const [exporting, setExporting] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [clearOpen, setClearOpen] = useState(false);
+  const [clearConfirm, setClearConfirm] = useState("");
+  const [clearing, setClearing] = useState(false);
   const { toast } = useToast();
 
   const handleLogout = async () => {
@@ -72,7 +82,7 @@ export default function SettingsClient({ user }: { user: { id: number; username:
   };
 
   const handleClear = async () => {
-    if (!confirm("确定要清除所有数据吗？此操作不可恢复。")) return;
+    setClearing(true);
     try {
       const res = await fetch("/api/data", { method: "DELETE" });
       if (!res.ok) {
@@ -83,6 +93,8 @@ export default function SettingsClient({ user }: { user: { id: number; username:
       setTimeout(() => window.location.reload(), 800);
     } catch {
       toast("清除失败", "error");
+    } finally {
+      setClearing(false);
     }
   };
 
@@ -118,7 +130,7 @@ export default function SettingsClient({ user }: { user: { id: number; username:
         <CardContent className="space-y-3">
           <Button className="w-full" variant="outline"
             onClick={handleExport} disabled={exporting}>
-            {exporting ? "导出中..." : "导出数据 (JSON)"}
+            {exporting ? "导出中..." : "本地备份 (JSON)"}
           </Button>
 
           <div>
@@ -132,29 +144,51 @@ export default function SettingsClient({ user }: { user: { id: number; username:
                 importing && "pointer-events-none opacity-50"
               )}
             >
-              {importing ? "导入中..." : "导入数据"}
+              {importing ? "导入中..." : "从备份恢复"}
             </label>
           </div>
-
-          <Button className="w-full" variant="destructive"
-            onClick={handleClear}>
-            清除所有数据
-          </Button>
         </CardContent>
       </Card>
 
       <StatsCard />
 
-      <Card>
-        <CardHeader><CardTitle>关于</CardTitle></CardHeader>
+      <FeedbackCard />
+
+      <Card className="border-red-200">
+        <CardHeader><CardTitle className="text-red-600">危险操作</CardTitle></CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground">
-            logos v0.1.0
+          <Button className="w-full" variant="outline"
+            onClick={() => setClearOpen(true)}>
+            清除所有数据
+          </Button>
+          <p className="text-xs text-muted-foreground mt-2">
+            清空全部卡片、笔记、签到与计划，不可恢复。建议先导出备份。
           </p>
         </CardContent>
       </Card>
 
-      <FeedbackCard />
+      <Dialog open={clearOpen} onOpenChange={setClearOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-red-600">确认清除所有数据？</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              此操作不可恢复。请输入 <span className="font-medium text-foreground">清除</span> 以确认：
+            </p>
+            <Input
+              value={clearConfirm}
+              onChange={(e) => setClearConfirm(e.target.value)}
+              placeholder="清除"
+            />
+            <Button className="w-full" variant="destructive"
+              disabled={clearConfirm !== "清除" || clearing}
+              onClick={handleClear}>
+              {clearing ? "清除中..." : "确认清除"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -175,19 +209,23 @@ function StatsCard() {
       <CardContent>
         {stats ? (
           <div className="grid grid-cols-2 gap-3 text-sm">
-            <div className="p-2 rounded-md bg-secondary/50">
+            <div className="p-2.5 rounded-md bg-secondary/50">
+              <BookOpen className="w-4 h-4 text-muted-foreground mb-1" />
               <span className="text-muted-foreground">经文</span>
               <p className="font-medium">{stats.verses} 节</p>
             </div>
-            <div className="p-2 rounded-md bg-secondary/50">
+            <div className="p-2.5 rounded-md bg-secondary/50">
+              <Layers className="w-4 h-4 text-muted-foreground mb-1" />
               <span className="text-muted-foreground">卡片</span>
               <p className="font-medium">{stats.cards} 张</p>
             </div>
-            <div className="p-2 rounded-md bg-secondary/50">
+            <div className="p-2.5 rounded-md bg-secondary/50">
+              <StickyNote className="w-4 h-4 text-muted-foreground mb-1" />
               <span className="text-muted-foreground">笔记</span>
               <p className="font-medium">{stats.notes} 条</p>
             </div>
-            <div className="p-2 rounded-md bg-secondary/50">
+            <div className="p-2.5 rounded-md bg-secondary/50">
+              <CalendarCheck className="w-4 h-4 text-muted-foreground mb-1" />
               <span className="text-muted-foreground">签到</span>
               <p className="font-medium">{stats.checkins} 次</p>
             </div>
@@ -249,13 +287,16 @@ function FeedbackCard() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">反馈</CardTitle>
+        <CardTitle className="text-base">关于</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">
-            {list.length > 0 ? `历史反馈 ${list.length} 条` : "遇到问题或有建议？告诉我们"}
-          </p>
+          <div>
+            <p className="text-sm text-muted-foreground">logos v0.1.0 · 仅供个人使用</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {list.length > 0 ? `历史反馈 ${list.length} 条` : "遇到问题或有建议？告诉我们"}
+            </p>
+          </div>
           <Button size="sm" onClick={() => setOpen(true)}>
             我要反馈
           </Button>
