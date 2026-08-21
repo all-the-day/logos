@@ -41,7 +41,9 @@ export default function LoginClient() {
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl">Logos</CardTitle>
+          {/* 应用名已改为「背经」，副标题暂不展示
           <p className="text-sm text-muted-foreground">太初有道 · 背诵计划</p>
+          */}
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-3">
