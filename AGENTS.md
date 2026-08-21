@@ -83,8 +83,11 @@ npm run test:watch / test:coverage / test:db:reset
 npm run db:push       # 同步 schema → SQLite
 npm run db:seed       # 从 data/bible*.db 可重复增量导入（跳过已导入）
 npm run db:generate / db:studio
+npm run feedback:pull        # 拉取线上反馈收件箱 → tools/feedback/inbox.md
+npm run feedback:close <id>  # 标记反馈 #id 为已处理（闭环工作流）
 ```
 
+- **反馈闭环是开发任务的主要来源**：开工先 `npm run feedback:pull` 检查线上收件箱（真实用户需求/Bug），开发完成部署后 `npm run feedback:close <id>` 标记；反馈状态仅 admin 可改（`PATCH /api/feedback` 返回 403 给普通用户），反馈 UI 不向普通用户展示状态操作按钮。凭据 `LOGO_ADMIN_USER/LOGO_ADMIN_PASSWORD` 在 `.env.local`（不入库）。
 - Node.js ≥ 22；不得假定 Node 20 可运行种子导入（`node:sqlite`）。
 - TypeScript 严格模式；改动核心算法（FSRS、LCS 比对、日期）必须新增或更新单元测试。
 - `next dev` 与 `next build` 共用 `.next` 目录：不要在同一工作区内无清理地交替运行两者，否则可能触发 `MODULE_NOT_FOUND`/500。切换模式前先停服务并删除 `.next`。
