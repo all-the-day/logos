@@ -9,7 +9,8 @@ export function loadEnv() {
   try {
     const text = readFileSync(resolve(process.cwd(), ".env.local"), "utf8");
     for (const line of text.split("\n")) {
-      const m = line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$/);
+      const trimmed = line.replace(/\r$/, ""); // 兼容 CRLF 行尾（Windows）
+      const m = trimmed.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$/);
       if (m && !(m[1] in process.env)) {
         process.env[m[1]] = m[2].replace(/^["']|["']$/g, "").trim();
       }
