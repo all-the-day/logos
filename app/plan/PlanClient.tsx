@@ -29,7 +29,7 @@ interface PlanClientProps {
   dailyVerse: DailyVerse | null;
   todaySummary: { review: number; new: number } | null;
   todayReviewed: number;
-  todayTotal: number;
+  todayNewCount: number;
 }
 
 export default function PlanClient({
@@ -40,7 +40,7 @@ export default function PlanClient({
   dailyVerse,
   todaySummary,
   todayReviewed,
-  todayTotal,
+  todayNewCount,
 }: PlanClientProps) {
   const [selectedBook, setSelectedBook] = useState<number | null>(null);
   const [versesPerDay, setVersesPerDay] = useState(3);
@@ -176,13 +176,13 @@ export default function PlanClient({
             </Button>
           )}
           <div className="text-sm text-muted-foreground text-center">
-            今日进度 {todayReviewed}/{todayTotal} 节
+            新卡进度 {todayNewCount}/{planDetails?.plan.versesPerDay ?? 0} 节
           </div>
           <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
             <div
               className="h-full bg-primary rounded-full transition-all"
               style={{
-                width: `${todayTotal > 0 ? Math.min(100, (todayReviewed / todayTotal) * 100) : 0}%`,
+                width: `${(planDetails?.plan.versesPerDay ?? 0) > 0 ? Math.min(100, (todayNewCount / (planDetails?.plan.versesPerDay ?? 1)) * 100) : 0}%`,
               }}
             />
           </div>
@@ -266,7 +266,7 @@ export default function PlanClient({
             />
           )}
           <div className="text-sm text-muted-foreground">
-            每日 {plan.versesPerDay} 节 · 已学 {progress?.total ?? 0}/{totalVerses}
+            每日 {plan.versesPerDay} 节 · 全书已学 {progress?.total ?? 0}/{totalVerses}
           </div>
         </CardContent>
       </Card>

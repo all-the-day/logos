@@ -233,16 +233,6 @@ function FeedbackCard() {
     setTimeout(() => setNotice(null), 3000);
   };
 
-  const handleToggle = async (id: number, status: string) => {
-    const newStatus = status === "open" ? "resolved" : "open";
-    await fetch("/api/feedback", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, status: newStatus }),
-    });
-    setList((prev) => prev.map((f) => f.id === id ? { ...f, status: newStatus } : f));
-  };
-
   const typeLabel: Record<string, string> = { bug: "Bug", suggestion: "优化建议", other: "其他" };
 
   return (
@@ -286,6 +276,7 @@ function FeedbackCard() {
               <div key={f.id} className="flex items-start justify-between gap-2 p-2 rounded-md bg-secondary/40">
                 <div className="min-w-0">
                   <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-medium text-muted-foreground">#{f.id}</span>
                     <span className="text-xs px-1.5 py-0.5 rounded bg-primary/10 text-primary">
                       {typeLabel[f.type] || f.type}
                     </span>
@@ -298,12 +289,6 @@ function FeedbackCard() {
                     {new Date(f.createdAt).toLocaleString("zh-CN")}
                   </p>
                 </div>
-                <button
-                  className="flex-none text-xs text-muted-foreground hover:text-foreground cursor-pointer"
-                  onClick={() => handleToggle(f.id, f.status)}
-                >
-                  {f.status === "open" ? "标记已处理" : "重开"}
-                </button>
               </div>
             ))}
           </div>

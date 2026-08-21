@@ -33,6 +33,17 @@ export async function getTodayReviewedCount(userId: number) {
   });
 }
 
+/** 今日首次引入（离开 new 态）的新卡数——用于"新卡进度 X/每日 M 节" */
+export async function getTodayNewCount(userId: number) {
+  const startOfDay = startOfLocalDay();
+  return prisma.card.count({
+    where: {
+      userId,
+      introducedAt: { gte: startOfDay },
+    },
+  });
+}
+
 export async function getCardProgress(bookId: number, userId: number) {
   const cards = await prisma.card.findMany({
     where: { userId, verse: { bookId } },
