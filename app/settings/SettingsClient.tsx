@@ -145,16 +145,16 @@ export default function SettingsClient({ user }: { user: { id: number; username:
 
       <StatsCard />
 
-      <FeedbackCard />
-
       <Card>
         <CardHeader><CardTitle>关于</CardTitle></CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">
-            Logos v0.1.0 · FSRS 间隔重复 · 恢复本 + KJV · PWA
+            logos v0.1.0
           </p>
         </CardContent>
       </Card>
+
+      <FeedbackCard />
     </div>
   );
 }
