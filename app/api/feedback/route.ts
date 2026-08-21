@@ -7,7 +7,11 @@ export async function GET() {
   if (!user) return NextResponse.json({ error: "未登录" }, { status: 401 });
 
   try {
-    const feedback = await feedbackDb.getAllFeedback(user.id);
+    // admin 可查全部反馈（含提交人）；普通用户只查自己的
+    const feedback =
+      user.role === "admin"
+        ? await feedbackDb.getAllFeedbackForAdmin()
+        : await feedbackDb.getAllFeedback(user.id);
     return NextResponse.json({ feedback });
   } catch (error) {
     const msg = error instanceof Error ? error.message : "获取反馈失败";
@@ -53,7 +57,11 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: "参数无效" }, { status: 400 });
     }
 
-    const result = await feedbackDb.updateFeedbackStatus(Number(id), user.id, status);
+    // admin 可更新任意反馈状态；普通用户只能更新自己的
+    const result =
+      user.role === "admin"
+        ? await feedbackDb.updateFeedbackStatusAdmin(Number(id), status)
+        : await feedbackDb.updateFeedbackStatus(Number(id), user.id, status);
     if (result.count === 0) {
       return NextResponse.json({ error: "反馈不存在" }, { status: 404 });
     }

@@ -40,6 +40,8 @@ npm run test:db:reset # 重建 prisma/test.db（精确路径保护）
 npm run db:push      # 同步 schema 到 SQLite
 npm run db:seed      # 从 data/bible*.db 可重复增量导入（跳过已导入）
 npm run db:studio    # Prisma Studio
+npm run feedback:pull  # 拉取线上反馈 → tools/feedback/inbox.md（凭据 .env.local）
+npm run feedback:close <id>  # 标记反馈为已处理（闭环工作流）
 ```
 
 **Android APK（方案 A：Capacitor 在线壳）**：APK 由 **GitHub Actions** 构建（`.github/workflows/build-apk.yml`，push 到 master 或手动触发，产物为 Actions artifact `logos-apk`）。本地不在 android 目录手工出包。壳配置 `capacitor.config.json`：appId `com.duoban.logos`、appName `太初有道`、`server.url` 指向线上 `https://logos.duoban.xyz`（WebView 加载远程站点）。`www/` 为占位资源（启动等待页 + icon），`android/` 本地生成不入库。改动壳相关文件后 push 即可自动重新出包。
@@ -93,6 +95,7 @@ prisma/    schema.prisma seed.ts
 scripts/   create-local-user.ts(本地造号) deploy.ps1 extract-verses.ts(已废弃)
 public/    manifest.json sw.js icons
 www/       Capacitor 壳占位资源（启动等待页 index.html + icon.png，APK 用）
+tools/feedback/  反馈闭环脚本（pull.ts/close.ts/lib.ts/README.md；inbox.md 为生成物不入库）
 capacitor.config.json  APK 壳配置（appId / appName / server.url → 线上站点）
 .github/workflows/build-apk.yml  GitHub Actions 构建 debug APK
 data/      bible.db(恢复本) bible_kjv.db(KJV)  ← 不入 git
@@ -170,6 +173,7 @@ FSRS 卡状态机：`NEW → LEARNING → REVIEW`，AGAIN 时进入 `RELEARNING`
 - **/settings**：用户卡（退出登录/后台入口）→ 数据管理（导出 JSON/导入/清除）→ 数据统计 2×2 → 反馈 → 关于
 - **/admin**：用户管理（仅 admin）
 - **/login**：账号密码登录；注册仅管理员
+- **反馈闭环**：`GET/PATCH /api/feedback` 支持 admin 分支（admin 查全部/改任意状态，含提交人）；本地 `npm run feedback:pull / feedback:close <id>` 拉取处理线上反馈（详见 `tools/feedback/README.md`）
 
 ---
 

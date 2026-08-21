@@ -63,4 +63,7 @@ data/*.db*
 
 # 本地 Agent 配置（运维/规划文档，不入库）
 /.codebuddy/
+
+# 反馈收件箱（npm run feedback:pull 生成，不入库）
+tools/feedback/inbox.md
 .codebuddy/
