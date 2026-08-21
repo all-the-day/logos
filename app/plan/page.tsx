@@ -23,10 +23,13 @@ export default async function PlanPage() {
   let progress = null;
   let todaySummary = null;
   let todayReviewed = 0;
+  let todayTotal = 0;
   if (planDetails) {
     progress = await cardDb.getCardProgress(planDetails.plan.bookId, user.id);
     todaySummary = await learnService.getTodaySummary(user.id);
     todayReviewed = await cardDb.getTodayReviewedCount(user.id);
+    // 今日总量 = 已完成 + 待复习 + 待学新卡（各口口径随学习收敛，总和稳定）
+    todayTotal = todayReviewed + (todaySummary?.review ?? 0) + (todaySummary?.new ?? 0);
   }
 
   const books = await verseDb.getAllBooks();
@@ -42,6 +45,7 @@ export default async function PlanPage() {
       dailyVerse={JSON.parse(JSON.stringify(dailyVerse))}
       todaySummary={todaySummary}
       todayReviewed={todayReviewed}
+      todayTotal={todayTotal}
     />
   );
 }

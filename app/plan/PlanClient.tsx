@@ -29,6 +29,7 @@ interface PlanClientProps {
   dailyVerse: DailyVerse | null;
   todaySummary: { review: number; new: number } | null;
   todayReviewed: number;
+  todayTotal: number;
 }
 
 export default function PlanClient({
@@ -39,6 +40,7 @@ export default function PlanClient({
   dailyVerse,
   todaySummary,
   todayReviewed,
+  todayTotal,
 }: PlanClientProps) {
   const [selectedBook, setSelectedBook] = useState<number | null>(null);
   const [versesPerDay, setVersesPerDay] = useState(3);
@@ -174,7 +176,15 @@ export default function PlanClient({
             </Button>
           )}
           <div className="text-sm text-muted-foreground text-center">
-            今日已完成 {todayReviewed} 节
+            今日进度 {todayReviewed}/{todayTotal} 节
+          </div>
+          <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+            <div
+              className="h-full bg-primary rounded-full transition-all"
+              style={{
+                width: `${todayTotal > 0 ? Math.min(100, (todayReviewed / todayTotal) * 100) : 0}%`,
+              }}
+            />
           </div>
         </CardContent>
       </Card>

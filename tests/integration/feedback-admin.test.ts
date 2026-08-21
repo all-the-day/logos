@@ -5,7 +5,6 @@ import {
   createFeedback,
   getAllFeedback,
   getAllFeedbackForAdmin,
-  updateFeedbackStatus,
   updateFeedbackStatusAdmin,
 } from "@/db/feedback";
 
@@ -44,11 +43,5 @@ describe("feedback admin 分支", () => {
     expect(r.count).toBe(1);
     const row = await prisma.feedback.findUniqueOrThrow({ where: { id: f.id } });
     expect(row.status).toBe("resolved");
-  });
-
-  it("updateFeedbackStatus 不能跨用户更新（隔离）", async () => {
-    const f = await createFeedback(1, "other", "alice 的反馈");
-    const r = await updateFeedbackStatus(f.id, 2, "resolved");
-    expect(r.count).toBe(0);
   });
 });

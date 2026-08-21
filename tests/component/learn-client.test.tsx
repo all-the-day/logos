@@ -1,11 +1,14 @@
 // @vitest-environment jsdom
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { render, screen, cleanup } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import "@testing-library/jest-dom/vitest";
 import React from "react";
 import LearnClient from "@/app/learn/LearnClient";
 import type { PlanInfo, TaskData } from "@/types";
+
+// vitest 未开 globals，testing-library 不会自动清理 DOM，需手动 cleanup 防跨用例污染
+afterEach(cleanup);
 
 // next/link 在 jsdom 下需要 router 上下文，mock 成普通 <a>
 vi.mock("next/link", () => ({
@@ -77,5 +80,30 @@ describe("LearnClient 跨节状态隔离（复现：上一节的输入/比对残
     // 结果页"原文"是第二节，且准确率不是 100%
     expect(screen.getByText("第二节经文")).toBeInTheDocument();
     expect(screen.getByText(/准确率 (?!100%)/)).toBeInTheDocument();
+  });
+
+  it("最后一节完成：点「完成」进入「今日任务已完成」空状态（回归 #1）", async () => {
+    const user = userEvent.setup();
+    render(<LearnClient plan={plan} tasks={tasks} />);
+
+    // 任务 1（复习卡）：背诵 → 提交 → 评分 → 下一节
+    const textarea = screen.getByPlaceholderText("在此输入经文...") as HTMLTextAreaElement;
+    await user.type(textarea, "第一节经文");
+    await user.keyboard("{Enter}");
+    await user.keyboard("3");
+    await screen.findByRole("button", { name: /下一节/ });
+    await user.click(screen.getByRole("button", { name: /下一节/ }));
+
+    // 任务 2（新卡）：查看 → 开始背诵 → 提交 → 评分 → 此时按钮应为「完成」
+    await user.click(screen.getByRole("button", { name: /开始背诵/ }));
+    const textarea2 = screen.getByPlaceholderText("在此输入经文...") as HTMLTextAreaElement;
+    await user.type(textarea2, "第二节经文");
+    await user.keyboard("{Enter}");
+    await user.keyboard("3");
+    const doneBtn = await screen.findByRole("button", { name: /完成/ });
+    await user.click(doneBtn);
+
+    // 关键断言（修复点）：全部任务完成后显示完成空状态，而不是无反应
+    expect(screen.getByText("今日任务已完成！")).toBeInTheDocument();
   });
 });

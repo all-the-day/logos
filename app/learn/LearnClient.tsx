@@ -174,7 +174,12 @@ export default function LearnClient({ plan, tasks }: Props) {
   }, []);
 
   const handleNext = useCallback(() => {
-    if (currentIdx < totalTasks - 1) goToTask(currentIdx + 1);
+    if (currentIdx < totalTasks - 1) {
+      goToTask(currentIdx + 1);
+    } else {
+      // 最后一节完成：越界索引触发"今日任务已完成"空状态
+      setCurrentIdx(totalTasks);
+    }
   }, [currentIdx, totalTasks, goToTask]);
 
   // 复习卡初始直接进入背诵态时聚焦输入框

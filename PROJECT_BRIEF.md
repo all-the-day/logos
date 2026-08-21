@@ -157,9 +157,9 @@ FSRS 卡状态机：`NEW → LEARNING → REVIEW`，AGAIN 时进入 `RELEARNING`
 ### 6.1 Plan 页
 有计划的页面结构（自上而下）：
 1. **日期顶栏**（如 `周五 · 8月7日`，`getTodayLabel`）
-2. **今日任务卡**：`待复习 X 节 · 新经文 Y 节` + 全宽主按钮「开始今日学习」→ `/learn`（唯一 CTA）+ `今日已完成 N 节`
+2. **今日任务卡**：`待复习 X 节 · 新经文 Y 节` + 全宽主按钮「开始今日学习」→ `/learn`（唯一 CTA）+ **今日进度 `已完成/总量` 与进度条**（总量=已完成+待复习+待学新卡，口径随学习收敛稳定）
 3. **签到→金句槽位**：未签到=签到卡（含连续天数 streak）；已签到=每日金句。**产品动线，结构不可改**
-4. **书卷进度卡**：ProgressBar 三色 + `每日 X 节 · 已学 N/总数` + `…` 菜单内「删除计划」（带 confirm）
+4. **书卷进度卡**：ProgressBar 三色（总进度）+ `每日 X 节 · 已学 N/总数` + `…` 菜单内「删除计划」（带 confirm）
 
 无计划时：显示「新建背诵计划」表单（书卷选择 + 每日节数调节）。
 
@@ -173,7 +173,8 @@ FSRS 卡状态机：`NEW → LEARNING → REVIEW`，AGAIN 时进入 `RELEARNING`
 - **/settings**：用户卡（退出登录/后台入口）→ 数据管理（导出 JSON/导入/清除）→ 数据统计 2×2 → 反馈 → 关于
 - **/admin**：用户管理（仅 admin）
 - **/login**：账号密码登录；注册仅管理员
-- **反馈闭环**：`GET/PATCH /api/feedback` 支持 admin 分支（admin 查全部/改任意状态，含提交人）；本地 `npm run feedback:pull / feedback:close <id>` 拉取处理线上反馈（详见 `tools/feedback/README.md`）
+- **反馈闭环**：`GET /api/feedback` 支持 admin 分支（查全部含提交人）；`PATCH` **仅 admin 可改状态**（普通用户提交/查看自己的）；本地 `npm run feedback:pull / feedback:close <id>` 拉取处理线上反馈（详见 `tools/feedback/README.md`）
+- **/learn**：最后一节完成点「完成」→ 显示"今日任务已完成"空状态（回归测试覆盖）
 
 ---
 

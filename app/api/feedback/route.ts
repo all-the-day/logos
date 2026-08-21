@@ -48,6 +48,9 @@ export async function POST(request: Request) {
 export async function PATCH(request: Request) {
   const user = await requireUser();
   if (!user) return NextResponse.json({ error: "未登录" }, { status: 401 });
+  if (user.role !== "admin") {
+    return NextResponse.json({ error: "仅管理员可修改反馈状态" }, { status: 403 });
+  }
 
   try {
     const text = await request.text();
@@ -57,11 +60,7 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: "参数无效" }, { status: 400 });
     }
 
-    // admin 可更新任意反馈状态；普通用户只能更新自己的
-    const result =
-      user.role === "admin"
-        ? await feedbackDb.updateFeedbackStatusAdmin(Number(id), status)
-        : await feedbackDb.updateFeedbackStatus(Number(id), user.id, status);
+    const result = await feedbackDb.updateFeedbackStatusAdmin(Number(id), status);
     if (result.count === 0) {
       return NextResponse.json({ error: "反馈不存在" }, { status: 404 });
     }

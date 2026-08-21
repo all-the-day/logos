@@ -23,7 +23,3 @@ export async function getAllFeedbackForAdmin() {
 export async function updateFeedbackStatusAdmin(id: number, status: string) {
   return prisma.feedback.updateMany({ where: { id }, data: { status } });
 }
-
-export async function updateFeedbackStatus(id: number, userId: number, status: string) {
-  return prisma.feedback.updateMany({ where: { id, userId }, data: { status } });
-}
