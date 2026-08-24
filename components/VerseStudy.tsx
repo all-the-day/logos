@@ -148,6 +148,7 @@ export function VerseResult({
   verseId,
   onUndo,
   recommendedRating,
+  submitted,
 }: {
   verse: VerseRef;
   segments: DiffSegment[];
@@ -159,6 +160,8 @@ export function VerseResult({
   verseId?: number;
   onUndo?: () => void;
   recommendedRating?: Rating;
+  /** 用户实际提交用于比对的文本（反馈 #13：结果页展示"你的提交"） */
+  submitted?: string;
 }) {
   return (
     <div className="space-y-4">
@@ -175,6 +178,15 @@ export function VerseResult({
           <p className="text-lg leading-relaxed">{verse.content}</p>
         </CardContent>
       </Card>
+
+      {submitted && (
+        <Card>
+          <CardHeader><CardTitle>你的提交</CardTitle></CardHeader>
+          <CardContent>
+            <p className="text-lg leading-relaxed whitespace-pre-wrap text-muted-foreground">{submitted}</p>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader><CardTitle>比对结果</CardTitle></CardHeader>

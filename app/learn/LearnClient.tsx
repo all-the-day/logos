@@ -27,6 +27,7 @@ export default function LearnClient({ plan, tasks }: Props) {
     tasks[0] && tasks[0].cardState !== "new" ? "recite" : "view"
   );
   const [userInput, setUserInput] = useState("");
+  const [submitted, setSubmitted] = useState(""); // 实际用于比对的提交文本（结果页展示"你的提交"）
   const [segments, setSegments] = useState<import("@/lib/compare").DiffSegment[]>([]);
   const [accuracy, setAccuracy] = useState(0);
   const [fillMode, setFillMode] = useState(false);
@@ -91,6 +92,7 @@ export default function LearnClient({ plan, tasks }: Props) {
     if (!t) return;
     setCurrentIdx(idx);
     setUserInput("");
+    setSubmitted("");
     setSegments([]);
     setAccuracy(0);
     setFillInputs([]);
@@ -127,6 +129,7 @@ export default function LearnClient({ plan, tasks }: Props) {
     const result = compareVerse(finalInput, task.content);
     setSegments(result.segments);
     setAccuracy(result.accuracy);
+    setSubmitted(finalInput);
     setMode("result");
   }, [userInput, fillInputs, fillMode, task]);
 
@@ -383,6 +386,7 @@ export default function LearnClient({ plan, tasks }: Props) {
           verseId={task.id}
           onUndo={undoAvailable ? handleUndo : undefined}
           recommendedRating={recommendRating(accuracy)}
+          submitted={submitted}
         />
       )}
     </div>
