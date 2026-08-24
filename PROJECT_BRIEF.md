@@ -2,7 +2,7 @@
 
 > 本文件记录项目当前状态（目录、库存、进度、已知问题、下一步）。
 > 长期规则与不变量见 `AGENTS.md`；运维细节见 `docs/OPERATIONS.md`。
-> 最近同步：2026-08-20。**事实以代码与数据库为准，不凭本文推断。**
+> 最近同步：2026-08-24。**事实以代码与数据库为准，不凭本文推断。**
 
 ---
 
@@ -166,6 +166,8 @@ FSRS 卡状态机：`NEW → LEARNING → REVIEW`，AGAIN 时进入 `RELEARNING`
 ### 6.2 学习页 /learn
 - 队列 = 复习卡（**跨全部已学书卷**，`state != new` 且 `due <= now`，按 due/stability/verseId 排序，上限 50）+ 新卡（`state == new`，仅当前计划书卷，按章节顺序，取今日剩余配额 `versesPerDay − 今日首次引入数`）
 - 三态：新卡先查看再背诵；**复习卡默认直接进入背诵**（保留"查看原文"，查看后本次推荐评分封顶"困难"）→ 背诵输入 → 结果比对 + 四键评分
+- **会话内重学（2026-08-24）**：过不过由客观比对决定——准确率未到 100%（一字不差）或自评 AGAIN → 该节插回队列尾部本会话再背（徽标"重学"，副本带服务端新 state 直接进背诵态），每卡每会话最多重出 2 次防死循环；自评仍写入 FSRS 决定下次复习间隔
+- 填空模式：提交时把填空还原回整节再与原文比对，全部填对才得 100%（否则填空词对整节比对永远到不了 100%）
 - 快捷键：`1-4` 评分，`u` 撤销，`Space` 跳过
 
 ### 6.3 其他页面
@@ -197,6 +199,12 @@ FSRS 卡状态机：`NEW → LEARNING → REVIEW`，AGAIN 时进入 `RELEARNING`
 - ~~复习卡先显示原文削弱检索练习~~ —— **已修复**：复习卡默认直接进入背诵态；查看原文后推荐评分封顶"困难"
 - ~~跨节状态串扰（上一节的输入/比对结果残留到下一节，如显示 1:4 却按 1:2 判 100%）~~ —— **已修复**（`LearnClient`）：任务切换改为原子清空全部单次背诵状态（含章节快捷跳转）；keydown 通过 ref 读取最新处理器，消除旧闭包把 Enter/评分误接到上一节的窗口；评分加防重锁
 
+**2026-08-24 会话内重学（待办 #5 落地）**：
+- 学习页判定"过"改为客观标准：LCS 准确率未到 100%（一字不差）或自评 AGAIN → 卡片插回队列尾部本会话再背，徽标"重学"、直接进背诵态；每卡每会话最多重出 2 次（`LearnClient` 内 `MAX_REQUEUE_PER_SESSION`）。自评仍写入 FSRS 决定下次间隔。
+- 填空模式评分语义修正：提交时把填空还原回整节再比对，全部填对才得 100%（原实现拿填空词对整节比，永远到不了 100%）。
+- Undo 交互：撤销评分时回退重出次数；再次评分时清除该卡此前的重出副本（保留当前展示项，防索引越界）。
+- 新增组件测试 2 例：没到 100% 评 GOOD 也重出 + 连续 AGAIN 3 次后不再重出。
+
 **2026-08-22 反馈闭环（#12 / #10）**：
 - **#12 [建议·阿布] 采纳「主动回忆」流改造**：原"先看完整原文再默写"改为 view/recite 阶段均不显示经文原文（含 KJV），仅比对阶段展示原文；提示（可展开）仅含注释/纲目/串珠，由新增 `HintPanel`（复用 `AnnotationPanel` 数据）承载；`VerseReciter` 的"查看原文"按钮替换为"显示提示"。`AGENTS.md §3` 不变量已同步更新；`recommendRating` 的 `peeked` 封顶逻辑保留为防御性机制（当前 UI 不再触发）。
 - **#10 [建议·test] 暂不改**：诊断显示复习卡本就合并于 `/learn` 队列（`learn.ts#reviewWhere` 跨书卷、排前），且早期 `Card` 状态以 new 为主、到期复习卡极少，故"找不到复习"非缺陷，关闭并说明。
@@ -206,9 +214,8 @@ FSRS 卡状态机：`NEW → LEARNING → REVIEW`，AGAIN 时进入 `RELEARNING`
 2. **`lib/auth.ts:7` ESLint warning**：`userDb` 未使用（留作单独 chore）
 3. **`date-fns` 依赖未使用**（可清理，另开 chore）
 4. **`compare.ts` 空原文缺陷**：`it.fails` 已标注，修复后移除 `.fails`
-5. **会话内重学**：AGAIN/HARD 卡暂排次日，未插回当前队列（评审建议项，待做）
-6. **积压时减少新卡**：`MAX_REVIEW_PER_DAY=50` 仍为死上限（评审建议项，待做）
-7. **评分按钮显示下次间隔**：`POST /api/card` 已返回 `nextInterval`，前端未展示（评审建议项，待做）
+5. **积压时减少新卡**：`MAX_REVIEW_PER_DAY=50` 仍为死上限（评审建议项，待做）
+6. **评分按钮显示下次间隔**：`POST /api/card` 已返回 `nextInterval`，前端未展示（评审建议项，待做）
 
 ---
 
@@ -217,9 +224,9 @@ FSRS 卡状态机：`NEW → LEARNING → REVIEW`，AGAIN 时进入 `RELEARNING`
 **现状（2026-08-10 Vitest 基建已落地）**：
 - 单元测试：`lib/fsrs`（15，含 peeked 推荐封顶）、`lib/compare`（17，含全组合还原 + `it.fails` 记录空原文缺陷）、`lib/date`（10）
 - 集成测试：学习队列 14 场景（隔离/排序/上限 50/统一 `now`/每日新卡配额）、`getDueCards` 新卡泄漏、Card DateTime 存储诊断
-- 组件测试（jsdom + @testing-library/react）：`LearnClient` 跨节状态隔离 1 场景（复现上一节输入/比对残留 bug 的回归防护）
+- 组件测试（jsdom + @testing-library/react）：`LearnClient` 跨节状态隔离 1 场景（复现上一节输入/比对残留 bug 的回归防护）+ 会话内重学 2 场景（没到 100% 评 GOOD 也重出、连续 AGAIN 3 次后不再重出）
 - 测试库隔离：`prisma/test.db` + `tests/fixtures/setup.ts` 进程级校验 + `reset-test-db.ts` 精确路径保护（拒绝 dev.db）
-- 当前共 **60 个用例**；`npm run test` / `test:coverage`（约 85% stmts）/ `test:db:reset`
+- 当前共 **73 个用例**；`npm run test` / `test:coverage`（约 85% stmts）/ `test:db:reset`
 
 **功能验收基线**（Plan v2 人工验证过，可作为回归清单）：
 1. 无计划：/plan 显示创建表单

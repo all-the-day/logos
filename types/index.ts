@@ -25,6 +25,8 @@ export interface TaskData extends VerseData {
   cardLapses: number;
   cardLastReview: Date | null;
   cardDue: Date;
+  /** 会话内重出标记：AGAIN 评分后插回队列尾部的副本（仅客户端学习会话使用） */
+  requeued?: boolean;
 }
 
 // Plan
