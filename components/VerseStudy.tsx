@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { RATING } from "@/lib/fsrs";
@@ -13,31 +14,36 @@ import type { Rating } from "@/lib/fsrs";
 // ─── Shared types ─────────────────────────────────────────
 
 export interface VerseRef {
+  id: number;
+  bookName: string;
   chapter: number;
   verse: number;
   content: string;
   kjv: string | null;
 }
 
-// ─── VerseViewer ───────────────────────────────────────────
+// ─── HintPanel（提示：注释 / 纲目 / 串珠，绝不含经文原文） ──
+export function HintPanel({ verseId }: { verseId: number }) {
+  return <AnnotationPanel verseId={verseId} title="提示（注释 / 纲目 / 串珠）" />;
+}
+
+// ─── VerseViewer（view 态：仅经节引用 + 提示，不显示原文） ──
 export function VerseViewer({
   verse,
-  showKJV,
   onStart,
   showFillOption,
 }: {
   verse: VerseRef;
-  showKJV: boolean;
   onStart: () => void;
   showFillOption?: boolean;
 }) {
   return (
     <Card>
       <CardContent className="pt-6 space-y-4">
-        <p className="text-xl leading-relaxed">{verse.content}</p>
-        {showKJV && verse.kjv && (
-          <p className="text-base text-muted-foreground italic">{verse.kjv}</p>
-        )}
+        <p className="text-xl leading-relaxed font-medium">
+          {verse.bookName} {verse.chapter}:{verse.verse}
+        </p>
+        <HintPanel verseId={verse.id} />
         {showFillOption && <p className="text-xs text-muted-foreground">提示：先切换模式再点开始背诵</p>}
         <Button className="w-full" onClick={onStart}>
           开始背诵
@@ -57,7 +63,6 @@ export function VerseReciter({
   setUserInput,
   inputRef,
   onSubmit,
-  onViewOriginal,
 }: {
   verse: VerseRef;
   fillMode: boolean;
@@ -67,13 +72,25 @@ export function VerseReciter({
   setUserInput: (v: string) => void;
   inputRef: React.RefObject<HTMLTextAreaElement | null>;
   onSubmit: () => void;
-  onViewOriginal?: () => void;
 }) {
+  const [showHint, setShowHint] = useState(false);
+
+  const header = (
+    <div className="flex items-center justify-between gap-2">
+      <p className="text-lg font-medium truncate">{verse.bookName} {verse.chapter}:{verse.verse}</p>
+      <Button variant="outline" size="sm" onClick={() => setShowHint((s) => !s)}>
+        {showHint ? "收起提示" : "显示提示"}
+      </Button>
+    </div>
+  );
+
   if (fillMode) {
     const blanks = generateFillBlanks(verse.content);
     return (
       <Card>
         <CardContent className="pt-6 space-y-4">
+          {header}
+          {showHint && <HintPanel verseId={verse.id} />}
           <p className="text-lg leading-relaxed">{blanks.display}</p>
           <div className="space-y-2">
             {blanks.blanks.map((_, i) => (
@@ -102,6 +119,8 @@ export function VerseReciter({
   return (
     <Card>
       <CardContent className="pt-6 space-y-4">
+        {header}
+        {showHint && <HintPanel verseId={verse.id} />}
         <textarea
           ref={inputRef}
           className="w-full min-h-32 px-3 py-2 border rounded-md bg-background text-lg resize-none"
@@ -109,16 +128,9 @@ export function VerseReciter({
           value={userInput}
           onChange={(e) => setUserInput(e.target.value)}
         />
-        <div className="flex gap-2">
-          <Button className="flex-1" onClick={onSubmit}>
-            提交 (Enter)
-          </Button>
-          {onViewOriginal && (
-            <Button variant="outline" size="sm" onClick={onViewOriginal}>
-              查看原文
-            </Button>
-          )}
-        </div>
+        <Button className="w-full" onClick={onSubmit}>
+          提交 (Enter)
+        </Button>
       </CardContent>
     </Card>
   );

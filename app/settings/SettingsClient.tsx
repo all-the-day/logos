@@ -125,6 +125,8 @@ export default function SettingsClient({ user }: { user: { id: number; username:
         </CardContent>
       </Card>
 
+      <StatsCard />
+
       <Card>
         <CardHeader><CardTitle>数据管理</CardTitle></CardHeader>
         <CardContent className="space-y-3">
@@ -147,25 +149,20 @@ export default function SettingsClient({ user }: { user: { id: number; username:
               {importing ? "导入中..." : "从备份恢复"}
             </label>
           </div>
+
+          <div className="pt-3 border-t border-red-200 space-y-2">
+            <Button className="w-full" variant="outline"
+              onClick={() => setClearOpen(true)}>
+              清除所有数据
+            </Button>
+            <p className="text-xs text-muted-foreground">
+              清空全部卡片、笔记、签到与计划，不可恢复。建议先导出备份。
+            </p>
+          </div>
         </CardContent>
       </Card>
-
-      <StatsCard />
 
       <FeedbackCard />
-
-      <Card className="border-red-200">
-        <CardHeader><CardTitle className="text-red-600">危险操作</CardTitle></CardHeader>
-        <CardContent>
-          <Button className="w-full" variant="outline"
-            onClick={() => setClearOpen(true)}>
-            清除所有数据
-          </Button>
-          <p className="text-xs text-muted-foreground mt-2">
-            清空全部卡片、笔记、签到与计划，不可恢复。建议先导出备份。
-          </p>
-        </CardContent>
-      </Card>
 
       <Dialog open={clearOpen} onOpenChange={setClearOpen}>
         <DialogContent className="sm:max-w-sm">
@@ -287,7 +284,7 @@ function FeedbackCard() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">关于</CardTitle>
+        <CardTitle className="text-base">反馈与关于</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="flex items-center justify-between">

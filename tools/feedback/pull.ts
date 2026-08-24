@@ -17,6 +17,7 @@ async function main() {
 
   const list = onlyOpen ? feedback.filter((f) => f.status === "open") : feedback;
   const lines: string[] = [];
+  lines.push("<!-- 这是本地快照！任何“检查反馈”动作必须先运行 `npm run feedback:pull` 刷新，禁止直接读取本文件作为反馈依据 -->");
   lines.push("# 反馈收件箱");
   lines.push(`> 生成时间：${new Date().toLocaleString("zh-CN")} · 来源：${API_BASE}`);
   lines.push(`> 当前 ${list.length} 条（${onlyOpen ? "open，全部 " + feedback.length : "含已处理"} 条）`);

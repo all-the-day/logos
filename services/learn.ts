@@ -59,7 +59,7 @@ export async function getTodayTasks(userId: number, now: Date = new Date()) {
   // 1) 复习队列：跨书卷的已到期且非新卡
   const reviewCards = await prisma.card.findMany({
     where: reviewWhere(userId, now),
-    include: { verse: true },
+    include: { verse: { include: { book: true } } },
     orderBy: [{ due: "asc" }, { stability: "asc" }, { verseId: "asc" }],
     take: MAX_REVIEW_PER_DAY,
   });
@@ -70,7 +70,7 @@ export async function getTodayTasks(userId: number, now: Date = new Date()) {
     newLimit > 0
       ? await prisma.card.findMany({
           where: newWhere(userId, plan.bookId),
-          include: { verse: true },
+          include: { verse: { include: { book: true } } },
           orderBy: [{ verse: { chapter: "asc" } }, { verse: { verse: "asc" } }],
           take: newLimit,
         })
@@ -82,6 +82,7 @@ export async function getTodayTasks(userId: number, now: Date = new Date()) {
   // 4) 转为 verse 视图（保留 card 字段供前端使用）
   const tasks: TaskData[] = allCards.map((c) => ({
     id: c.verseId, // 兼容旧 API：task.id = verseId
+    bookName: c.verse.book.name,
     bookId: c.verse.bookId,
     chapter: c.verse.chapter,
     verse: c.verse.verse,

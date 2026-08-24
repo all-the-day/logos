@@ -26,12 +26,9 @@ export default function LearnClient({ plan, tasks }: Props) {
   const [userInput, setUserInput] = useState("");
   const [segments, setSegments] = useState<import("@/lib/compare").DiffSegment[]>([]);
   const [accuracy, setAccuracy] = useState(0);
-  const [showKJV, setShowKJV] = useState(false);
   const [fillMode, setFillMode] = useState(false);
   const [fillInputs, setFillInputs] = useState<string[]>([]);
   const [ratingDone, setRatingDone] = useState(false);
-  const [showOriginal, setShowOriginal] = useState(false);
-  const [peeked, setPeeked] = useState(false); // 本次背诵是否查看过原文
   const [undoAvailable, setUndoAvailable] = useState(false);
 
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -64,8 +61,6 @@ export default function LearnClient({ plan, tasks }: Props) {
     setSegments([]);
     setAccuracy(0);
     setRatingDone(false);
-    setShowOriginal(false);
-    setPeeked(false);
     if (fillMode) {
       const density = densityForStability(t.cardStability, t.cardState);
       const blanks = generateFillBlanks(t.content, density);
@@ -91,8 +86,6 @@ export default function LearnClient({ plan, tasks }: Props) {
     setAccuracy(0);
     setFillInputs([]);
     setRatingDone(false);
-    setShowOriginal(false);
-    setPeeked(false);
     setUndoAvailable(false);
     undoCardRef.current = null;
     if (t.cardState !== "new") {
@@ -257,18 +250,13 @@ export default function LearnClient({ plan, tasks }: Props) {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <h2 className="font-medium text-muted-foreground">
-            {task.chapter}:{task.verse}
+            {task.bookName} {task.chapter}:{task.verse}
           </h2>
           <Badge variant={isReview ? "default" : "secondary"}>
             {isReview ? "复习" : "新卡"}
           </Badge>
         </div>
         <div className="flex items-center gap-2">
-          {task.kjv && (
-            <Button variant="ghost" size="sm" onClick={() => setShowKJV(!showKJV)}>
-              {showKJV ? "中" : "EN"}
-            </Button>
-          )}
           <Button variant="ghost" size="sm"
             onClick={() => setFillMode(!fillMode)}>
             {fillMode ? "全文" : "填空"}
@@ -283,7 +271,6 @@ export default function LearnClient({ plan, tasks }: Props) {
         <>
           <VerseViewer
             verse={task}
-            showKJV={showKJV}
             onStart={handleStartRecite}
             showFillOption
           />
@@ -316,27 +303,16 @@ export default function LearnClient({ plan, tasks }: Props) {
       )}
 
       {mode === "recite" && (
-        <>
-          {showOriginal && (
-            <div className="p-3 rounded-md bg-muted text-sm text-muted-foreground">
-              {task.content}
-            </div>
-          )}
-          <VerseReciter
-            verse={task}
-            fillMode={fillMode}
-            fillInputs={fillInputs}
-            setFillInputs={setFillInputs}
-            userInput={userInput}
-            setUserInput={setUserInput}
-            inputRef={inputRef}
-            onSubmit={handleSubmit}
-            onViewOriginal={() => {
-              setShowOriginal((s) => !s);
-              setPeeked(true);
-            }}
-          />
-        </>
+        <VerseReciter
+          verse={task}
+          fillMode={fillMode}
+          fillInputs={fillInputs}
+          setFillInputs={setFillInputs}
+          userInput={userInput}
+          setUserInput={setUserInput}
+          inputRef={inputRef}
+          onSubmit={handleSubmit}
+        />
       )}
 
       {mode === "result" && (
@@ -350,7 +326,7 @@ export default function LearnClient({ plan, tasks }: Props) {
           nextLabel={currentIdx >= totalTasks - 1 ? "完成" : "下一节"}
           verseId={task.id}
           onUndo={undoAvailable ? handleUndo : undefined}
-          recommendedRating={recommendRating(accuracy, { peeked })}
+          recommendedRating={recommendRating(accuracy)}
         />
       )}
     </div>

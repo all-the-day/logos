@@ -16,6 +16,7 @@ export interface VerseData {
 
 // 学习任务：verse 字段 + 卡片状态，供 UI 用
 export interface TaskData extends VerseData {
+  bookName: string;
   cardId: number;
   cardState: string;
   cardStability: number;

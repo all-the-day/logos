@@ -29,9 +29,10 @@ interface CrossrefItem {
 
 interface Props {
   verseId: number;
+  title?: string;
 }
 
-export default function AnnotationPanel({ verseId }: Props) {
+export default function AnnotationPanel({ verseId, title = "提示" }: Props) {
   const [annotation, setAnnotation] = useState<AnnotationData | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -48,7 +49,7 @@ export default function AnnotationPanel({ verseId }: Props) {
     return (
       <Card>
         <CardContent className="p-4">
-          <p className="text-sm text-muted-foreground">加载注解...</p>
+          <p className="text-sm text-muted-foreground">加载{title}...</p>
         </CardContent>
       </Card>
     );

@@ -37,7 +37,7 @@ Node.js ≥ 22（`lib/import-book.ts` 依赖 `node:sqlite`；以 `package.json#e
 - 今日任务摘要必须与 `/learn` 实际队列一致（共享查询条件）。
 - 复习队列不得包含 `state = new` 的卡片；复习队列跨全部已学书卷（卡片是用户永久学习资产：换计划、删除计划都不删除卡片；真正重置学习进度只能在设置页"清除数据"）。
 - 新卡仅从当前计划书卷引入，且每日受配额限制：今日新卡数 ≤ `versesPerDay − 今日首次引入数`（`Card.introducedAt` 记录首次离开 `new` 态的时间，重学不重复计数）。
-- 学习页动线：新卡先查看后背诵；复习卡（learning/review/relearning）默认直接进入背诵态，保留"查看原文"；一旦查看原文，本次推荐评分封顶"困难"（不再推荐"正确/容易"）。四键评分与快捷键（1-4 / u / Space）不得破坏。
+- 学习页动线（主动回忆）：view 与 recite 阶段均不呈现完整经文原文（含 KJV 对照），仅比对阶段展示原文用于核对；提示（可展开）仅含注释、纲目与串珠，不得含原文。新卡先进 view（仅经节引用 + 提示）再进入背诵态；复习卡（learning/review/relearning）默认直接进入背诵态，背诵态顶部展示经节引用并保留"显示提示"。默写期间不得查看原文。四键评分与快捷键（1-4 / u / Space）不得破坏。`recommendRating` 的 `peeked` 封顶逻辑保留为防御性机制（当前 UI 不触发）。
 
 ## 4. 架构边界
 
@@ -88,6 +88,7 @@ npm run feedback:close <id>  # 标记反馈 #id 为已处理（闭环工作流�
 ```
 
 - **反馈闭环是开发任务的主要来源**：开工先 `npm run feedback:pull` 检查线上收件箱（真实用户需求/Bug），开发完成部署后 `npm run feedback:close <id>` 标记；反馈状态仅 admin 可改（`PATCH /api/feedback` 返回 403 给普通用户），反馈 UI 不向普通用户展示状态操作按钮。凭据 `LOGO_ADMIN_USER/LOGO_ADMIN_PASSWORD` 在 `.env.local`（不入库）。
+  **`tools/feedback/inbox.md` 只是上次拉取的本地快照，随时过期：任何"检查反馈/看有什么任务"的动作都必须先执行 `npm run feedback:pull` 刷新，再以刚生成的 inbox.md 为准；禁止直接读取旧的 inbox.md 作为反馈依据。**
 - Node.js ≥ 22；不得假定 Node 20 可运行种子导入（`node:sqlite`）。
 - TypeScript 严格模式；改动核心算法（FSRS、LCS 比对、日期）必须新增或更新单元测试。
 - `next dev` 与 `next build` 共用 `.next` 目录：不要在同一工作区内无清理地交替运行两者，否则可能触发 `MODULE_NOT_FOUND`/500。切换模式前先停服务并删除 `.next`。
