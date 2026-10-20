@@ -36,10 +36,8 @@ export default function LearnClient({ plan, tasks, asrEnabled = false }: Props) 
   const [fillInputs, setFillInputs] = useState<string[]>([]);
   const [ratingDone, setRatingDone] = useState(false);
   const [undoAvailable, setUndoAvailable] = useState(false);
-  // 语音输入门槛状态提升到这里：Enter 快捷键与提交按钮共用同一门槛，
-  // 且“返回修改”时组件卸载不丢失录音与已核对状态
+  // 语音录音对象 URL 提升到这里：“返回修改”后组件卸载仍能播放
   const [recordingUrl, setRecordingUrl] = useState("");
-  const [voiceChecked, setVoiceChecked] = useState(false);
   // 会话内重出队列：AGAIN 评分的卡插到队列尾部，本会话内再次背诵
   const [requeued, setRequeued] = useState<TaskData[]>([]);
   const requeueCounts = useRef(new Map<number, number>());
@@ -98,7 +96,6 @@ export default function LearnClient({ plan, tasks, asrEnabled = false }: Props) 
     setUndoAvailable(false);
     undoCardsRef.current = [];
     setRecordingUrl(""); // effect cleanup 会 revoke 上一条录音的对象 URL
-    setVoiceChecked(false);
     if (t.cardState !== "new") {
       startRecite(t); // 复习卡直接背诵（会再初始化填空并聚焦）
     } else {
@@ -107,10 +104,8 @@ export default function LearnClient({ plan, tasks, asrEnabled = false }: Props) 
   }, [queue, startRecite]);
 
   const handleSubmit = useCallback(() => {
-    // 录音中 Enter 不应提交空内容；全文模式必须有输入才进入比对
+    // 语音只是输入方式：识别文本填进输入框后，直接走既有文本比对，不另设门槛
     if (!fillMode && !userInput.trim()) return;
-    // 语音识别后必须回放录音并勾选“已核对”才能提交（Enter 与按钮共用此门槛）
-    if (recordingUrl && !voiceChecked) return;
     let finalInput = userInput;
     if (fillMode && !isPassage) {
       // 填空模式：把用户填入的空还原回整节，再与原文比对。
@@ -135,7 +130,7 @@ export default function LearnClient({ plan, tasks, asrEnabled = false }: Props) 
     setAccuracy(result.accuracy);
     setSubmitted(finalInput);
     setMode("result");
-  }, [userInput, fillInputs, fillMode, task, isPassage, recordingUrl, voiceChecked]);
+  }, [userInput, fillInputs, fillMode, task, isPassage]);
 
   /** 移除该卡在此前会话的重出副本，但保留当前正在展示的那一条（避免队列收缩导致 currentIdx 越界） */
   const pruneRequeued = useCallback(
@@ -419,8 +414,6 @@ export default function LearnClient({ plan, tasks, asrEnabled = false }: Props) 
           asrEnabled={asrEnabled}
           recordingUrl={recordingUrl}
           setRecordingUrl={setRecordingUrl}
-          voiceChecked={voiceChecked}
-          setVoiceChecked={setVoiceChecked}
         />
       )}
 

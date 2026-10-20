@@ -1,7 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { cleanup, render, screen, fireEvent } from "@testing-library/react";
 import "@testing-library/jest-dom/vitest";
 import { VerseReciter } from "@/components/VerseStudy";
 
@@ -30,33 +29,30 @@ function renderReciter(options?: { asrEnabled?: boolean; fillMode?: boolean }) {
       asrEnabled={options?.asrEnabled ?? false}
       recordingUrl=""
       setRecordingUrl={() => undefined}
-      voiceChecked={false}
-      setVoiceChecked={() => undefined}
     />
   );
 }
 
 describe("VerseReciter 语音入口", () => {
-  it("asrEnabled 时显示语音按钮，空输入时禁用提交", () => {
+  it("asrEnabled 时显示长按语音按钮，空输入时禁用提交", () => {
     renderReciter({ asrEnabled: true });
-    expect(screen.getByRole("button", { name: /语音输入/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /长按语音输入/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /提交/ })).toBeDisabled();
   });
 
   it("asrEnabled=false 时不显示语音按钮", () => {
     renderReciter({ asrEnabled: false });
-    expect(screen.queryByRole("button", { name: /语音输入/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /长按语音输入/ })).not.toBeInTheDocument();
   });
 
-  it("不支持录音的环境点击后给出回退提示", async () => {
-    const user = userEvent.setup();
+  it("不支持录音的环境长按时给出回退提示", async () => {
     renderReciter({ asrEnabled: true });
-    await user.click(screen.getByRole("button", { name: /语音输入/ }));
+    fireEvent.touchStart(screen.getByRole("button", { name: /长按语音输入/ }));
     expect(screen.getByRole("alert")).toHaveTextContent("不支持录音");
   });
 
   it("填空模式不显示语音按钮", () => {
     renderReciter({ asrEnabled: true, fillMode: true });
-    expect(screen.queryByRole("button", { name: /语音输入/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /长按语音输入/ })).not.toBeInTheDocument();
   });
 });

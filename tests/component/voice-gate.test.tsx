@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, screen, waitFor, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import "@testing-library/jest-dom/vitest";
 import React from "react";
@@ -14,7 +14,7 @@ vi.mock("next/link", () => ({
     React.createElement("a", props, children),
 }));
 
-// 录音与转码全 mock：测试只关心"识别文本填入 → 未核对不得提交"的门槛逻辑
+// 录音与转码全 mock：测试只关心"识别文本填入 → 可直接提交走既有比对"
 vi.mock("@/lib/audio/recorder", () => ({
   MAX_RECORD_SECONDS: 60,
   getRecordingSupport: () => true,
@@ -57,7 +57,7 @@ function makeTask(overrides: Partial<TaskData>): TaskData {
   };
 }
 
-describe("语音输入已核对门槛（Enter 与提交按钮共用）", () => {
+describe("语音输入作为纯输入方式", () => {
   beforeEach(() => {
     vi.stubGlobal(
       "fetch",
@@ -75,7 +75,7 @@ describe("语音输入已核对门槛（Enter 与提交按钮共用）", () => {
     URL.revokeObjectURL = vi.fn() as typeof URL.revokeObjectURL;
   });
 
-  it("识别后未勾选已核对时 Enter 不进入比对；勾选后可提交", async () => {
+  it("长按录音、松手识别：文本直接可提交，不设勾选门槛，仍提供录音回放", async () => {
     const user = userEvent.setup();
     const tasks: TaskData[] = [
       makeTask({ id: 101, verse: 1, content: "测试经文内容", cardState: "review" }),
@@ -83,28 +83,44 @@ describe("语音输入已核对门槛（Enter 与提交按钮共用）", () => {
 
     render(<LearnClient plan={plan} tasks={tasks} asrEnabled />);
 
-    // 复习卡直接进背诵态：录音 → 停止 → 识别文本填入输入框
-    await user.click(screen.getByRole("button", { name: /语音输入/ }));
-    await user.click(await screen.findByRole("button", { name: /停止录音/ }));
+    // 移动端长按交互：touchstart 开始（等 recorder 真正起来），touchend 停止并识别
+    fireEvent.touchStart(screen.getByRole("button", { name: /长按语音输入/ }));
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: /松开结束/ })).toBeInTheDocument()
+    );
+    fireEvent.touchEnd(screen.getByRole("button", { name: /松开结束/ }));
+
     await waitFor(() =>
       expect((screen.getByPlaceholderText("在此输入经文...") as HTMLTextAreaElement).value).toBe(
         "测试经文内容"
       )
     );
 
-    // 识别完成：出现回放与勾选框，提交按钮被禁用
-    expect(screen.getByLabelText(/播放录音并核对/)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /提交/ })).toBeDisabled();
+    // 识别完成：有可选回放，但提交按钮直接可用，没有"已核对"勾选
+    expect(screen.getByText(/播放我的录音/)).toBeInTheDocument();
+    expect(screen.queryByLabelText(/播放录音并核对/)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /提交/ })).toBeEnabled();
 
-    // 未勾选时按 Enter 不得绕过门槛进入比对
+    // Enter 直接进入既有文本比对
+    screen.getByPlaceholderText("在此输入经文...").focus();
+    await user.keyboard("{Enter}");
+    expect(await screen.findByText(/准确率 100%/)).toBeInTheDocument();
+  });
+
+  it("长按期间按钮变为“松开结束”，且按 Enter 不会误提交", async () => {
+    const user = userEvent.setup();
+    const tasks: TaskData[] = [
+      makeTask({ id: 101, verse: 1, content: "测试经文内容", cardState: "review" }),
+    ];
+
+    render(<LearnClient plan={plan} tasks={tasks} asrEnabled />);
+    fireEvent.touchStart(screen.getByRole("button", { name: /长按语音输入/ }));
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: /松开结束/ })).toBeInTheDocument()
+    );
+
     screen.getByPlaceholderText("在此输入经文...").focus();
     await user.keyboard("{Enter}");
     expect(screen.queryByText(/准确率/)).not.toBeInTheDocument();
-
-    // 勾选后 Enter 正常进入比对
-    await user.click(screen.getByLabelText(/播放录音并核对/));
-    expect(screen.getByRole("button", { name: /提交/ })).toBeEnabled();
-    await user.keyboard("{Enter}");
-    expect(await screen.findByText(/准确率 100%/)).toBeInTheDocument();
   });
 });
