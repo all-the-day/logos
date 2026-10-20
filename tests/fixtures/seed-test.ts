@@ -78,8 +78,8 @@ export async function seedBase() {
     data: verses.map((v) => ({ ...v, content: `测试经文${v.id}`, kjv: null })),
   });
 
-  await prisma.plan.create({ data: { id: 1, userId: ALICE_ID, bookId: 1, versesPerDay: 2, status: "active" } });
-  await prisma.plan.create({ data: { id: 2, userId: ALICE_ID, bookId: 2, versesPerDay: 3, status: "deleted" } });
+  await prisma.plan.create({ data: { id: 1, userId: ALICE_ID, bookId: 1, versesPerDay: 2, status: "active", reciteMode: "single", passageSize: 5 } });
+  await prisma.plan.create({ data: { id: 2, userId: ALICE_ID, bookId: 2, versesPerDay: 3, status: "deleted", reciteMode: "single", passageSize: 5 } });
 
   await prisma.card.createMany({
     data: cardData([

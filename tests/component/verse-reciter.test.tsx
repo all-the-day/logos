@@ -28,6 +28,10 @@ function renderReciter(options?: { asrEnabled?: boolean; fillMode?: boolean }) {
       inputRef={{ current: null }}
       onSubmit={() => undefined}
       asrEnabled={options?.asrEnabled ?? false}
+      recordingUrl=""
+      setRecordingUrl={() => undefined}
+      voiceChecked={false}
+      setVoiceChecked={() => undefined}
     />
   );
 }

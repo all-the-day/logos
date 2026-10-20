@@ -14,7 +14,6 @@ import {
   MAX_RECORD_SECONDS,
   type Recorder,
 } from "@/lib/audio/recorder";
-import AnnotationPanel from "./AnnotationPanel";
 import VerseNotes from "./VerseNotes";
 import type { DiffSegment } from "@/lib/compare";
 import type { Rating } from "@/lib/fsrs";
@@ -30,12 +29,7 @@ export interface VerseRef {
   kjv: string | null;
 }
 
-// ─── HintPanel（提示：注释 / 纲目 / 串珠，绝不含经文原文） ──
-export function HintPanel({ verseId }: { verseId: number }) {
-  return <AnnotationPanel verseId={verseId} title="提示（注释 / 纲目 / 串珠）" />;
-}
-
-// ─── VerseViewer（view 态：仅经节引用 + 提示，不显示原文） ──
+// ─── VerseViewer（view 态：仅经节引用，不显示原文） ──
 export function VerseViewer({
   verse,
   onStart,
@@ -51,7 +45,6 @@ export function VerseViewer({
         <p className="text-xl leading-relaxed font-medium">
           {verse.bookName} {verse.chapter}:{verse.verse}
         </p>
-        <HintPanel verseId={verse.id} />
         {showFillOption && <p className="text-xs text-muted-foreground">提示：先切换模式再点开始背诵</p>}
         <Button className="w-full" onClick={onStart}>
           开始背诵
@@ -72,6 +65,10 @@ export function VerseReciter({
   inputRef,
   onSubmit,
   asrEnabled = false,
+  recordingUrl,
+  setRecordingUrl,
+  voiceChecked,
+  setVoiceChecked,
 }: {
   verse: VerseRef;
   fillMode: boolean;
@@ -83,8 +80,12 @@ export function VerseReciter({
   onSubmit: () => void;
   /** 服务端是否已配置在线语音识别；未配置时不显示语音入口 */
   asrEnabled?: boolean;
+  /** 录音对象 URL 与“已核对”状态由 LearnClient 持有：Enter 门槛与“返回修改”都依赖它们 */
+  recordingUrl: string;
+  setRecordingUrl: (url: string) => void;
+  voiceChecked: boolean;
+  setVoiceChecked: (checked: boolean) => void;
 }) {
-  const [showHint, setShowHint] = useState(false);
   const [voiceState, setVoiceState] = useState<"idle" | "recording" | "transcribing">("idle");
   const [voiceError, setVoiceError] = useState("");
   const [recordSeconds, setRecordSeconds] = useState(0);
@@ -135,6 +136,8 @@ export function VerseReciter({
       }
       if (!mountedRef.current) return;
       setUserInput(data?.text ?? "");
+      setRecordingUrl(URL.createObjectURL(recorded));
+      setVoiceChecked(false);
       setVoiceState("idle");
       setRecordSeconds(0);
       setTimeout(() => inputRef.current?.focus(), 50);
@@ -216,16 +219,24 @@ export function VerseReciter({
         )}
       </div>
       {voiceError && <p className="text-xs text-destructive" role="alert">{voiceError}</p>}
+      {recordingUrl && (
+        <div className="space-y-1.5">
+          <audio controls src={recordingUrl} className="w-full" preload="none" />
+          <label className="flex items-center gap-2 text-xs text-muted-foreground">
+            <input
+              type="checkbox"
+              checked={voiceChecked}
+              onChange={(e) => setVoiceChecked(e.target.checked)}
+            />
+            我已播放录音并核对（ASR 可能自动纠错，请以录音为准）
+          </label>
+        </div>
+      )}
     </div>
   );
 
   const header = (
-    <div className="flex items-center justify-between gap-2">
-      <p className="text-lg font-medium truncate">{verse.bookName} {verse.chapter}:{verse.verse}</p>
-      <Button variant="outline" size="sm" onClick={() => setShowHint((s) => !s)}>
-        {showHint ? "收起提示" : "显示提示"}
-      </Button>
-    </div>
+    <p className="text-lg font-medium truncate">{verse.bookName} {verse.chapter}:{verse.verse}</p>
   );
 
   if (fillMode) {
@@ -234,7 +245,6 @@ export function VerseReciter({
       <Card>
         <CardContent className="pt-6 space-y-4">
           {header}
-          {showHint && <HintPanel verseId={verse.id} />}
           <p className="text-lg leading-relaxed">{blanks.display}</p>
           <div className="space-y-2">
             {blanks.blanks.map((_, i) => (
@@ -264,7 +274,6 @@ export function VerseReciter({
     <Card>
       <CardContent className="pt-6 space-y-4">
         {header}
-        {showHint && <HintPanel verseId={verse.id} />}
         <textarea
           ref={inputRef}
           className="w-full min-h-32 px-3 py-2 border rounded-md bg-background text-lg resize-none"
@@ -273,7 +282,7 @@ export function VerseReciter({
           onChange={(e) => setUserInput(e.target.value)}
         />
         {voiceControls}
-        <Button className="w-full" onClick={onSubmit} disabled={!userInput.trim()}>
+        <Button className="w-full" onClick={onSubmit} disabled={!userInput.trim() || (Boolean(recordingUrl) && !voiceChecked)}>
           提交 (Enter)
         </Button>
       </CardContent>
@@ -294,6 +303,7 @@ export function VerseResult({
   onUndo,
   recommendedRating,
   submitted,
+  onEdit,
 }: {
   verse: VerseRef;
   segments: DiffSegment[];
@@ -307,6 +317,8 @@ export function VerseResult({
   recommendedRating?: Rating;
   /** 用户实际提交用于比对的文本（反馈 #13：结果页展示"你的提交"） */
   submitted?: string;
+  /** 未评分时允许返回修改识别文本/录音 */
+  onEdit?: () => void;
 }) {
   return (
     <div className="space-y-4">
@@ -353,7 +365,6 @@ export function VerseResult({
         </CardContent>
       </Card>
 
-      {verseId && <AnnotationPanel verseId={verseId} />}
       {verseId && <VerseNotes verseId={verseId} />}
 
       {!ratingDone && (
@@ -395,6 +406,12 @@ export function VerseResult({
             </Button>
           )}
         </div>
+      )}
+
+      {!ratingDone && onEdit && (
+        <Button variant="outline" className="w-full" onClick={onEdit}>
+          返回修改
+        </Button>
       )}
     </div>
   );

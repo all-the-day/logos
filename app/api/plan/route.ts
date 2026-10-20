@@ -28,10 +28,21 @@ export async function POST(request: Request) {
   try {
     const text = await request.text();
     if (!text) return NextResponse.json({ error: "请求体为空" }, { status: 400 });
-    const { bookId, versesPerDay } = JSON.parse(text);
-    if (!bookId || !versesPerDay) {
+    const { bookId, versesPerDay, reciteMode, passageSize } = JSON.parse(text);
+    if (!bookId) {
       return NextResponse.json({ error: "缺少参数" }, { status: 400 });
     }
+    if (!Number.isInteger(versesPerDay) || versesPerDay < 1 || versesPerDay > 10) {
+      return NextResponse.json({ error: "每日节数需为 1-10 的整数" }, { status: 400 });
+    }
+    if (reciteMode !== undefined && reciteMode !== "single" && reciteMode !== "passage") {
+      return NextResponse.json({ error: "背诵模式不正确" }, { status: 400 });
+    }
+    if (passageSize !== undefined && (!Number.isInteger(passageSize) || passageSize < 2 || passageSize > 10)) {
+      return NextResponse.json({ error: "每组节数需为 2-10 的整数" }, { status: 400 });
+    }
+    const mode = reciteMode === "passage" ? "passage" : "single";
+    const size = passageSize ?? 5;
 
     // 停用旧计划（软删）；不删除旧书卷卡片——卡片是永久学习资产，旧书卷到期卡继续进复习
     const existing = await planDb.getActivePlan(user.id);
@@ -39,7 +50,7 @@ export async function POST(request: Request) {
       await planDb.deletePlan(existing.id, user.id);
     }
 
-    const plan = await planService.initializePlan(user.id, bookId, versesPerDay);
+    const plan = await planService.initializePlan(user.id, bookId, versesPerDay, mode, size);
 
     // 为新书卷补建缺失卡片（幂等）
     await planService.ensureCardsForBook(user.id, bookId);
@@ -58,14 +69,22 @@ export async function PUT(request: Request) {
   try {
     const text = await request.text();
     if (!text) return NextResponse.json({ error: "请求体为空" }, { status: 400 });
-    const { bookId, versesPerDay } = JSON.parse(text);
+    const { bookId, versesPerDay, reciteMode, passageSize } = JSON.parse(text);
     if (versesPerDay === undefined || !Number.isInteger(versesPerDay) || versesPerDay < 1 || versesPerDay > 10) {
       return NextResponse.json({ error: "每日节数需为 1-10 的整数" }, { status: 400 });
+    }
+    if (reciteMode !== undefined && reciteMode !== "single" && reciteMode !== "passage") {
+      return NextResponse.json({ error: "背诵模式不正确" }, { status: 400 });
+    }
+    if (passageSize !== undefined && (!Number.isInteger(passageSize) || passageSize < 2 || passageSize > 10)) {
+      return NextResponse.json({ error: "每组节数需为 2-10 的整数" }, { status: 400 });
     }
 
     const plan = await planService.updatePlan(user.id, {
       ...(bookId ? { bookId } : {}),
       versesPerDay,
+      ...(reciteMode ? { reciteMode } : {}),
+      ...(passageSize !== undefined ? { passageSize } : {}),
     });
     if (!plan) {
       return NextResponse.json({ error: "没有活动计划" }, { status: 404 });

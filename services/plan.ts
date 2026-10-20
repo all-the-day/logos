@@ -11,14 +11,25 @@ export async function getActivePlanDetails(userId: number) {
   return { plan, book, totalVerses, workdays };
 }
 
-export async function initializePlan(userId: number, bookId: number, versesPerDay: number) {
-  return planDb.createPlan(userId, bookId, versesPerDay);
+export async function initializePlan(
+  userId: number,
+  bookId: number,
+  versesPerDay: number,
+  reciteMode: "single" | "passage" = "single",
+  passageSize = 5
+) {
+  return planDb.createPlan(userId, bookId, versesPerDay, reciteMode, passageSize);
 }
 
-/** 更新计划：改每日节数，可选换书卷（不删旧书卷卡片——卡片是永久学习资产） */
+/** 更新计划：每日节数 / 背诵模式 / 每组节数，可选换书卷（不删旧书卷卡片——卡片是永久学习资产） */
 export async function updatePlan(
   userId: number,
-  data: { bookId?: number; versesPerDay?: number }
+  data: {
+    bookId?: number;
+    versesPerDay?: number;
+    reciteMode?: "single" | "passage";
+    passageSize?: number;
+  }
 ) {
   const plan = await planDb.getActivePlan(userId);
   if (!plan) return null;

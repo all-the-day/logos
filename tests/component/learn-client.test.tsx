@@ -16,11 +16,19 @@ vi.mock("next/link", () => ({
     React.createElement("a", props, children),
 }));
 
-const plan: PlanInfo = { id: 1, bookId: 1, versesPerDay: 2, startDate: new Date(), status: "active" };
+const plan: PlanInfo = {
+  id: 1,
+  bookId: 1,
+  versesPerDay: 2,
+  reciteMode: "single",
+  passageSize: 5,
+  startDate: new Date(),
+  status: "active",
+};
 
 function makeTask(overrides: Partial<TaskData>): TaskData {
   return {
-    id: 0, bookId: 1, chapter: 1, verse: 0, content: "", kjv: null,
+    id: 0, bookId: 1, bookName: "罗马书", chapter: 1, verse: 0, content: "", kjv: null,
     cardId: 0, cardState: "new", cardStability: 2, cardDifficulty: 5,
     cardReps: 0, cardLapses: 0, cardLastReview: null, cardDue: new Date(),
     ...overrides,

@@ -4,8 +4,16 @@ export async function getActivePlan(userId: number) {
   return prisma.plan.findFirst({ where: { userId, status: "active" } });
 }
 
-export async function createPlan(userId: number, bookId: number, versesPerDay: number) {
-  return prisma.plan.create({ data: { userId, bookId, versesPerDay } });
+export async function createPlan(
+  userId: number,
+  bookId: number,
+  versesPerDay: number,
+  reciteMode: "single" | "passage" = "single",
+  passageSize = 5
+) {
+  return prisma.plan.create({
+    data: { userId, bookId, versesPerDay, reciteMode, passageSize },
+  });
 }
 
 export async function deletePlan(planId: number, userId: number) {
@@ -18,7 +26,12 @@ export async function deletePlan(planId: number, userId: number) {
 export async function updatePlan(
   planId: number,
   userId: number,
-  data: { bookId?: number; versesPerDay?: number }
+  data: {
+    bookId?: number;
+    versesPerDay?: number;
+    reciteMode?: "single" | "passage";
+    passageSize?: number;
+  }
 ) {
   return prisma.plan.update({
     where: { id: planId },

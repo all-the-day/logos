@@ -72,6 +72,8 @@ model Plan {
   userId       Int
   bookId       Int
   versesPerDay Int      @default(3)
+  reciteMode   String   @default("single") // single = 单节精背；passage = 连背（多节一组）
+  passageSize  Int      @default(5) // 连背模式每组经节数
   startDate    DateTime @default(now())
   status       String   @default("active")
   createdAt    DateTime @default(now())

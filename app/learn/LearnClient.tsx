@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 import { compareVerse, generateFillBlanks, densityForStability } from "@/lib/compare";
 import { VerseViewer, VerseReciter, VerseResult } from "@/components/VerseStudy";
 import { recommendRating, RATING, type Rating } from "@/lib/fsrs";
-import type { PlanInfo, TaskData } from "@/types";
+import type { CardSnapshot, PlanInfo, TaskData } from "@/types";
 
 interface Props {
   plan: PlanInfo | null;
@@ -36,27 +36,23 @@ export default function LearnClient({ plan, tasks, asrEnabled = false }: Props) 
   const [fillInputs, setFillInputs] = useState<string[]>([]);
   const [ratingDone, setRatingDone] = useState(false);
   const [undoAvailable, setUndoAvailable] = useState(false);
+  // 语音输入门槛状态提升到这里：Enter 快捷键与提交按钮共用同一门槛，
+  // 且“返回修改”时组件卸载不丢失录音与已核对状态
+  const [recordingUrl, setRecordingUrl] = useState("");
+  const [voiceChecked, setVoiceChecked] = useState(false);
   // 会话内重出队列：AGAIN 评分的卡插到队列尾部，本会话内再次背诵
   const [requeued, setRequeued] = useState<TaskData[]>([]);
   const requeueCounts = useRef(new Map<number, number>());
 
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const undoCardRef = useRef<{
-    id: number;
-    stability: number;
-    difficulty: number;
-    reps: number;
-    lapses: number;
-    state: string;
-    lastReview: Date | string | null;
-    due: Date | string;
-  } | null>(null);
+  const undoCardsRef = useRef<CardSnapshot[]>([]);
   const ratingLockRef = useRef(false); // 防止评分请求在途时连按 1-4 重复提交
 
   // 有效队列 = 原始任务 + 会话内重出的副本
   const queue = useMemo(() => [...tasks, ...requeued], [tasks, requeued]);
   const task = queue[currentIdx];
   const totalTasks = queue.length;
+  const isPassage = Boolean(task?.isPassage);
 
   // Group tasks by chapter for quick navigation
   const chapterGroups = tasks.reduce((acc, t, idx) => {
@@ -100,7 +96,9 @@ export default function LearnClient({ plan, tasks, asrEnabled = false }: Props) 
     setFillInputs([]);
     setRatingDone(false);
     setUndoAvailable(false);
-    undoCardRef.current = null;
+    undoCardsRef.current = [];
+    setRecordingUrl(""); // effect cleanup 会 revoke 上一条录音的对象 URL
+    setVoiceChecked(false);
     if (t.cardState !== "new") {
       startRecite(t); // 复习卡直接背诵（会再初始化填空并聚焦）
     } else {
@@ -111,8 +109,10 @@ export default function LearnClient({ plan, tasks, asrEnabled = false }: Props) 
   const handleSubmit = useCallback(() => {
     // 录音中 Enter 不应提交空内容；全文模式必须有输入才进入比对
     if (!fillMode && !userInput.trim()) return;
+    // 语音识别后必须回放录音并勾选“已核对”才能提交（Enter 与按钮共用此门槛）
+    if (recordingUrl && !voiceChecked) return;
     let finalInput = userInput;
-    if (fillMode) {
+    if (fillMode && !isPassage) {
       // 填空模式：把用户填入的空还原回整节，再与原文比对。
       // 全部填对才得 100%——否则拿填空词和整节原文比，永远到不了 100%。
       const density = densityForStability(task.cardStability, task.cardState);
@@ -135,7 +135,7 @@ export default function LearnClient({ plan, tasks, asrEnabled = false }: Props) 
     setAccuracy(result.accuracy);
     setSubmitted(finalInput);
     setMode("result");
-  }, [userInput, fillInputs, fillMode, task]);
+  }, [userInput, fillInputs, fillMode, task, isPassage, recordingUrl, voiceChecked]);
 
   /** 移除该卡在此前会话的重出副本，但保留当前正在展示的那一条（避免队列收缩导致 currentIdx 越界） */
   const pruneRequeued = useCallback(
@@ -152,21 +152,34 @@ export default function LearnClient({ plan, tasks, asrEnabled = false }: Props) 
       if (ratingDone || ratingLockRef.current) return;
       ratingLockRef.current = true;
       try {
-        // 用 task 快照做撤销（task 来自本次会话加载，与 cardId 一致）
-        undoCardRef.current = {
-          id: task.cardId,
-          stability: task.cardStability,
-          difficulty: task.cardDifficulty,
-          reps: task.cardReps,
-          lapses: task.cardLapses,
-          state: task.cardState,
-          lastReview: task.cardLastReview,
-          due: task.cardDue,
-        };
+        const cardIds = isPassage && task.cardIds?.length ? task.cardIds : [task.cardId];
+
+        // 用 task 快照做撤销：连背时使用组内每张卡的独立快照（passageCards），
+        // 单节任务从 task 字段构造；快照字段名与 PUT /api/card 的 cardId 对齐
+        undoCardsRef.current =
+          isPassage && task.passageCards?.length
+            ? task.passageCards
+            : [
+                {
+                  cardId: task.cardId,
+                  stability: task.cardStability,
+                  difficulty: task.cardDifficulty,
+                  reps: task.cardReps,
+                  lapses: task.cardLapses,
+                  state: task.cardState,
+                  lastReview: task.cardLastReview,
+                  due: task.cardDue,
+                },
+              ];
+
         const rateRes = await fetch("/api/card", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ cardId: task.cardId, rating }),
+          body: JSON.stringify(
+            isPassage
+              ? { ratings: cardIds.map((cardId) => ({ cardId, rating })) }
+              : { cardId: task.cardId, rating }
+          ),
         });
         if (!rateRes.ok) {
           console.error("评分保存失败", await rateRes.text());
@@ -174,6 +187,7 @@ export default function LearnClient({ plan, tasks, asrEnabled = false }: Props) 
         }
         const data = (await rateRes.json().catch(() => null)) as {
           card?: { state?: string };
+          cards?: { state?: string }[];
         } | null;
         setRatingDone(true);
         setUndoAvailable(true);
@@ -181,7 +195,10 @@ export default function LearnClient({ plan, tasks, asrEnabled = false }: Props) 
         // 会话内重学：过不过由客观比对决定——没到 100% 一字不差，或自评 AGAIN（看了提示/蒙对），
         // 都插回队列尾部本会话再背。评分仍写入 FSRS，决定下一次复习间隔。
         const mustRequeue = rating === RATING.AGAIN || accuracy < 1;
-        const updatedState = data?.card?.state ?? (rating === RATING.AGAIN ? "relearning" : task.cardState);
+        const updatedState =
+          data?.card?.state ??
+          data?.cards?.[0]?.state ??
+          (rating === RATING.AGAIN ? "relearning" : task.cardState);
         if (mustRequeue) {
           const count = requeueCounts.current.get(task.cardId) ?? 0;
           if (count < MAX_REQUEUE_PER_SESSION) {
@@ -202,30 +219,35 @@ export default function LearnClient({ plan, tasks, asrEnabled = false }: Props) 
         ratingLockRef.current = false;
       }
     },
-    [task, ratingDone, accuracy, pruneRequeued]
+    [task, ratingDone, accuracy, pruneRequeued, isPassage]
   );
 
   const handleUndo = useCallback(async () => {
-    const prev = undoCardRef.current;
-    if (!prev) return;
+    const cards = undoCardsRef.current;
+    if (cards.length === 0) return;
     try {
       await fetch("/api/card", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          cardId: prev.id,
-          stability: prev.stability,
-          difficulty: prev.difficulty,
-          reps: prev.reps,
-          lapses: prev.lapses,
-          state: prev.state,
-          lastReview: prev.lastReview,
-          due: prev.due,
-        }),
+        // 单卡沿用旧请求体；多卡（连背）走 cards 数组，逐卡恢复各自快照
+        body: JSON.stringify(
+          cards.length === 1
+            ? {
+                cardId: cards[0].cardId,
+                stability: cards[0].stability,
+                difficulty: cards[0].difficulty,
+                reps: cards[0].reps,
+                lapses: cards[0].lapses,
+                state: cards[0].state,
+                lastReview: cards[0].lastReview,
+                due: cards[0].due,
+              }
+            : { cards }
+        ),
       });
       setRatingDone(false);
       setUndoAvailable(false);
-      undoCardRef.current = null;
+      undoCardsRef.current = [];
     } catch { /* ignore */ }
   }, []);
 
@@ -238,6 +260,15 @@ export default function LearnClient({ plan, tasks, asrEnabled = false }: Props) 
     }
   }, [currentIdx, totalTasks, goToTask]);
 
+  // 结果页未评分时允许返回修改识别文本/录音，改完再提交
+  const handleEdit = useCallback(() => {
+    setSegments([]);
+    setAccuracy(0);
+    setSubmitted("");
+    setMode("recite");
+    setTimeout(() => inputRef.current?.focus(), 50);
+  }, []);
+
   // 复习卡初始直接进入背诵态时聚焦输入框
   useEffect(() => {
     if (mode === "recite") {
@@ -245,6 +276,13 @@ export default function LearnClient({ plan, tasks, asrEnabled = false }: Props) 
       return () => clearTimeout(id);
     }
   }, [mode]);
+
+  // 释放录音对象 URL：换新录音、切换任务或组件卸载时（避免内存泄漏）
+  useEffect(() => {
+    return () => {
+      if (recordingUrl) URL.revokeObjectURL(recordingUrl);
+    };
+  }, [recordingUrl]);
 
   // 键盘处理：keydown 只注册一次，通过 ref 读取"最新"的处理器与状态。
   // 避免切换任务后的一小段窗口内，旧监听器（闭包了上一节 task/输入）把 Enter 或评分误接到上一节，
@@ -259,7 +297,6 @@ export default function LearnClient({ plan, tasks, asrEnabled = false }: Props) 
       submit: handleSubmit, rate: handleRate, next: handleNext, undo: handleUndo,
     };
   });
-
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       const l = latest.current;
@@ -307,23 +344,27 @@ export default function LearnClient({ plan, tasks, asrEnabled = false }: Props) 
   }
 
   const isReview = task.cardState !== "new";
+  const isPassageTask = isPassage;
+  const verseLabel = isPassageTask && task.verseEnd
+    ? `${task.bookName} ${task.chapter}:${task.verse}-${task.verseEnd}`
+    : `${task.bookName} ${task.chapter}:${task.verse}`;
 
   return (
     <div className="max-w-lg mx-auto p-4 space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <h2 className="font-medium text-muted-foreground">
-            {task.bookName} {task.chapter}:{task.verse}
-          </h2>
+          <h2 className="font-medium text-muted-foreground">{verseLabel}</h2>
           <Badge variant={task.requeued ? "destructive" : isReview ? "default" : "secondary"}>
             {task.requeued ? "重学" : isReview ? "复习" : "新卡"}
           </Badge>
+          {isPassageTask && <Badge variant="outline">连背 {task.cardIds?.length ?? 1} 节</Badge>}
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm"
-            onClick={() => setFillMode(!fillMode)}>
-            {fillMode ? "全文" : "填空"}
-          </Button>
+          {!isPassageTask && (
+            <Button variant="ghost" size="sm" onClick={() => setFillMode(!fillMode)}>
+              {fillMode ? "全文" : "填空"}
+            </Button>
+          )}
           <Badge variant="outline">
             {currentIdx + 1}/{totalTasks}
           </Badge>
@@ -376,6 +417,10 @@ export default function LearnClient({ plan, tasks, asrEnabled = false }: Props) 
           inputRef={inputRef}
           onSubmit={handleSubmit}
           asrEnabled={asrEnabled}
+          recordingUrl={recordingUrl}
+          setRecordingUrl={setRecordingUrl}
+          voiceChecked={voiceChecked}
+          setVoiceChecked={setVoiceChecked}
         />
       )}
 
@@ -387,11 +432,12 @@ export default function LearnClient({ plan, tasks, asrEnabled = false }: Props) 
           ratingDone={ratingDone}
           onRate={handleRate}
           onNext={handleNext}
-          nextLabel={currentIdx >= totalTasks - 1 ? "完成" : "下一节"}
-          verseId={task.id}
+          nextLabel={currentIdx >= totalTasks - 1 ? "完成" : isPassageTask ? "下一组" : "下一节"}
+          verseId={isPassageTask ? undefined : task.id}
           onUndo={undoAvailable ? handleUndo : undefined}
           recommendedRating={recommendRating(accuracy)}
           submitted={submitted}
+          onEdit={ratingDone ? undefined : handleEdit}
         />
       )}
     </div>

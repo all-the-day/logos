@@ -50,6 +50,8 @@ export default function PlanClient({
 }: PlanClientProps) {
   const [selectedBook, setSelectedBook] = useState<number | null>(null);
   const [versesPerDay, setVersesPerDay] = useState(3);
+  const [reciteMode, setReciteMode] = useState<"single" | "passage">("single");
+  const [passageSize, setPassageSize] = useState(5);
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [checkinState, setCheckinState] = useState(checkin);
@@ -57,12 +59,18 @@ export default function PlanClient({
   const [editOpen, setEditOpen] = useState(false);
   const [editVersesPerDay, setEditVersesPerDay] = useState(planDetails?.plan?.versesPerDay ?? 3);
   const [editBookId, setEditBookId] = useState<number | null>(planDetails?.plan?.bookId ?? null);
+  const [editReciteMode, setEditReciteMode] = useState<"single" | "passage">(
+    planDetails?.plan?.reciteMode ?? "single"
+  );
+  const [editPassageSize, setEditPassageSize] = useState(planDetails?.plan?.passageSize ?? 5);
   const [saving, setSaving] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
 
   const openEdit = () => {
     setEditVersesPerDay(planDetails?.plan?.versesPerDay ?? 3);
     setEditBookId(planDetails?.plan?.bookId ?? null);
+    setEditReciteMode(planDetails?.plan?.reciteMode ?? "single");
+    setEditPassageSize(planDetails?.plan?.passageSize ?? 5);
     setEditError(null);
     setEditOpen(true);
   };
@@ -75,7 +83,12 @@ export default function PlanClient({
       const res = await fetch("/api/plan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bookId: selectedBook, versesPerDay }),
+        body: JSON.stringify({
+          bookId: selectedBook,
+          versesPerDay,
+          reciteMode,
+          passageSize: reciteMode === "passage" ? passageSize : 5,
+        }),
       });
       if (res.ok) {
         window.location.reload();
@@ -88,7 +101,7 @@ export default function PlanClient({
     } finally {
       setCreating(false);
     }
-  }, [selectedBook, versesPerDay]);
+  }, [selectedBook, versesPerDay, reciteMode, passageSize]);
 
   const handleDelete = useCallback(async () => {
     if (!confirm("确定要删除当前计划吗？")) return;
@@ -112,6 +125,8 @@ export default function PlanClient({
         body: JSON.stringify({
           ...(editBookId ? { bookId: editBookId } : {}),
           versesPerDay: editVersesPerDay,
+          reciteMode: editReciteMode,
+          passageSize: editReciteMode === "passage" ? editPassageSize : 5,
         }),
       });
       if (res.ok) {
@@ -125,7 +140,7 @@ export default function PlanClient({
     } finally {
       setSaving(false);
     }
-  }, [editBookId, editVersesPerDay]);
+  }, [editBookId, editVersesPerDay, editReciteMode, editPassageSize]);
 
   const handleCheckin = useCallback(async () => {
     try {
@@ -171,6 +186,45 @@ export default function PlanClient({
                 <span className="text-sm text-muted-foreground ml-2">节/天</span>
               </div>
             </div>
+            <div>
+              <label className="text-sm font-medium mb-2 block">背诵模式</label>
+              <div className="flex gap-2">
+                <Button
+                  variant={reciteMode === "single" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setReciteMode("single")}
+                >
+                  单节精背
+                </Button>
+                <Button
+                  variant={reciteMode === "passage" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setReciteMode("passage")}
+                >
+                  连背多节
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                单节：一节一次评分；连背：按组默背，整组一次比对与评分。
+              </p>
+            </div>
+            {reciteMode === "passage" && (
+              <div>
+                <label className="text-sm font-medium mb-2 block">每组节数</label>
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm"
+                    onClick={() => setPassageSize(Math.max(2, passageSize - 1))}>
+                    -
+                  </Button>
+                  <span className="w-12 text-center font-medium">{passageSize}</span>
+                  <Button variant="outline" size="sm"
+                    onClick={() => setPassageSize(Math.min(10, passageSize + 1))}>
+                    +
+                  </Button>
+                  <span className="text-sm text-muted-foreground ml-2">节/组</span>
+                </div>
+              </div>
+            )}
             {selectedBook && (
               <div className="text-sm text-muted-foreground p-3 bg-secondary rounded-lg">
                 书卷：<span className="font-medium text-foreground">{books.find(b => b.id === selectedBook)?.name}</span>
@@ -351,6 +405,42 @@ export default function PlanClient({
                 <span className="text-sm text-muted-foreground ml-2">节/天</span>
               </div>
             </div>
+            <div>
+              <label className="text-sm font-medium mb-2 block">背诵模式</label>
+              <div className="flex gap-2">
+                <Button
+                  variant={editReciteMode === "single" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setEditReciteMode("single")}
+                >
+                  单节精背
+                </Button>
+                <Button
+                  variant={editReciteMode === "passage" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setEditReciteMode("passage")}
+                >
+                  连背多节
+                </Button>
+              </div>
+            </div>
+            {editReciteMode === "passage" && (
+              <div>
+                <label className="text-sm font-medium mb-2 block">每组节数</label>
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm"
+                    onClick={() => setEditPassageSize(Math.max(2, editPassageSize - 1))}>
+                    -
+                  </Button>
+                  <span className="w-12 text-center font-medium">{editPassageSize}</span>
+                  <Button variant="outline" size="sm"
+                    onClick={() => setEditPassageSize(Math.min(10, editPassageSize + 1))}>
+                    +
+                  </Button>
+                  <span className="text-sm text-muted-foreground ml-2">节/组</span>
+                </div>
+              </div>
+            )}
             <Button className="w-full" disabled={!editBookId || saving}
               onClick={handleSaveEdit}>
               {saving ? "保存中..." : "保存"}

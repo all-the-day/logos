@@ -74,7 +74,7 @@ app/
     ├── note/route.ts     CRUD 笔记
     ├── checkin/route.ts  POST 签到 / GET 状态
     ├── data/route.ts     GET 导出 / POST 导入 / DELETE 清除
-    ├── annotation/route.ts  GET 纲目/注解/串珠
+    ├── annotation/route.ts  GET 纲目/注解/串珠（学习流已不用，数据暂留）
     ├── book/import/route.ts  经文导入
     ├── asr/route.ts      在线语音识别代理（鉴权/限流/WAV 校验）
     ├── stats/route.ts    统计
@@ -86,7 +86,6 @@ components/
 ├── BookSelector.tsx      书卷选择器
 ├── ProgressBar.tsx       三色进度条（绿=已掌握/橙=学习中/蓝=新）
 ├── VerseStudy.tsx        经文展示/背诵/比对/评分（学习核心，共享）
-├── AnnotationPanel.tsx   纲目/注解/串珠可折叠面板
 ├── VerseNotes.tsx        该节已有笔记
 ├── ToastProvider.tsx     轻量 toast（useToast）
 ├── SWRegister.tsx        PWA Service Worker 注册
@@ -177,7 +176,8 @@ FSRS 卡状态机：`NEW → LEARNING → REVIEW`，AGAIN 时进入 `RELEARNING`
 - **会话内重学（2026-08-24）**：过不过由客观比对决定——准确率未到 100%（一字不差）或自评 AGAIN → 该节插回队列尾部本会话再背（徽标"重学"，副本带服务端新 state 直接进背诵态），每卡每会话最多重出 2 次防死循环；自评仍写入 FSRS 决定下次复习间隔
 - 填空模式：提交时把填空还原回整节再与原文比对，全部填对才得 100%（否则填空词对整节比对永远到不了 100%）
 - 快捷键：`1-4` 评分，`u` 撤销，`Space` 跳过
-- **语音输入（2026-10-20，可选）**：仅全文模式。录音 → 客户端转 16k 单声道 WAV → `POST /api/asr` → 在线 ASR（阶跃星辰 StepAudio 3 或腾讯云）→ 识别文本填入输入框，用户确认后手动提交；不自动提交。识别失败/未配置回退手输；填空模式不显示语音。服务端限制 ≤60 秒、≤3MB、16k PCM WAV，按用户限流；音频不落盘。
+- **语音输入（2026-10-20，可选）**：全文与连背模式均提供。录音 → 客户端转 16k 单声道 WAV → `POST /api/asr` → 在线 ASR（阶跃星辰 StepAudio 3 或腾讯云）→ 识别文本填入输入框，用户确认后手动提交；不自动提交。识别后必须回放自己的录音并勾选“已核对”才能提交（提交按钮与 Enter 快捷键共用门槛），也可“返回修改”改识别文本（录音与已核对状态保留）；识别失败/未配置回退手输；填空模式不显示语音。服务端限制 ≤60 秒、≤3MB、16k PCM WAV，按用户限流；音频不落盘。
+- **连背模式（2026-10-20）**：`Plan.reciteMode = passage` 时按 `passageSize` 把同章且节号连续的经节合成一组，节号断开处断组，落单（组内仅 1 节）的回退为普通单节任务（新建/修改计划可选“单节精背 / 连背多节”与每组节数）。`/learn` 以组为单位：顶部显示区间（如 1:1–5）与“连背 N 节”，整组一次比对与四键评分；评分通过 `/api/card` 批量写入组内每张卡（先整体校验再写入），撤销按组内每张卡独立快照逐卡恢复，未到 100% 或 AGAIN 的组按会话内重学规则插回队尾。连背组不提供填空模式，不展示注释/纲目/串珠。
 
 ### 6.3 其他页面
 - **/notes**：笔记列表（出处标题+内容+日期+编辑/删除）+ 新建/编辑 Dialog（书卷/章/节 + 内容）
@@ -208,7 +208,7 @@ FSRS 卡状态机：`NEW → LEARNING → REVIEW`，AGAIN 时进入 `RELEARNING`
 - 客户端 `lib/audio/recorder.ts` 用 MediaRecorder 录音并由 Web Audio API 转 16k 单声道 WAV，服务器不需要 ffmpeg；Step/腾讯都直接支持该格式。
 - 学习页背诵态新增“语音输入”按钮（仅全文模式、服务端已配置时显示）；识别结果只填入输入框，用户确认后提交；失败回退手输。
 - 本地用 `ASR_PROVIDER=mock` 跑通登录 → 上传 WAV → 识别 → 返回经文原文的端到端；Step/腾讯 provider 均按官方文档实现并用单测覆盖（SSE 解析、请求体、错误收敛）。生产未配置 `ASR_PROVIDER`/密钥，语音入口目前隐藏。上线前在 `/root/logos/shared/.env` 选 `step` 或 `tencent` 并填入密钥，再部署；APK 需真机验证麦克风权限。
-- 新增 23 个测试（WAV 校验、热词、限流、provider 选择、mock、Step SSE 解析与 provider、语音按钮渲染），当前共 96 个用例。
+- 新增 23 个测试（WAV 校验、热词、限流、provider 选择、mock、Step SSE 解析与 provider、语音按钮渲染），当前共 105 个用例。
 
 **2026-08-10 学习核心改进（对应产品评审三个 P0）**：
 - ~~每日新卡配额失效（versesPerDay 只是每次进入上限）~~ —— **已修复**：Card 增加 `introducedAt`，`services/card.ts#rateCard` 在首次离开 new 态时写入；今日新卡 = `versesPerDay − 今日引入数`；含集成测试（学满后再取为 0、次日重置）
@@ -254,7 +254,7 @@ FSRS 卡状态机：`NEW → LEARNING → REVIEW`，AGAIN 时进入 `RELEARNING`
 - 集成测试：学习队列 14 场景（隔离/排序/上限 50/统一 `now`/每日新卡配额）、`getDueCards` 新卡泄漏、Card DateTime 存储诊断
 - 组件测试（jsdom + @testing-library/react）：`LearnClient` 跨节状态隔离 1 场景（复现上一节输入/比对残留 bug 的回归防护）+ 会话内重学 2 场景（没到 100% 评 GOOD 也重出、连续 AGAIN 3 次后不再重出）
 - 测试库隔离：`prisma/test.db` + `tests/fixtures/setup.ts` 进程级校验 + `reset-test-db.ts` 精确路径保护（拒绝 dev.db）
-- 当前共 **96 个用例**；`npm run test` / `test:coverage`（约 85% stmts）/ `test:db:reset`
+- 当前共 **105 个用例**；`npm run test` / `test:coverage`（约 85% stmts）/ `test:db:reset`
 
 **功能验收基线**（Plan v2 人工验证过，可作为回归清单）：
 1. 无计划：/plan 显示创建表单
@@ -263,7 +263,7 @@ FSRS 卡状态机：`NEW → LEARNING → REVIEW`，AGAIN 时进入 `RELEARNING`
 4. 主按钮唯一入口 /learn；/review 应 404
 5. 签到→金句动线：未签到显签到卡，签到后同一位置变金句
 6. 删除计划仅在 `…` 菜单
-7. 学习流：主动回忆 —— view/recite 不显示原文（含 KJV），仅比对阶段展示原文；提示仅注释/纲目/串珠（"显示提示"按钮）；新卡 view 仅经节引用+提示再进背诵，复习卡默认直接背诵；快捷键 1-4/u/Space，Undo 生效
+7. 学习流：主动回忆 —— view/recite 不显示原文（含 KJV），仅比对阶段展示原文；不展示注释/纲目/串珠；新卡 view 仅经节引用再进背诵，复习卡默认直接背诵；快捷键 1-4/u/Space，Undo 生效
 8. 每日新卡配额：学满 `versesPerDay` 张新卡后，当天再次进入 /learn 不再出新卡；次日恢复
 9. 换计划不丢进度：切换书卷后，旧书卷到期复习卡仍出现在 /learn 队列，卡片数据保留
 

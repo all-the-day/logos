@@ -52,53 +52,162 @@ async function getRemainingNewQuota(
   return Math.max(0, versesPerDay - introducedToday);
 }
 
+function toTask(card: {
+  id: number;
+  verseId: number;
+  state: string;
+  stability: number;
+  difficulty: number;
+  reps: number;
+  lapses: number;
+  lastReview: Date | null;
+  due: Date;
+  verse: {
+    id: number;
+    bookId: number;
+    chapter: number;
+    verse: number;
+    content: string;
+    kjv: string | null;
+    book: { name: string };
+  };
+}): TaskData {
+  return {
+    id: card.verseId, // 兼容旧 API：task.id = verseId
+    bookName: card.verse.book.name,
+    bookId: card.verse.bookId,
+    chapter: card.verse.chapter,
+    verse: card.verse.verse,
+    content: card.verse.content,
+    kjv: card.verse.kjv,
+    cardId: card.id,
+    cardState: card.state,
+    cardStability: card.stability,
+    cardDifficulty: card.difficulty,
+    cardReps: card.reps,
+    cardLapses: card.lapses,
+    cardLastReview: card.lastReview,
+    cardDue: card.due,
+  };
+}
+
+/** 把同章且节号连续的任务按 size 分组；节号断开处断组，剩余不足 size 的也成一组 */
+function chunkPassages(tasks: TaskData[], size: number): TaskData[][] {
+  const sorted = [...tasks].sort(
+    (a, b) => a.bookId - b.bookId || a.chapter - b.chapter || a.verse - b.verse
+  );
+  const groups: TaskData[][] = [];
+  let current: TaskData[] = [];
+  let prev: TaskData | null = null;
+
+  const flush = () => {
+    if (current.length > 0) groups.push(current);
+    current = [];
+  };
+
+  for (const task of sorted) {
+    const contiguous =
+      prev !== null &&
+      prev.bookId === task.bookId &&
+      prev.chapter === task.chapter &&
+      prev.verse + 1 === task.verse;
+    if (current.length >= size || (current.length > 0 && !contiguous)) {
+      flush();
+    }
+    current.push(task);
+    prev = task;
+  }
+  flush();
+
+  return groups;
+}
+
+/** 把一组单节任务合并成一个连背任务：content 为拼接原文，cardIds 为组内卡片 */
+function toPassageTask(group: TaskData[]): TaskData {
+  const verses = [...group].sort((a, b) => a.verse - b.verse);
+  const firstVerse = verses[0];
+  const lastVerse = verses[verses.length - 1];
+
+  return {
+    ...firstVerse,
+    verse: firstVerse.verse,
+    verseEnd: lastVerse.verse,
+    content: verses.map((v) => v.content).join(""),
+    kjv: null,
+    isPassage: true,
+    cardIds: verses.map((v) => v.cardId),
+    // 撤销用：组内每张卡的独立 FSRS 快照（不能都拿第一节的覆盖整组）
+    passageCards: verses.map((v) => ({
+      cardId: v.cardId,
+      stability: v.cardStability,
+      difficulty: v.cardDifficulty,
+      reps: v.cardReps,
+      lapses: v.cardLapses,
+      state: v.cardState,
+      lastReview: v.cardLastReview,
+      due: v.cardDue,
+    })),
+    cardId: firstVerse.cardId,
+    cardState: verses.every((v) => v.cardState === "new") ? "new" : "review",
+  };
+}
+
+async function fetchReviewTasks(userId: number, now: Date): Promise<TaskData[]> {
+  const reviewCards = await prisma.card.findMany({
+    where: reviewWhere(userId, now),
+    include: { verse: { include: { book: true } } },
+    orderBy: [
+      { due: "asc" },
+      { stability: "asc" },
+      { verse: { bookId: "asc" } },
+      { verse: { chapter: "asc" } },
+      { verse: { verse: "asc" } },
+    ],
+    take: MAX_REVIEW_PER_DAY,
+  });
+  return reviewCards.map(toTask);
+}
+
+async function fetchNewTasks(
+  userId: number,
+  bookId: number,
+  versesPerDay: number,
+  now: Date
+): Promise<TaskData[]> {
+  const newLimit = await getRemainingNewQuota(userId, bookId, versesPerDay, now);
+  if (newLimit <= 0) return [];
+
+  const newCards = await prisma.card.findMany({
+    where: newWhere(userId, bookId),
+    include: { verse: { include: { book: true } } },
+    orderBy: [{ verse: { chapter: "asc" } }, { verse: { verse: "asc" } }],
+    take: newLimit,
+  });
+  return newCards.map(toTask);
+}
+
 export async function getTodayTasks(userId: number, now: Date = new Date()) {
   const plan = await planDb.getActivePlan(userId);
   if (!plan) return { plan: null, tasks: [] as TaskData[] };
 
   // 1) 复习队列：跨书卷的已到期且非新卡
-  const reviewCards = await prisma.card.findMany({
-    where: reviewWhere(userId, now),
-    include: { verse: { include: { book: true } } },
-    orderBy: [{ due: "asc" }, { stability: "asc" }, { verseId: "asc" }],
-    take: MAX_REVIEW_PER_DAY,
-  });
+  const reviewTasks = await fetchReviewTasks(userId, now);
+  // 2) 新卡队列：当前书卷的未学卡片，按章节/节顺序取今日剩余配额
+  const newTasks = await fetchNewTasks(userId, plan.bookId, plan.versesPerDay, now);
 
-  // 2) 新卡队列：当前书卷的未学卡片，按章节/节顺序取今日剩余配额个
-  const newLimit = await getRemainingNewQuota(userId, plan.bookId, plan.versesPerDay, now);
-  const newCards =
-    newLimit > 0
-      ? await prisma.card.findMany({
-          where: newWhere(userId, plan.bookId),
-          include: { verse: { include: { book: true } } },
-          orderBy: [{ verse: { chapter: "asc" } }, { verse: { verse: "asc" } }],
-          take: newLimit,
-        })
-      : [];
+  if (plan.reciteMode === "passage") {
+    const size = Math.max(2, plan.passageSize || 5);
+    // 复习组在前、新卡组在后；各自按“同章连续”分组，不把复习和新卡混在一组。
+    // 节号不连续被断开；落单（组内只有 1 节）的回退为普通单节任务，保留 KJV 对照。
+    const passages = [
+      ...chunkPassages(reviewTasks, size),
+      ...chunkPassages(newTasks, size),
+    ].map((group) => (group.length >= 2 ? toPassageTask(group) : group[0]));
+    return { plan, tasks: passages };
+  }
 
   // 3) 合并：复习在前，新卡在后
-  const allCards = [...reviewCards, ...newCards];
-
-  // 4) 转为 verse 视图（保留 card 字段供前端使用）
-  const tasks: TaskData[] = allCards.map((c) => ({
-    id: c.verseId, // 兼容旧 API：task.id = verseId
-    bookName: c.verse.book.name,
-    bookId: c.verse.bookId,
-    chapter: c.verse.chapter,
-    verse: c.verse.verse,
-    content: c.verse.content,
-    kjv: c.verse.kjv,
-    cardId: c.id,
-    cardState: c.state,
-    cardStability: c.stability,
-    cardDifficulty: c.difficulty,
-    cardReps: c.reps,
-    cardLapses: c.lapses,
-    cardLastReview: c.lastReview,
-    cardDue: c.due,
-  }));
-
-  return { plan, tasks };
+  return { plan, tasks: [...reviewTasks, ...newTasks] };
 }
 
 /**

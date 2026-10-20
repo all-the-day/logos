@@ -171,7 +171,7 @@ describe("每日新卡配额（introducedAt 首次引入计数）", () => {
         { id: 304, bookId: 1, chapter: 3, verse: 4, content: "经304", kjv: null },
       ],
     });
-    await prisma.plan.create({ data: { id: 1, userId: ALICE_ID, bookId: 1, versesPerDay: 2, status: "active" } });
+    await prisma.plan.create({ data: { id: 1, userId: ALICE_ID, bookId: 1, versesPerDay: 2, status: "active", reciteMode: "single", passageSize: 5 } });
     await prisma.card.createMany({
       data: [301, 302, 303, 304].map((verseId) => ({
         userId: ALICE_ID,

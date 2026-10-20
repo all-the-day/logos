@@ -14,6 +14,18 @@ export interface VerseData {
   kjv: string | null;
 }
 
+/** 卡片 FSRS 快照：撤销评分时按卡恢复（连背组内每张卡独立保存） */
+export interface CardSnapshot {
+  cardId: number;
+  stability: number;
+  difficulty: number;
+  reps: number;
+  lapses: number;
+  state: string;
+  lastReview: Date | string | null;
+  due: Date | string;
+}
+
 // 学习任务：verse 字段 + 卡片状态，供 UI 用
 export interface TaskData extends VerseData {
   bookName: string;
@@ -27,6 +39,12 @@ export interface TaskData extends VerseData {
   cardDue: Date;
   /** 会话内重出标记：AGAIN 评分后插回队列尾部的副本（仅客户端学习会话使用） */
   requeued?: boolean;
+  /** 连背任务标记：content 为整段拼接原文，cardIds 为组内所有卡片 */
+  isPassage?: boolean;
+  verseEnd?: number;
+  cardIds?: number[];
+  /** 连背组内每张卡的独立快照（撤销用；单节任务为空） */
+  passageCards?: CardSnapshot[];
 }
 
 // Plan
@@ -34,6 +52,8 @@ export interface PlanInfo {
   id: number;
   bookId: number;
   versesPerDay: number;
+  reciteMode: "single" | "passage";
+  passageSize: number;
   startDate: Date;
   status: string;
 }

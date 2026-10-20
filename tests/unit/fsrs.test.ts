@@ -142,7 +142,7 @@ describe("updateCard 数值边界", () => {
 
   it("复习卡间隔满足 EASY ≥ GOOD ≥ HARD", () => {
     const base = makeCard({ state: STATE.REVIEW, stability: 10, reps: 3 });
-    const day = (rating: number) =>
+    const day = (rating: Rating) =>
       updateCard(base, rating).due.getTime() - FIXED_TIME.getTime();
     expect(day(RATING.EASY)).toBeGreaterThanOrEqual(day(RATING.GOOD));
     expect(day(RATING.GOOD)).toBeGreaterThanOrEqual(day(RATING.HARD));
