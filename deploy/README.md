@@ -55,9 +55,27 @@ ls -lh /root/logos/shared/data/bible.db /root/logos/shared/data/bible_kjv.db
 ```bash
 cat > /root/logos/shared/.env <<'EOF'
 DATABASE_URL="file:/root/logos/prisma/dev.db"
+
+# 在线语音识别（二选一；不配置则学习页隐藏“语音输入”）
+# 1) 阶跃星辰 StepAudio 3 ASR（已有 Step Plan 时优先）
+ASR_PROVIDER=step
+STEP_API_KEY=填StepFun密钥
+# Step Plan 场景（路径前缀 /step_plan/v1，默认模型 stepaudio-2.5-asr）
+STEP_API_BASE=https://api.stepfun.com/step_plan
+STEP_ASR_MODEL=stepaudio-2.5-asr
+# 普通开放平台域名用 https://api.stepfun.com，默认模型 stepaudio-3-asr-max
+
+# 2) 备选：腾讯云一句话识别（把上面 ASR_PROVIDER 改成 tencent 并取消注释）
+# ASR_PROVIDER=tencent
+# TENCENT_SECRET_ID=填腾讯云SecretId
+# TENCENT_SECRET_KEY=填腾讯云SecretKey
+# TENCENT_REGION=ap-guangzhou
+# TENCENT_ASR_ENGINE=16k_zh
 EOF
 chmod 600 /root/logos/shared/.env
 ```
+
+> 语音识别音频在客户端已转成 16k 单声道 WAV，服务器不需要 ffmpeg。**密钥只放这里，不能写入仓库或客户端**；未配置 `ASR_PROVIDER` 时语音入口自动隐藏。StepAudio 走 HTTP+SSE，超时用 `STEP_ASR_TIMEOUT_MS`（默认 30000）。
 
 > 为什么必须是绝对路径：standalone 进程的 cwd 是 `releases/<sha>/`，相对路径 `file:./dev.db` 会解析到发布目录里，创建一个空数据库。旧 checkout 里 `.env` 的 `file:./dev.db` 不能直接复用。
 >

@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import { redirect } from "next/navigation";
 import * as learnService from "@/services/learn";
 import { requireUser } from "@/lib/auth";
+import { isAsrEnabled } from "@/lib/asr/config";
 import LearnClient from "./LearnClient";
 
 export const metadata: Metadata = {
@@ -19,6 +20,7 @@ export default async function LearnPage() {
     <LearnClient
       plan={result.plan ? JSON.parse(JSON.stringify(result.plan)) : null}
       tasks={JSON.parse(JSON.stringify(result.tasks))}
+      asrEnabled={isAsrEnabled()}
     />
   );
 }

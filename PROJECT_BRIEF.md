@@ -35,7 +35,8 @@ npm run dev          # 开发：http://localhost:3000
 npm run build        # 生产构建（本地/CI 用；禁止在 1.6G 生产服务器上执行）
 npm start            # 本地生产运行（默认输出；服务器用 standalone，见 deploy/README.md）
 npm run lint         # ESLint
-npm run test         # Vitest 单测 + 集成测试（73 用例，覆盖率约 85% stmts）
+npm run test         # Vitest 单测 + 集成测试（89 用例，覆盖率约 85% stmts）
+ASR_PROVIDER=mock npm run dev  # 本地语音联调（mock，仅开发环境）
 npm run test:db:reset # 重建 prisma/test.db（精确路径保护）
 npm run db:push      # 同步 schema 到 SQLite
 npm run db:seed      # 从 data/bible*.db 可重复增量导入（跳过已导入）
@@ -48,7 +49,7 @@ npm run feedback:close <id>  # 标记反馈为已处理（闭环工作流）
 
 **Web 生产部署**：由 GitHub Actions 构建并部署（`.github/workflows/deploy.yml`，push `master` 触发；纯文档改动不触发）。CI 在 ubuntu-24.04 上跑 `npm ci → prisma generate → next build`，把 `.next/standalone` 打包上传，服务器只解包到 `/root/logos/releases/<sha>`、切 `current` 软链并 PM2 reload。服务器 1.6G 内存，**禁止在服务器上跑 `npm ci` / `npm run build`**。一次性设置、Secrets、回滚和 schema 变更见 `deploy/README.md`。
 
-依赖要点：`@prisma/client`、`next@15.5.22`、`react@19`、`tailwindcss@4`、`shadcn@4`、`@base-ui/react`（shadcn 底层）、`lucide-react`（图标）、`tw-animate-css`、`@capacitor/{core,cli,android}@6`（APK 壳）。`date-fns` 目前未使用（可清理）。
+依赖要点：`@prisma/client`、`next@15.5.22`、`react@19`、`tailwindcss@4`、`shadcn@4`、`@base-ui/react`（shadcn 底层）、`lucide-react`（图标）、`tw-animate-css`、`@capacitor/{core,cli,android}@6`（APK 壳）、`tencentcloud-sdk-nodejs-asr`（在线语音识别）。`date-fns` 目前未使用（可清理）。
 
 ---
 
@@ -75,6 +76,7 @@ app/
     ├── data/route.ts     GET 导出 / POST 导入 / DELETE 清除
     ├── annotation/route.ts  GET 纲目/注解/串珠
     ├── book/import/route.ts  经文导入
+    ├── asr/route.ts      在线语音识别代理（鉴权/限流/WAV 校验）
     ├── stats/route.ts    统计
     ├── feedback/route.ts 反馈 CRUD
     └── users/route.ts    用户列表
@@ -92,6 +94,8 @@ components/
 services/  card.ts(评分业务: rateCard) checkin.ts learn.ts plan.ts verse.ts
 db/        card.ts checkin.ts feedback.ts note.ts plan.ts session.ts user.ts verse.ts
 lib/       auth.ts(会话/scrypt) fsrs.ts(算法) compare.ts(LCS) dailyverse.ts date.ts import-book.ts prisma.ts utils.ts
+lib/asr/   config.ts(开关) step.ts(阶跃星辰 SSE) tencent.ts(腾讯云) mock.ts(本地联调) wav.ts(16k PCM 校验) hotwords.ts rate-limit.ts
+lib/audio/ recorder.ts(MediaRecorder + 16k WAV 转码)
 types/index.ts            全局类型
 prisma/    schema.prisma seed.ts
 scripts/   create-local-user.ts(本地造号) deploy.ps1 extract-verses.ts(已废弃)
@@ -173,6 +177,7 @@ FSRS 卡状态机：`NEW → LEARNING → REVIEW`，AGAIN 时进入 `RELEARNING`
 - **会话内重学（2026-08-24）**：过不过由客观比对决定——准确率未到 100%（一字不差）或自评 AGAIN → 该节插回队列尾部本会话再背（徽标"重学"，副本带服务端新 state 直接进背诵态），每卡每会话最多重出 2 次防死循环；自评仍写入 FSRS 决定下次复习间隔
 - 填空模式：提交时把填空还原回整节再与原文比对，全部填对才得 100%（否则填空词对整节比对永远到不了 100%）
 - 快捷键：`1-4` 评分，`u` 撤销，`Space` 跳过
+- **语音输入（2026-10-20，可选）**：仅全文模式。录音 → 客户端转 16k 单声道 WAV → `POST /api/asr` → 在线 ASR（阶跃星辰 StepAudio 3 或腾讯云）→ 识别文本填入输入框，用户确认后手动提交；不自动提交。识别失败/未配置回退手输；填空模式不显示语音。服务端限制 ≤60 秒、≤3MB、16k PCM WAV，按用户限流；音频不落盘。
 
 ### 6.3 其他页面
 - **/notes**：笔记列表（出处标题+内容+日期+编辑/删除）+ 新建/编辑 Dialog（书卷/章/节 + 内容）
@@ -196,6 +201,14 @@ FSRS 卡状态机：`NEW → LEARNING → REVIEW`，AGAIN 时进入 `RELEARNING`
 ---
 
 ## 8. 已知问题 / 待办
+
+**2026-10-20 在线语音识别（StepAudio 3 优先；代码完成，生产待配置凭据）**：
+- 新增 `lib/asr/`：provider 适配（阶跃星辰 StepAudio 3 ASR SSE、腾讯云 `SentenceRecognition`、本地 mock）、16k PCM WAV 校验、热词、限流；`app/api/asr` 做鉴权/限流/输入校验。
+- Step 支持普通域名与 Step Plan 两种接入：`STEP_API_BASE=https://api.stepfun.com` 默认 `stepaudio-3-asr-max`，`/step_plan` 前缀默认 `stepaudio-2.5-asr`；可用 `STEP_ASR_MODEL` 覆盖。
+- 客户端 `lib/audio/recorder.ts` 用 MediaRecorder 录音并由 Web Audio API 转 16k 单声道 WAV，服务器不需要 ffmpeg；Step/腾讯都直接支持该格式。
+- 学习页背诵态新增“语音输入”按钮（仅全文模式、服务端已配置时显示）；识别结果只填入输入框，用户确认后提交；失败回退手输。
+- 本地用 `ASR_PROVIDER=mock` 跑通登录 → 上传 WAV → 识别 → 返回经文原文的端到端；Step/腾讯 provider 均按官方文档实现并用单测覆盖（SSE 解析、请求体、错误收敛）。生产未配置 `ASR_PROVIDER`/密钥，语音入口目前隐藏。上线前在 `/root/logos/shared/.env` 选 `step` 或 `tencent` 并填入密钥，再部署；APK 需真机验证麦克风权限。
+- 新增 23 个测试（WAV 校验、热词、限流、provider 选择、mock、Step SSE 解析与 provider、语音按钮渲染），当前共 96 个用例。
 
 **2026-08-10 学习核心改进（对应产品评审三个 P0）**：
 - ~~每日新卡配额失效（versesPerDay 只是每次进入上限）~~ —— **已修复**：Card 增加 `introducedAt`，`services/card.ts#rateCard` 在首次离开 new 态时写入；今日新卡 = `versesPerDay − 今日引入数`；含集成测试（学满后再取为 0、次日重置）
@@ -241,7 +254,7 @@ FSRS 卡状态机：`NEW → LEARNING → REVIEW`，AGAIN 时进入 `RELEARNING`
 - 集成测试：学习队列 14 场景（隔离/排序/上限 50/统一 `now`/每日新卡配额）、`getDueCards` 新卡泄漏、Card DateTime 存储诊断
 - 组件测试（jsdom + @testing-library/react）：`LearnClient` 跨节状态隔离 1 场景（复现上一节输入/比对残留 bug 的回归防护）+ 会话内重学 2 场景（没到 100% 评 GOOD 也重出、连续 AGAIN 3 次后不再重出）
 - 测试库隔离：`prisma/test.db` + `tests/fixtures/setup.ts` 进程级校验 + `reset-test-db.ts` 精确路径保护（拒绝 dev.db）
-- 当前共 **73 个用例**；`npm run test` / `test:coverage`（约 85% stmts）/ `test:db:reset`
+- 当前共 **96 个用例**；`npm run test` / `test:coverage`（约 85% stmts）/ `test:db:reset`
 
 **功能验收基线**（Plan v2 人工验证过，可作为回归清单）：
 1. 无计划：/plan 显示创建表单

@@ -38,6 +38,7 @@ Node.js ≥ 22（`lib/import-book.ts` 依赖 `node:sqlite`；以 `package.json#e
 - 复习队列不得包含 `state = new` 的卡片；复习队列跨全部已学书卷（卡片是用户永久学习资产：换计划、删除计划都不删除卡片；真正重置学习进度只能在设置页"清除数据"）。
 - 新卡仅从当前计划书卷引入，且每日受配额限制：今日新卡数 ≤ `versesPerDay − 今日首次引入数`（`Card.introducedAt` 记录首次离开 `new` 态的时间，重学不重复计数）。
 - 学习页动线（主动回忆）：view 与 recite 阶段均不呈现完整经文原文（含 KJV 对照），仅比对阶段展示原文用于核对；提示（可展开）仅含注释、纲目与串珠，不得含原文。新卡先进 view（仅经节引用 + 提示）再进入背诵态；复习卡（learning/review/relearning）默认直接进入背诵态，背诵态顶部展示经节引用并保留"显示提示"。默写期间不得查看原文。四键评分与快捷键（1-4 / u / Space）不得破坏。`recommendRating` 的 `peeked` 封顶逻辑保留为防御性机制（当前 UI 不触发）。
+- **语音输入（可选，2026-10-20）**：仅全文背诵模式；录音经 `lib/audio/recorder.ts` 转 16k 单声道 WAV → `POST /api/asr` → 在线 ASR（阶跃星辰 StepAudio 3 或腾讯云，由 `ASR_PROVIDER` 选择）→ 识别文本填入输入框，**由用户确认后手动提交，不自动提交**。识别失败/未配置时回退手输；填空模式不提供语音。音频不落盘、不写日志；服务端限制 ≤60 秒/≤3MB、16k 单声道 PCM WAV，并按用户限流。
 - **会话内重学（过不过由客观比对决定）**：LCS 准确率未达 100%（一字不差）或自评 AGAIN 的卡片判定为"没过"，插回学习会话队列尾部、本会话内再次背诵（重出副本带"重学"徽标，直接进背诵态）；每卡每会话最多重出 2 次（`LearnClient` 内 `MAX_REQUEUE_PER_SESSION`）。自评仍写入 FSRS 决定下一次复习间隔。
 
 ## 4. 架构边界
@@ -60,6 +61,7 @@ SQLite (prisma/dev.db)
 - Client Component 只负责交互，不得直接访问 Prisma。
 - 写操作默认路径：`Client → API Route → Service → DB → Prisma`。
 - API Route 必须校验登录态、资源所有权和输入边界。
+- 语音识别：`Client` 录音 → `POST /api/asr`（鉴权/限流/输入校验）→ `lib/asr` provider → 云厂商；密钥只在服务端环境变量，客户端不得直连厂商。
 - DB 层只封装 Prisma 查询，不应包含 UI 或 HTTP 逻辑。
 - 核心业务规则优先放在 Service 或纯函数中，避免在页面和 API 中复制。
 - 日期敏感逻辑使用统一日期工具；`DateTime` 写入 Prisma 前必须转换为有效的 `Date`；测试时区固定为 `Asia/Shanghai`。
@@ -77,6 +79,7 @@ SQLite (prisma/dev.db)
 
 ```bash
 npm run dev           # http://localhost:3000
+ASR_PROVIDER=mock npm run dev  # 本地语音联调（mock 仅开发环境可用）
 npm run build         # 生产构建
 npm start             # 本地生产运行（服务器走 standalone，见 deploy/README.md）
 npm run test          # Vitest 单测 + 集成测试
@@ -111,6 +114,7 @@ npm run feedback:close <id>  # 标记反馈 #id 为已处理（闭环工作流�
 - 生产运维的唯一权威来源为仓库外的 `D:/AIWorkSpace/project/server-ops/server-ops.py`（其 `config.json` 含凭据，不入库）；仓库内 `.codebuddy` 中的旧运维配置不得用于生产。
 - **Web 生产构建/部署由 GitHub Actions 完成**（`.github/workflows/deploy.yml`，push `master` 触发）：CI 构建 `.next/standalone` → 上传服务器 → `releases/<sha>` + `current` 软链 + PM2 reload。**禁止在服务器上跑 `npm ci` / `npm run build`**（1.6G 内存会 OOM）；`aliyun-logos` 已于 2026-10-20 在 server-ops config 设 `deploy_disabled: true`，不得再用 `server-ops.py deploy`（新服务器接入时同样要设）。一次性设置、回滚与 schema 变更见 `deploy/README.md`。
 - 生产数据库 `prisma/dev.db` 与运行时 `.env` 位于发布目录之外（`/root/logos/prisma/dev.db`、`/root/logos/shared/.env`），部署脚本不得触碰；`DATABASE_URL` 必须使用绝对路径。
+- 在线 ASR 凭据只放 `/root/logos/shared/.env`：首选 `ASR_PROVIDER=step` + `STEP_API_KEY`（StepAudio 3 ASR）。Step Plan 用 `STEP_API_BASE=https://api.stepfun.com/step_plan`，未显式设置 `STEP_ASR_MODEL` 时默认 `stepaudio-2.5-asr`；普通域名默认 `stepaudio-3-asr-max`。可用 `STEP_ASR_PATH` / `STEP_ASR_TIMEOUT_MS` 调整。备选 `ASR_PROVIDER=tencent` + `TENCENT_SECRET_ID` / `TENCENT_SECRET_KEY`。密钥不得写入仓库或客户端；未配置时学习页隐藏语音入口。
 - 未经用户明确确认，不得部署、SSH、PM2、推送或操作生产环境。
 - 数据迁移、生产数据库修改必须单独确认并先备份。
 - APK 壳发布包（签名 keystore）属生产凭据：不得入库，不得写入 workflow 明文；需要签名发布时单独规划。

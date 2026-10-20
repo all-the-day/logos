@@ -44,6 +44,7 @@ D:/AIWorkSpace/project/server-ops/config.json      # 服务器配置（含凭据
 | 内部端口 | 3001（3000 被 rike 主站占用） |
 | 数据库 | `/root/logos/prisma/dev.db`（发布目录之外，部署不触碰） |
 | 运行时环境变量 | `/root/logos/shared/.env`；`DATABASE_URL` 必须为绝对路径 |
+| 在线语音识别 | 可选；`ASR_PROVIDER=step` + `STEP_API_KEY`（StepAudio 3，Step Plan 配 `STEP_API_BASE=.../step_plan`），或 `ASR_PROVIDER=tencent` + 腾讯密钥；未配置则学习页隐藏语音入口 |
 | 经文源库 | `/root/logos/shared/data/{bible,bible_kjv}.db`，由 `current/data` 软链引用 |
 | 反向代理 | Caddy：logos.duoban.xyz → 127.0.0.1:3001（Let's Encrypt 自动签） |
 | 访问 URL | https://logos.duoban.xyz |

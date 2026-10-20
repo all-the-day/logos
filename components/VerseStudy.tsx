@@ -1,11 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Mic, Square } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { RATING } from "@/lib/fsrs";
 import { generateFillBlanks } from "@/lib/compare";
 import { cn } from "@/lib/utils";
+import {
+  createRecorder,
+  convertToWav,
+  getRecordingSupport,
+  MAX_RECORD_SECONDS,
+  type Recorder,
+} from "@/lib/audio/recorder";
 import AnnotationPanel from "./AnnotationPanel";
 import VerseNotes from "./VerseNotes";
 import type { DiffSegment } from "@/lib/compare";
@@ -63,6 +71,7 @@ export function VerseReciter({
   setUserInput,
   inputRef,
   onSubmit,
+  asrEnabled = false,
 }: {
   verse: VerseRef;
   fillMode: boolean;
@@ -72,8 +81,143 @@ export function VerseReciter({
   setUserInput: (v: string) => void;
   inputRef: React.RefObject<HTMLTextAreaElement | null>;
   onSubmit: () => void;
+  /** 服务端是否已配置在线语音识别；未配置时不显示语音入口 */
+  asrEnabled?: boolean;
 }) {
   const [showHint, setShowHint] = useState(false);
+  const [voiceState, setVoiceState] = useState<"idle" | "recording" | "transcribing">("idle");
+  const [voiceError, setVoiceError] = useState("");
+  const [recordSeconds, setRecordSeconds] = useState(0);
+  const recorderRef = useRef<Recorder | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      abortRef.current?.abort();
+      recorderRef.current?.cancel();
+      recorderRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (voiceState !== "recording") return;
+    const timer = window.setInterval(() => setRecordSeconds((value) => value + 1), 1000);
+    return () => window.clearInterval(timer);
+  }, [voiceState]);
+
+  const stopVoice = useCallback(async () => {
+    const recorder = recorderRef.current;
+    if (!recorder) return;
+
+    setVoiceState("transcribing");
+    setVoiceError("");
+    try {
+      const recorded = await recorder.stop();
+      const wav = await convertToWav(recorded);
+
+      const form = new FormData();
+      form.append("audio", new File([wav], "recite.wav", { type: "audio/wav" }));
+      form.append("verseId", String(verse.id));
+
+      const controller = new AbortController();
+      abortRef.current = controller;
+      const response = await fetch("/api/asr", {
+        method: "POST",
+        body: form,
+        signal: controller.signal,
+      });
+      const data = (await response.json().catch(() => null)) as { text?: string; error?: string } | null;
+      if (!response.ok) {
+        throw new Error(data?.error || `语音识别失败 (${response.status})`);
+      }
+      if (!mountedRef.current) return;
+      setUserInput(data?.text ?? "");
+      setVoiceState("idle");
+      setRecordSeconds(0);
+      setTimeout(() => inputRef.current?.focus(), 50);
+    } catch (error) {
+      if (!mountedRef.current) return;
+      if (error instanceof DOMException && error.name === "AbortError") return;
+      setVoiceState("idle");
+      setRecordSeconds(0);
+      setVoiceError(error instanceof Error ? error.message : "语音识别失败，请改用手动输入");
+    } finally {
+      recorderRef.current = null;
+      abortRef.current = null;
+    }
+  }, [verse.id, setUserInput, inputRef]);
+
+  useEffect(() => {
+    if (voiceState === "recording" && recordSeconds >= MAX_RECORD_SECONDS) {
+      void stopVoice();
+    }
+  }, [recordSeconds, voiceState, stopVoice]);
+
+  const startVoice = useCallback(async () => {
+    if (!getRecordingSupport()) {
+      setVoiceError("当前浏览器不支持录音，请使用文字输入");
+      return;
+    }
+
+    setVoiceError("");
+    setRecordSeconds(0);
+    const recorder = createRecorder();
+    recorderRef.current = recorder;
+    try {
+      await recorder.start();
+      if (!mountedRef.current) {
+        recorder.cancel();
+        return;
+      }
+      setVoiceState("recording");
+    } catch (error) {
+      recorder.cancel();
+      recorderRef.current = null;
+      if (!mountedRef.current) return;
+      setVoiceError(error instanceof Error ? error.message : "无法开始录音");
+    }
+  }, []);
+
+  const handleVoiceClick = useCallback(() => {
+    if (voiceState === "recording") {
+      void stopVoice();
+    } else if (voiceState === "idle") {
+      void startVoice();
+    }
+  }, [voiceState, startVoice, stopVoice]);
+
+  const voiceControls = asrEnabled && (
+    <div className="space-y-1.5">
+      <div className="flex items-center gap-2">
+        <Button
+          variant={voiceState === "recording" ? "destructive" : "outline"}
+          size="sm"
+          onClick={handleVoiceClick}
+          disabled={voiceState === "transcribing"}
+        >
+          {voiceState === "recording" ? (
+            <><Square className="size-3.5" /> 停止录音</>
+          ) : voiceState === "transcribing" ? (
+            "识别中..."
+          ) : (
+            <><Mic className="size-3.5" /> 语音输入</>
+          )}
+        </Button>
+        {voiceState === "recording" && (
+          <span className="text-xs text-muted-foreground">
+            {recordSeconds}s / {MAX_RECORD_SECONDS}s
+          </span>
+        )}
+        {voiceState === "transcribing" && (
+          <span className="text-xs text-muted-foreground">正在识别，请稍候</span>
+        )}
+      </div>
+      {voiceError && <p className="text-xs text-destructive" role="alert">{voiceError}</p>}
+    </div>
+  );
 
   const header = (
     <div className="flex items-center justify-between gap-2">
@@ -128,7 +272,8 @@ export function VerseReciter({
           value={userInput}
           onChange={(e) => setUserInput(e.target.value)}
         />
-        <Button className="w-full" onClick={onSubmit}>
+        {voiceControls}
+        <Button className="w-full" onClick={onSubmit} disabled={!userInput.trim()}>
           提交 (Enter)
         </Button>
       </CardContent>

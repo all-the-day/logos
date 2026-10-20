@@ -13,6 +13,8 @@ import type { PlanInfo, TaskData } from "@/types";
 interface Props {
   plan: PlanInfo | null;
   tasks: TaskData[];
+  /** 服务端是否配置了在线语音识别 */
+  asrEnabled?: boolean;
 }
 
 type Mode = "view" | "recite" | "result";
@@ -20,7 +22,7 @@ type Mode = "view" | "recite" | "result";
 // 会话内重学（AGAIN 重出）：同一张卡在本会话内最多插回队列尾部几次，防死循环
 const MAX_REQUEUE_PER_SESSION = 2;
 
-export default function LearnClient({ plan, tasks }: Props) {
+export default function LearnClient({ plan, tasks, asrEnabled = false }: Props) {
   const [currentIdx, setCurrentIdx] = useState(0);
   // 新卡先查看再背诵；复习卡默认直接进入背诵态，避免先看原文削弱检索练习
   const [mode, setMode] = useState<Mode>(() =>
@@ -107,6 +109,8 @@ export default function LearnClient({ plan, tasks }: Props) {
   }, [queue, startRecite]);
 
   const handleSubmit = useCallback(() => {
+    // 录音中 Enter 不应提交空内容；全文模式必须有输入才进入比对
+    if (!fillMode && !userInput.trim()) return;
     let finalInput = userInput;
     if (fillMode) {
       // 填空模式：把用户填入的空还原回整节，再与原文比对。
@@ -371,6 +375,7 @@ export default function LearnClient({ plan, tasks }: Props) {
           setUserInput={setUserInput}
           inputRef={inputRef}
           onSubmit={handleSubmit}
+          asrEnabled={asrEnabled}
         />
       )}
 

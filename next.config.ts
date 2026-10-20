@@ -4,6 +4,8 @@ const nextConfig: NextConfig = {
   // 生产构建由 GitHub Actions 完成，服务器只接收 .next/standalone 产物。
   // 本地 npm run build / npm start 保持默认输出；CI 通过 NEXT_STANDALONE=1 开启。
   output: process.env.NEXT_STANDALONE === "1" ? "standalone" : undefined,
+  // 腾讯云 SDK 是 CommonJS 且带动态依赖，交给 Node 运行时加载，避免被 bundler 处理
+  serverExternalPackages: ["tencentcloud-sdk-nodejs-asr"],
   experimental: {
     serverActions: {
       allowedOrigins: ["localhost:3000"],
