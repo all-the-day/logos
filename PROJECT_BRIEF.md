@@ -2,7 +2,7 @@
 
 > 本文件记录项目当前状态（目录、库存、进度、已知问题、下一步）。
 > 长期规则与不变量见 `AGENTS.md`；运维细节见 `docs/OPERATIONS.md`。
-> 最近同步：2026-08-24。**事实以代码与数据库为准，不凭本文推断。**
+> 最近同步：2026-10-20。**事实以代码与数据库为准，不凭本文推断。**
 
 ---
 
@@ -13,7 +13,7 @@ Logos（"太初有道"）是一款**中文圣经背诵学习 APP**，移动端�
 | 项 | 值 |
 |----|-----|
 | 名称 | Logos |
-| 路径 | `d:\coder\aiWorkSpace\logos` |
+| 路径 | `D:\AIWorkSpace\project\logos` |
 | 技术栈 | Next.js 15.5 (App Router) + React 19 + TypeScript + Tailwind v4 + shadcn/ui + Prisma 6 + SQLite |
 | 运行时 | Node.js ≥ 22（`node:sqlite` 依赖）；`package.json#engines` |
 | 版本 | 0.1.0 |
@@ -21,7 +21,7 @@ Logos（"太初有道"）是一款**中文圣经背诵学习 APP**，移动端�
 
 核心玩法：
 - **每日任务** = 复习旧经节 + 学新经节（FSRS 间隔重复）
-- **学习流程**：看经文 → 默写/填空背诵 → LCS 比对评分 → 四键评分（忘记/困难/良好/容易）
+- **学习流程**：主动回忆（view/recite 不显示原文）→ 默写/填空 → LCS 比对评分 → 四键评分（忘记/困难/良好/容易）
 - **签到 → 每日金句** 动线（产品亮点）
 - 附带：学习笔记、数据导入导出、反馈、后台用户管理
 
@@ -32,10 +32,10 @@ Logos（"太初有道"）是一款**中文圣经背诵学习 APP**，移动端�
 ```bash
 npm install
 npm run dev          # 开发：http://localhost:3000
-npm run build        # 生产构建
-npm start            # 生产运行
+npm run build        # 生产构建（本地/CI 用；禁止在 1.6G 生产服务器上执行）
+npm start            # 本地生产运行（默认输出；服务器用 standalone，见 deploy/README.md）
 npm run lint         # ESLint
-npm run test         # Vitest 单测 + 集成测试（56 用例，覆盖率约 85% stmts）
+npm run test         # Vitest 单测 + 集成测试（73 用例，覆盖率约 85% stmts）
 npm run test:db:reset # 重建 prisma/test.db（精确路径保护）
 npm run db:push      # 同步 schema 到 SQLite
 npm run db:seed      # 从 data/bible*.db 可重复增量导入（跳过已导入）
@@ -45,6 +45,8 @@ npm run feedback:close <id>  # 标记反馈为已处理（闭环工作流）
 ```
 
 **Android APK（方案 A：Capacitor 在线壳）**：APK 由 **GitHub Actions** 构建（`.github/workflows/build-apk.yml`，push 到 master 或手动触发，产物为 Actions artifact `logos-apk`）。本地不在 android 目录手工出包。壳配置 `capacitor.config.json`：appId `com.duoban.logos`、appName `太初有道`、`server.url` 指向线上 `https://logos.duoban.xyz`（WebView 加载远程站点）。`www/` 为占位资源（启动等待页 + icon），`android/` 本地生成不入库。改动壳相关文件后 push 即可自动重新出包。
+
+**Web 生产部署**：由 GitHub Actions 构建并部署（`.github/workflows/deploy.yml`，push `master` 触发；纯文档改动不触发）。CI 在 ubuntu-24.04 上跑 `npm ci → prisma generate → next build`，把 `.next/standalone` 打包上传，服务器只解包到 `/root/logos/releases/<sha>`、切 `current` 软链并 PM2 reload。服务器 1.6G 内存，**禁止在服务器上跑 `npm ci` / `npm run build`**。一次性设置、Secrets、回滚和 schema 变更见 `deploy/README.md`。
 
 依赖要点：`@prisma/client`、`next@15.5.22`、`react@19`、`tailwindcss@4`、`shadcn@4`、`@base-ui/react`（shadcn 底层）、`lucide-react`（图标）、`tw-animate-css`、`@capacitor/{core,cli,android}@6`（APK 壳）。`date-fns` 目前未使用（可清理）。
 
@@ -98,7 +100,9 @@ www/       Capacitor 壳占位资源（启动等待页 index.html + icon.png，A
 tools/feedback/  反馈闭环脚本（pull.ts/close.ts/lib.ts/README.md；inbox.md 为生成物不入库）
 capacitor.config.json  APK 壳配置（appId / appName / server.url → 线上站点）
 .github/workflows/build-apk.yml  GitHub Actions 构建 debug APK
-data/      bible.db(恢复本) bible_kjv.db(KJV)  ← 不入 git
+.github/workflows/deploy.yml     GitHub Actions 构建 Web 并部署（push master）
+deploy/    remote-deploy.sh（服务器侧切换/健康检查/保留 5 版）ecosystem.config.js（PM2）README.md（一次性设置/回滚/DB）
+data/      bible.db(恢复本) bible_kjv.db(KJV)  ← 不入 git；服务器上放 shared/data 供 current/data 软链
 ```
 
 > `android/`（Capacitor 原生工程）由 CI `cap add` 生成，本地存在但不入库（`.gitignore` 已忽略）。
@@ -199,6 +203,12 @@ FSRS 卡状态机：`NEW → LEARNING → REVIEW`，AGAIN 时进入 `RELEARNING`
 - ~~复习卡先显示原文削弱检索练习~~ —— **已修复**：复习卡默认直接进入背诵态；查看原文后推荐评分封顶"困难"
 - ~~跨节状态串扰（上一节的输入/比对结果残留到下一节，如显示 1:4 却按 1:2 判 100%）~~ —— **已修复**（`LearnClient`）：任务切换改为原子清空全部单次背诵状态（含章节快捷跳转）；keydown 通过 ref 读取最新处理器，消除旧闭包把 Enter/评分误接到上一节的窗口；评分加防重锁
 
+**2026-10-20 Web 构建外迁 GitHub Actions**：
+- 新增 `.github/workflows/deploy.yml`：push `master`（纯文档改动除外）→ ubuntu-24.04 上 `npm ci → prisma generate → next build` → 打包 `.next/standalone` → scp → 服务器 `releases/<sha>` + `current` 软链 + PM2 reload。
+- 服务器只接收产物，**禁止再执行 `npm ci` / `npm run build`**；`deploy/README.md` 记录一次性目录/Secrets/回滚/schema 变更步骤。
+- 数据库 `/root/logos/prisma/dev.db` 与运行时 `/root/logos/shared/.env` 在发布目录之外；`DATABASE_URL` 必须绝对路径。经文源库放 `/root/logos/shared/data`，由 `current/data` 软链引用。
+- `aliyun-logos` 建议在 server-ops config 设 `deploy_disabled: true`，防止误用旧的一键部署在服务器上构建。
+
 **2026-08-24 反馈闭环（#14 / #13）**：
 - **#14 [BUG] 学习内容缓存过期**：根因是 Next.js 客户端 Router Cache 默认 30 秒内复用已访问动态页面的 RSC 载荷——复习后 30 秒内重进 `/learn` 仍显示旧队列（Plan 页任务摘要同理）。修复：`next.config.ts` 增加 `experimental.staleTimes = { dynamic: 0 }` 全局关闭动态页客户端缓存。
 - **#13 [建议] 结果页看不到自己提交的原文**：`VerseResult` 新增"你的提交"卡（`submitted` prop；全文模式=输入原文，填空模式=填空还原整节），放在"原文"与"比对结果"之间；`LearnClient` 提交时记录 `submitted`，切换任务时随原子清空。
@@ -253,4 +263,5 @@ FSRS 卡状态机：`NEW → LEARNING → REVIEW`，AGAIN 时进入 `RELEARNING`
 
 - `AGENTS.md` — 长期契约、产品不变量、安全红线
 - `docs/OPERATIONS.md` — 部署、PM2、Caddy、服务器差异
-- 旧项目 `d:\coder\aiWorkSpace\bible-memorize` 仅作算法/行为参考（`scripts/extract-verses.ts` 已废弃，导入走 `lib/import-book.ts`）
+- `deploy/README.md` — GitHub Actions 构建部署、一次性设置、回滚、schema 变更
+- 旧项目 `D:\AIWorkSpace\project\bible-memorize` 仅作算法/行为参考（`scripts/extract-verses.ts` 已废弃，导入走 `lib/import-book.ts`）

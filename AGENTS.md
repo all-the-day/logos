@@ -78,7 +78,7 @@ SQLite (prisma/dev.db)
 ```bash
 npm run dev           # http://localhost:3000
 npm run build         # 生产构建
-npm start             # 生产运行
+npm start             # 本地生产运行（服务器走 standalone，见 deploy/README.md）
 npm run test          # Vitest 单测 + 集成测试
 npm run test:watch / test:coverage / test:db:reset
 npm run db:push       # 同步 schema → SQLite
@@ -108,7 +108,9 @@ npm run feedback:close <id>  # 标记反馈 #id 为已处理（闭环工作流�
 - 开工前必须查看 `git status --short`，区分当前任务和既有改动。
 - 不得提交 `prisma/dev.db`、`prisma/test.db*`、`coverage/`、`data/*.db`、`.env*` 或任何凭据。
 - 生产访问凭据不得写入仓库；只能使用经确认的运维工具。
-- 生产运维的唯一权威来源为仓库外的 `D:/coder/aiWorkSpace/server-ops/server-ops.py`（其 `config.json` 含凭据，不入库）；仓库内 `.codebuddy` 中的旧运维配置不得用于生产。
+- 生产运维的唯一权威来源为仓库外的 `D:/AIWorkSpace/project/server-ops/server-ops.py`（其 `config.json` 含凭据，不入库）；仓库内 `.codebuddy` 中的旧运维配置不得用于生产。
+- **Web 生产构建/部署由 GitHub Actions 完成**（`.github/workflows/deploy.yml`，push `master` 触发）：CI 构建 `.next/standalone` → 上传服务器 → `releases/<sha>` + `current` 软链 + PM2 reload。**禁止在服务器上跑 `npm ci` / `npm run build`**（1.6G 内存会 OOM）；`aliyun-logos` 应在 server-ops config 中设 `deploy_disabled: true`，不得再用 `server-ops.py deploy`。一次性设置、回滚与 schema 变更见 `deploy/README.md`。
+- 生产数据库 `prisma/dev.db` 与运行时 `.env` 位于发布目录之外（`/root/logos/prisma/dev.db`、`/root/logos/shared/.env`），部署脚本不得触碰；`DATABASE_URL` 必须使用绝对路径。
 - 未经用户明确确认，不得部署、SSH、PM2、推送或操作生产环境。
 - 数据迁移、生产数据库修改必须单独确认并先备份。
 - APK 壳发布包（签名 keystore）属生产凭据：不得入库，不得写入 workflow 明文；需要签名发布时单独规划。
@@ -161,5 +163,6 @@ npm run feedback:close <id>  # 标记反馈 #id 为已处理（闭环工作流�
 
 - `PROJECT_BRIEF.md` — 当前目录结构、书卷库存、功能进度、已知问题、下一步
 - `docs/OPERATIONS.md` — 部署、PM2、Caddy、服务器差异（无凭据）
+- `deploy/README.md` — GitHub Actions 构建部署、一次性设置、回滚、schema 变更
 - `.codebuddy/skills/server-ops/SKILL.md` — 本地运维 skill 入口
-- 旧项目 `d:\coder\aiWorkSpace\bible-memorize` 仅作为算法和行为参考；经文导入使用 `lib/import-book.ts`，不再使用 `scripts/extract-verses.ts`
+- 旧项目 `D:\AIWorkSpace\project\bible-memorize` 仅作为算法和行为参考；经文导入使用 `lib/import-book.ts`，不再使用 `scripts/extract-verses.ts`

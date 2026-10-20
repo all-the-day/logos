@@ -4,7 +4,7 @@
 > **凭据（密码、私钥等）绝不写入本仓库**；只存放在仓库外的运维工具配置中。
 >
 > 生产运维配置以仓库外
-> `D:/coder/aiWorkSpace/server-ops/server-ops.py`
+> `D:/AIWorkSpace/project/server-ops/server-ops.py`
 > 中的当前配置为唯一权威来源。
 >
 > 若该工具不存在、无法读取或与本文档冲突，必须停止并报告；
@@ -15,8 +15,8 @@
 生产运维的唯一权威来源是仓库外的项目：
 
 ```
-D:/coder/aiWorkSpace/server-ops/server-ops.py   # 主脚本
-D:/coder/aiWorkSpace/server-ops/config.json      # 服务器配置（含凭据，不入库）
+D:/AIWorkSpace/project/server-ops/server-ops.py   # 主脚本
+D:/AIWorkSpace/project/server-ops/config.json      # 服务器配置（含凭据，不入库）
 ```
 
 仓库内 `.codebuddy/skills/server-ops/` 的旧配置不得用于生产。
@@ -39,9 +39,12 @@ D:/coder/aiWorkSpace/server-ops/config.json      # 服务器配置（含凭据�
 | 字段 | 值 |
 |------|-----|
 | 主机 | 101.132.34.193（阿里云） |
-| 应用路径 | /root/logos |
+| 应用路径 | `/root/logos`（`current` 软链 → `releases/<sha>`） |
 | PM2 进程名 | logos |
 | 内部端口 | 3001（3000 被 rike 主站占用） |
+| 数据库 | `/root/logos/prisma/dev.db`（发布目录之外，部署不触碰） |
+| 运行时环境变量 | `/root/logos/shared/.env`；`DATABASE_URL` 必须为绝对路径 |
+| 经文源库 | `/root/logos/shared/data/{bible,bible_kjv}.db`，由 `current/data` 软链引用 |
 | 反向代理 | Caddy：logos.duoban.xyz → 127.0.0.1:3001（Let's Encrypt 自动签） |
 | 访问 URL | https://logos.duoban.xyz |
 | Node | nvm v22.22.3（不在 PATH，需 node_prefix） |
@@ -52,22 +55,23 @@ D:/coder/aiWorkSpace/server-ops/config.json      # 服务器配置（含凭据�
 
 ```bash
 # 状态
-python D:/coder/aiWorkSpace/server-ops/server-ops.py status
+python D:/AIWorkSpace/project/server-ops/server-ops.py status
 
-# 一键部署（git pull → install → prisma push+generate → build → restart → verify）
-python D:/coder/aiWorkSpace/server-ops/server-ops.py deploy
+# Web 部署：push master 触发 GitHub Actions（构建 + 上传 + PM2 reload）
+# 仓库内流程与一次性设置见 deploy/README.md；服务器上禁止 npm ci / next build
+# ⚠️ aliyun-logos 应配置 deploy_disabled=true，不要再使用 server-ops.py deploy
 
 # 日志
-python D:/coder/aiWorkSpace/server-ops/server-ops.py logs 50
+python D:/AIWorkSpace/project/server-ops/server-ops.py logs 50
 
 # 指定服务器（默认 aliyun-logos）
-python D:/coder/aiWorkSpace/server-ops/server-ops.py -s aliyun-logos status
+python D:/AIWorkSpace/project/server-ops/server-ops.py -s aliyun-logos status
 
 # 执行命令（node 不在 PATH，需 node_prefix）
-python D:/coder/aiWorkSpace/server-ops/server-ops.py exec "export PATH=/root/.nvm/versions/node/v22.22.3/bin:\$PATH && <cmd>"
+python D:/AIWorkSpace/project/server-ops/server-ops.py exec "export PATH=/root/.nvm/versions/node/v22.22.3/bin:\$PATH && <cmd>"
 
 # 远端 CodeBuddy CLI
-python D:/coder/aiWorkSpace/server-ops/server-ops.py cli "<prompt>" --save name
+python D:/AIWorkSpace/project/server-ops/server-ops.py cli "<prompt>" --save name
 ```
 
 ## 5. 服务器差异注意
@@ -75,8 +79,8 @@ python D:/coder/aiWorkSpace/server-ops/server-ops.py cli "<prompt>" --save name
 - node 装在 nvm（v22.22.3），pm2 不在 PATH —— 运维脚本已通过 `node_prefix` 处理
 - 应用端口 3001（3000 被 duoban.xyz 主站占用）
 - 有真实域名 → Caddy 自动签 Let's Encrypt，HTTPS / Service Worker 正常
-- 部署脚本含 `prisma db push + generate` 步骤（schema 变更时必需）
-- 服务器仅 1.6G 内存，构建 / 进程资源有限
+- 服务器仅 1.6G 内存，构建 / 进程资源有限；**Web 构建必须在 GitHub Actions 完成，服务器只接收 `.next/standalone` 产物**。不要在服务器上跑 `npm ci` / `npm run build`，否则可能 OOM 拖死整机（rike 2026-09-16 已发生过两次）。
+- 数据库 schema 变更不会随部署自动执行：先备份 `prisma/dev.db`，再单独确认并手动 `prisma db push`（见 `deploy/README.md`）。
 
 ## 6. 操作纪律
 

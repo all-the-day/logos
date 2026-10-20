@@ -1,0 +1,95 @@
+name: Deploy
+
+# 构建在 GitHub Actions 上完成，生产服务器只接收 .next/standalone 产物。
+# 服务器只有 1.6G 内存，禁止在服务器上跑 npm ci / npm run build（会 OOM）。
+on:
+  push:
+    branches: [master]
+    paths-ignore:
+      - "**.md"
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04 # 与生产服务器同为 openssl 3.0.x，Prisma engine 平台一致
+    # 构建期占位值：CI 没有 .env，而 PrismaClient 构造 / 预渲染需要 DATABASE_URL 存在。
+    # 运行时使用服务器上的 /root/logos/shared/.env。
+    env:
+      DATABASE_URL: file:/tmp/build-placeholder.db
+      NEXT_STANDALONE: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: 安装依赖
+        run: npm ci
+
+      - name: 生成 Prisma Client
+        run: npx prisma generate
+
+      - name: 构建（next build，standalone 输出）
+        run: npm run build
+
+      - name: 组装产物
+        run: |
+          cp -r .next/static .next/standalone/.next/static
+          rm -rf .next/standalone/public
+          cp -r public .next/standalone/public
+          # data/*.db 不入库，CI 里不存在；运行时由服务器 shared/data 软链提供
+          rm -rf .next/standalone/data
+          mkdir -p .next/standalone/deploy
+          cp deploy/remote-deploy.sh deploy/ecosystem.config.js .next/standalone/deploy/
+          # standalone 里可能带上本地 .env，以及 Prisma 引擎下载残留的 .tmp 大文件
+          rm -f .next/standalone/.env .next/standalone/.env.local
+          if [ -d .next/standalone/node_modules/.prisma ]; then
+            find .next/standalone/node_modules/.prisma -name '*.tmp*' -delete
+          fi
+          tar -czf logos-release.tar.gz -C .next/standalone .
+          du -sh logos-release.tar.gz
+
+      - name: 确保服务器目录存在
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT || '22' }}
+          script: mkdir -p /root/logos/incoming /root/logos/releases /root/logos/shared
+
+      - name: 上传产物到服务器
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT || '22' }}
+          source: logos-release.tar.gz
+          target: /root/logos/incoming
+
+      - name: 远程部署
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT || '22' }}
+          script_stop: true
+          script: |
+            SHA=${{ github.sha }}
+            BASE=/root/logos
+            REL=$BASE/releases/$SHA
+            mkdir -p $BASE/incoming $BASE/releases
+            rm -rf $REL && mkdir -p $REL
+            tar -xzf $BASE/incoming/logos-release.tar.gz -C $REL
+            bash $REL/deploy/remote-deploy.sh $SHA
