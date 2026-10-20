@@ -1,8 +1,20 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it } from "vitest";
-import { cleanup, render, screen, fireEvent } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { cleanup, render, screen, fireEvent, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom/vitest";
+import React from "react";
 import { VerseReciter } from "@/components/VerseStudy";
+
+vi.mock("@/lib/audio/recorder", () => ({
+  MAX_RECORD_SECONDS: 60,
+  getRecordingSupport: () => true,
+  createRecorder: () => ({
+    start: async () => {},
+    stop: async () => new Blob(["raw"], { type: "audio/webm" }),
+    cancel: () => {},
+  }),
+  convertToWav: async () => new Blob(["wav"], { type: "audio/wav" }),
+}));
 
 afterEach(cleanup);
 
@@ -34,25 +46,30 @@ function renderReciter(options?: { asrEnabled?: boolean; fillMode?: boolean }) {
 }
 
 describe("VerseReciter 语音入口", () => {
-  it("asrEnabled 时显示长按语音按钮，空输入时禁用提交", () => {
+  it("asrEnabled 时默认展示“按住 说话”大区域，而不是小按钮", () => {
     renderReciter({ asrEnabled: true });
-    expect(screen.getByRole("button", { name: /长按语音输入/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /提交/ })).toBeDisabled();
+    const talkArea = screen.getByRole("button", { name: "按住 说话" });
+    expect(talkArea).toBeInTheDocument();
+    expect(talkArea.className).toContain("min-h-32");
   });
 
-  it("asrEnabled=false 时不显示语音按钮", () => {
+  it("asrEnabled=false 时展示文本框，不显示语音区域", () => {
     renderReciter({ asrEnabled: false });
-    expect(screen.queryByRole("button", { name: /长按语音输入/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "按住 说话" })).not.toBeInTheDocument();
+    expect(screen.getByPlaceholderText("在此输入经文...")).toBeInTheDocument();
   });
 
-  it("不支持录音的环境长按时给出回退提示", async () => {
+  it("按住后区域变为“松开 结束”并显示计时", async () => {
     renderReciter({ asrEnabled: true });
-    fireEvent.touchStart(screen.getByRole("button", { name: /长按语音输入/ }));
-    expect(screen.getByRole("alert")).toHaveTextContent("不支持录音");
+    fireEvent.touchStart(screen.getByRole("button", { name: "按住 说话" }));
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "松开 结束" })).toBeInTheDocument()
+    );
+    expect(screen.getByText(/0s \/ 60s/)).toBeInTheDocument();
   });
 
-  it("填空模式不显示语音按钮", () => {
+  it("填空模式不显示语音区域", () => {
     renderReciter({ asrEnabled: true, fillMode: true });
-    expect(screen.queryByRole("button", { name: /长按语音输入/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "按住 说话" })).not.toBeInTheDocument();
   });
 });

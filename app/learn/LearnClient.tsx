@@ -38,6 +38,8 @@ export default function LearnClient({ plan, tasks, asrEnabled = false }: Props) 
   const [undoAvailable, setUndoAvailable] = useState(false);
   // 语音录音对象 URL 提升到这里：“返回修改”后组件卸载仍能播放
   const [recordingUrl, setRecordingUrl] = useState("");
+  // 语音录音/识别进行中：屏蔽 Enter 与提交，避免误触
+  const [voiceBusy, setVoiceBusy] = useState(false);
   // 会话内重出队列：AGAIN 评分的卡插到队列尾部，本会话内再次背诵
   const [requeued, setRequeued] = useState<TaskData[]>([]);
   const requeueCounts = useRef(new Map<number, number>());
@@ -104,6 +106,8 @@ export default function LearnClient({ plan, tasks, asrEnabled = false }: Props) 
   }, [queue, startRecite]);
 
   const handleSubmit = useCallback(() => {
+    // 语音录音/识别进行中不允许提交，避免误触
+    if (voiceBusy) return;
     // 语音只是输入方式：识别文本填进输入框后，直接走既有文本比对，不另设门槛
     if (!fillMode && !userInput.trim()) return;
     let finalInput = userInput;
@@ -130,7 +134,7 @@ export default function LearnClient({ plan, tasks, asrEnabled = false }: Props) 
     setAccuracy(result.accuracy);
     setSubmitted(finalInput);
     setMode("result");
-  }, [userInput, fillInputs, fillMode, task, isPassage]);
+  }, [userInput, fillInputs, fillMode, task, isPassage, voiceBusy]);
 
   /** 移除该卡在此前会话的重出副本，但保留当前正在展示的那一条（避免队列收缩导致 currentIdx 越界） */
   const pruneRequeued = useCallback(
@@ -283,18 +287,25 @@ export default function LearnClient({ plan, tasks, asrEnabled = false }: Props) 
   // 避免切换任务后的一小段窗口内，旧监听器（闭包了上一节 task/输入）把 Enter 或评分误接到上一节，
   // 导致"页面显示 1:4、比对/评分却用了 1:2"的跨节串扰。
   const latest = useRef({
-    mode, ratingDone, undoAvailable,
+    mode, ratingDone, undoAvailable, voiceBusy,
     submit: handleSubmit, rate: handleRate, next: handleNext, undo: handleUndo,
   });
   useEffect(() => {
     latest.current = {
-      mode, ratingDone, undoAvailable,
+      mode, ratingDone, undoAvailable, voiceBusy,
       submit: handleSubmit, rate: handleRate, next: handleNext, undo: handleUndo,
     };
   });
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       const l = latest.current;
+      // 语音录音/识别期间屏蔽所有学习快捷键，避免误触
+      if (l.voiceBusy) {
+        if (e.key === "Enter" || e.key === " " || e.key === "Spacebar") {
+          e.preventDefault();
+        }
+        return;
+      }
       if (l.mode === "recite" && e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
         l.submit();
@@ -414,6 +425,7 @@ export default function LearnClient({ plan, tasks, asrEnabled = false }: Props) 
           asrEnabled={asrEnabled}
           recordingUrl={recordingUrl}
           setRecordingUrl={setRecordingUrl}
+          onVoiceBusyChange={setVoiceBusy}
         />
       )}
 

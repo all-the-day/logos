@@ -14,7 +14,7 @@ vi.mock("next/link", () => ({
     React.createElement("a", props, children),
 }));
 
-// 录音与转码全 mock：测试只关心"识别文本填入 → 可直接提交走既有比对"
+// 录音与转码全 mock：测试只关心“按住大区域说话 → 松手识别 → 直接比对”
 vi.mock("@/lib/audio/recorder", () => ({
   MAX_RECORD_SECONDS: 60,
   getRecordingSupport: () => true,
@@ -75,7 +75,7 @@ describe("语音输入作为纯输入方式", () => {
     URL.revokeObjectURL = vi.fn() as typeof URL.revokeObjectURL;
   });
 
-  it("长按录音、松手识别：文本直接可提交，不设勾选门槛，仍提供录音回放", async () => {
+  it("默认展示微信式“按住 说话”大区域；按住变“松开 结束”，松手识别后回文字态可提交", async () => {
     const user = userEvent.setup();
     const tasks: TaskData[] = [
       makeTask({ id: 101, verse: 1, content: "测试经文内容", cardState: "review" }),
@@ -83,20 +83,25 @@ describe("语音输入作为纯输入方式", () => {
 
     render(<LearnClient plan={plan} tasks={tasks} asrEnabled />);
 
-    // 移动端长按交互：touchstart 开始（等 recorder 真正起来），touchend 停止并识别
-    fireEvent.touchStart(screen.getByRole("button", { name: /长按语音输入/ }));
-    await waitFor(() =>
-      expect(screen.getByRole("button", { name: /松开结束/ })).toBeInTheDocument()
-    );
-    fireEvent.touchEnd(screen.getByRole("button", { name: /松开结束/ }));
+    // 默认就是语音大区域，不再有难按的小按钮
+    const talkArea = screen.getByRole("button", { name: "按住 说话" });
+    expect(talkArea).toBeInTheDocument();
+    expect(talkArea.className).toContain("min-h-32");
 
+    fireEvent.touchStart(talkArea);
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: /松开 结束/ })).toBeInTheDocument()
+    );
+    fireEvent.touchEnd(screen.getByRole("button", { name: /松开 结束/ }));
+
+    // 识别完成自动回到文字态，文本已填入
     await waitFor(() =>
       expect((screen.getByPlaceholderText("在此输入经文...") as HTMLTextAreaElement).value).toBe(
         "测试经文内容"
       )
     );
 
-    // 识别完成：有可选回放，但提交按钮直接可用，没有"已核对"勾选
+    // 有可选录音回放、没有“已核对”勾选，提交直接可用
     expect(screen.getByText(/播放我的录音/)).toBeInTheDocument();
     expect(screen.queryByLabelText(/播放录音并核对/)).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /提交/ })).toBeEnabled();
@@ -107,20 +112,53 @@ describe("语音输入作为纯输入方式", () => {
     expect(await screen.findByText(/准确率 100%/)).toBeInTheDocument();
   });
 
-  it("长按期间按钮变为“松开结束”，且按 Enter 不会误提交", async () => {
+  it("按住说话期间按 Enter/Space 不会误提交", async () => {
     const user = userEvent.setup();
     const tasks: TaskData[] = [
       makeTask({ id: 101, verse: 1, content: "测试经文内容", cardState: "review" }),
     ];
 
     render(<LearnClient plan={plan} tasks={tasks} asrEnabled />);
-    fireEvent.touchStart(screen.getByRole("button", { name: /长按语音输入/ }));
+    fireEvent.touchStart(screen.getByRole("button", { name: "按住 说话" }));
     await waitFor(() =>
-      expect(screen.getByRole("button", { name: /松开结束/ })).toBeInTheDocument()
+      expect(screen.getByRole("button", { name: /松开 结束/ })).toBeInTheDocument()
     );
 
-    screen.getByPlaceholderText("在此输入经文...").focus();
-    await user.keyboard("{Enter}");
+    fireEvent.keyDown(window, { key: "Enter" });
+    fireEvent.keyDown(window, { key: " " });
     expect(screen.queryByText(/准确率/)).not.toBeInTheDocument();
+    void user;
+  });
+
+  it("可以切回文字输入，也能再切回语音", async () => {
+    const user = userEvent.setup();
+    const tasks: TaskData[] = [
+      makeTask({ id: 101, verse: 1, content: "测试经文内容", cardState: "review" }),
+    ];
+
+    render(<LearnClient plan={plan} tasks={tasks} asrEnabled />);
+    await user.click(screen.getByRole("button", { name: /文字输入/ }));
+    expect(screen.getByPlaceholderText("在此输入经文...")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /语音输入/ }));
+    expect(screen.getByRole("button", { name: "按住 说话" })).toBeInTheDocument();
+  });
+
+  it("不支持录音的环境长按时给出回退提示", async () => {
+    // 单独用例：把 recorder mock 成“不支持录音”
+    vi.resetModules();
+    vi.doMock("@/lib/audio/recorder", () => ({
+      MAX_RECORD_SECONDS: 60,
+      getRecordingSupport: () => false,
+      createRecorder: () => ({ start: async () => {}, stop: async () => new Blob([]), cancel: () => {} }),
+      convertToWav: async () => new Blob([]),
+    }));
+    const { default: LearnClientNoSupport } = await import("@/app/learn/LearnClient");
+    const tasks: TaskData[] = [
+      makeTask({ id: 101, verse: 1, content: "测试经文内容", cardState: "review" }),
+    ];
+    render(<LearnClientNoSupport plan={plan} tasks={tasks} asrEnabled />);
+    fireEvent.touchStart(screen.getByRole("button", { name: "按住 说话" }));
+    expect(screen.getByRole("alert")).toHaveTextContent("不支持录音");
   });
 });

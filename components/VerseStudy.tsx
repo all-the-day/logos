@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Mic, Square } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { RATING } from "@/lib/fsrs";
@@ -67,6 +66,7 @@ export function VerseReciter({
   asrEnabled = false,
   recordingUrl,
   setRecordingUrl,
+  onVoiceBusyChange,
 }: {
   verse: VerseRef;
   fillMode: boolean;
@@ -78,18 +78,25 @@ export function VerseReciter({
   onSubmit: () => void;
   /** 服务端是否已配置在线语音识别；未配置时不显示语音入口 */
   asrEnabled?: boolean;
-  /** 录音对象 URL 由 LearnClient 持有，供“返回修改”后仍能播放 */
+  /** 录音对象 URL 由 LearnClient 持有，供"返回修改"后仍能播放 */
   recordingUrl: string;
   setRecordingUrl: (url: string) => void;
+  /** 录音/识别进行中通知父组件，用于屏蔽 Enter 误提交 */
+  onVoiceBusyChange?: (busy: boolean) => void;
 }) {
   const [voiceState, setVoiceState] = useState<"idle" | "recording" | "transcribing">("idle");
   const [voiceError, setVoiceError] = useState("");
   const [recordSeconds, setRecordSeconds] = useState(0);
+  // 语音态默认展示微信式"按住 说话"大区域；文字态展示文本框
+  const [inputMode, setInputMode] = useState<"voice" | "text">(asrEnabled ? "voice" : "text");
   const recorderRef = useRef<Recorder | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const mountedRef = useRef(true);
   // 移动端长按：手指可能在 recorder.start() 完成前就松开，用这个标记兜底取消
   const releasedWhileStartingRef = useRef(false);
+  // 上滑取消：记录按下时的 Y 坐标与是否已触发取消
+  const touchStartYRef = useRef(0);
+  const cancelRequestedRef = useRef(false);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -100,6 +107,15 @@ export function VerseReciter({
       recorderRef.current = null;
     };
   }, []);
+
+  // 语音忙碌状态上报父组件：Enter 快捷键与提交按钮共用
+  useEffect(() => {
+    onVoiceBusyChange?.(voiceState !== "idle");
+  }, [voiceState, onVoiceBusyChange]);
+
+  useEffect(() => {
+    onVoiceBusyChange?.(false);
+  }, [onVoiceBusyChange]);
 
   useEffect(() => {
     if (voiceState !== "recording") return;
@@ -137,6 +153,8 @@ export function VerseReciter({
       setRecordingUrl(URL.createObjectURL(recorded));
       setVoiceState("idle");
       setRecordSeconds(0);
+      // 识别完成回到文字态，方便核对/修改后再提交
+      setInputMode("text");
       setTimeout(() => inputRef.current?.focus(), 50);
     } catch (error) {
       if (!mountedRef.current) return;
@@ -174,6 +192,7 @@ export function VerseReciter({
     setVoiceError("");
     setRecordSeconds(0);
     releasedWhileStartingRef.current = false;
+    cancelRequestedRef.current = false;
     const recorder = createRecorder();
     recorderRef.current = recorder;
     try {
@@ -201,14 +220,32 @@ export function VerseReciter({
 
   const handleVoiceStart = useCallback(
     (event: React.TouchEvent) => {
-      // 长按录音：阻止默认行为，避免触发滚动/文本选择/系统菜单
-      event.preventDefault();
-      if (voiceState === "idle") void startVoice();
+      if (voiceState !== "idle") return;
+      touchStartYRef.current = event.touches[0]?.clientY ?? 0;
+      cancelRequestedRef.current = false;
+      void startVoice();
     },
     [voiceState, startVoice]
   );
 
+  // 上滑取消：按住后向上滑动超过 80px 视为放弃这次录音
+  const handleVoiceMove = useCallback(
+    (event: React.TouchEvent) => {
+      if (voiceState !== "recording" || cancelRequestedRef.current) return;
+      const y = event.touches[0]?.clientY ?? 0;
+      if (touchStartYRef.current - y > 80) {
+        cancelRequestedRef.current = true;
+        cancelVoice();
+      }
+    },
+    [voiceState, cancelVoice]
+  );
+
   const handleVoiceEnd = useCallback(() => {
+    if (cancelRequestedRef.current) {
+      cancelRequestedRef.current = false;
+      return;
+    }
     if (voiceState === "recording") {
       void stopVoice();
     } else if (voiceState === "idle") {
@@ -217,46 +254,80 @@ export function VerseReciter({
     }
   }, [voiceState, stopVoice]);
 
-  const voiceControls = asrEnabled && (
+  const voiceArea = asrEnabled && inputMode === "voice" && (
     <div className="space-y-1.5">
-      <div className="flex items-center gap-2">
-        <Button
-          variant={voiceState === "recording" ? "destructive" : "outline"}
-          size="sm"
-          type="button"
-          className="touch-none select-none"
-          disabled={voiceState === "transcribing"}
-          onTouchStart={handleVoiceStart}
-          onTouchEnd={handleVoiceEnd}
-          onTouchCancel={cancelVoice}
-          onContextMenu={(event) => event.preventDefault()}
-        >
-          {voiceState === "recording" ? (
-            <><Square className="size-3.5" /> 松开结束</>
-          ) : voiceState === "transcribing" ? (
-            "识别中..."
-          ) : (
-            <><Mic className="size-3.5" /> 长按语音输入</>
-          )}
-        </Button>
-        {voiceState === "recording" && (
-          <span className="text-xs text-muted-foreground">
-            {recordSeconds}s / {MAX_RECORD_SECONDS}s
-          </span>
+      <div
+        role="button"
+        tabIndex={0}
+        aria-label={
+          voiceState === "recording"
+            ? "松开 结束"
+            : voiceState === "transcribing"
+              ? "正在识别"
+              : "按住 说话"
+        }
+        className={cn(
+          "flex w-full min-h-32 flex-col items-center justify-center gap-1 rounded-xl border text-center touch-none select-none",
+          voiceState === "recording"
+            ? "border-destructive bg-destructive text-white"
+            : voiceState === "transcribing"
+              ? "border-border bg-muted text-muted-foreground"
+              : "border-dashed border-primary/60 bg-secondary text-foreground"
         )}
-        {voiceState === "transcribing" && (
-          <span className="text-xs text-muted-foreground">正在识别，请稍候</span>
+        onTouchStart={handleVoiceStart}
+        onTouchMove={handleVoiceMove}
+        onTouchEnd={handleVoiceEnd}
+        onTouchCancel={cancelVoice}
+        onContextMenu={(event) => event.preventDefault()}
+      >
+        {voiceState === "recording" ? (
+          <>
+            <p className="text-xl font-medium">松开 结束</p>
+            <p className="text-sm">
+              {recordSeconds}s / {MAX_RECORD_SECONDS}s · 上滑取消
+            </p>
+          </>
+        ) : voiceState === "transcribing" ? (
+          <p className="text-xl font-medium">正在识别…</p>
+        ) : (
+          <>
+            <p className="text-xl font-medium">按住 说话</p>
+            <p className="text-xs text-muted-foreground">松手自动识别，可修改后提交</p>
+          </>
         )}
       </div>
       {voiceError && <p className="text-xs text-destructive" role="alert">{voiceError}</p>}
-      {recordingUrl && (
-        <div className="space-y-1.5">
-          <audio controls src={recordingUrl} className="w-full" preload="none" />
-          <p className="text-xs text-muted-foreground">
-            播放我的录音（可选核对）：ASR 可能有谐音字或自动纠错，漏背以比对结果为准。
-          </p>
-        </div>
-      )}
+    </div>
+  );
+
+  const textArea = (
+    <textarea
+      ref={inputRef}
+      className="w-full min-h-32 px-3 py-2 border rounded-md bg-background text-lg resize-none"
+      placeholder="在此输入经文..."
+      value={userInput}
+      onChange={(e) => setUserInput(e.target.value)}
+    />
+  );
+
+  const recordingPlayback = recordingUrl && (
+    <div className="space-y-1.5">
+      <audio controls src={recordingUrl} className="w-full" preload="none" />
+      <p className="text-xs text-muted-foreground">
+        播放我的录音（可选核对）：ASR 可能有谐音字或自动纠错，漏背以比对结果为准。
+      </p>
+    </div>
+  );
+
+  const modeToggle = asrEnabled && (
+    <div className="flex justify-end">
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => setInputMode(inputMode === "voice" ? "text" : "voice")}
+      >
+        {inputMode === "voice" ? "文字输入" : "语音输入"}
+      </Button>
     </div>
   );
 
@@ -279,9 +350,9 @@ export function VerseReciter({
                 className="w-full px-3 py-2 border rounded-md bg-background"
                 placeholder={`填空 ${i + 1}`}
                 value={fillInputs[i] || ""}
-                onChange={(e) => {
+                onChange={(event) => {
                   const next = [...fillInputs];
-                  next[i] = e.target.value;
+                  next[i] = event.target.value;
                   setFillInputs(next);
                 }}
               />
@@ -299,21 +370,9 @@ export function VerseReciter({
     <Card>
       <CardContent className="pt-6 space-y-4">
         {header}
-        <textarea
-          ref={inputRef}
-          className="w-full min-h-32 px-3 py-2 border rounded-md bg-background text-lg resize-none"
-          placeholder="在此输入经文..."
-          value={userInput}
-          onChange={(e) => setUserInput(e.target.value)}
-          onKeyDown={(event) => {
-            // 长按录音/识别期间屏蔽 Enter，避免误提交
-            if (voiceState !== "idle" && event.key === "Enter") {
-              event.preventDefault();
-              event.stopPropagation();
-            }
-          }}
-        />
-        {voiceControls}
+        {modeToggle}
+        {asrEnabled && inputMode === "voice" ? voiceArea : textArea}
+        {asrEnabled && inputMode === "text" && recordingPlayback}
         <Button className="w-full" onClick={onSubmit} disabled={!userInput.trim()}>
           提交 (Enter)
         </Button>
