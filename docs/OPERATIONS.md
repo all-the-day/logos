@@ -59,7 +59,7 @@ python D:/AIWorkSpace/project/server-ops/server-ops.py status
 
 # Web 部署：push master 触发 GitHub Actions（构建 + 上传 + PM2 reload）
 # 仓库内流程与一次性设置见 deploy/README.md；服务器上禁止 npm ci / next build
-# ⚠️ aliyun-logos 应配置 deploy_disabled=true，不要再使用 server-ops.py deploy
+# ✅ aliyun-logos 已配置 deploy_disabled=true（2026-10-20），不要再使用 server-ops.py deploy
 
 # 日志
 python D:/AIWorkSpace/project/server-ops/server-ops.py logs 50

@@ -100,7 +100,7 @@ curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:3001/login   # 应为 
 curl -s -o /dev/null -w '%{http_code}\n' https://logos.duoban.xyz/login
 ```
 
-9. **切换完成后禁用旧部署入口**（仓库外的 `server-ops` 配置）：
+9. **禁用旧部署入口**（仓库外的 `server-ops` 配置；aliyun-logos 已于 2026-10-20 配置）：
 
 在 `D:/AIWorkSpace/project/server-ops/config.json` 的 `aliyun-logos` 下增加：
 

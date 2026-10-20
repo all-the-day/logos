@@ -203,11 +203,12 @@ FSRS 卡状态机：`NEW → LEARNING → REVIEW`，AGAIN 时进入 `RELEARNING`
 - ~~复习卡先显示原文削弱检索练习~~ —— **已修复**：复习卡默认直接进入背诵态；查看原文后推荐评分封顶"困难"
 - ~~跨节状态串扰（上一节的输入/比对结果残留到下一节，如显示 1:4 却按 1:2 判 100%）~~ —— **已修复**（`LearnClient`）：任务切换改为原子清空全部单次背诵状态（含章节快捷跳转）；keydown 通过 ref 读取最新处理器，消除旧闭包把 Enter/评分误接到上一节的窗口；评分加防重锁
 
-**2026-10-20 Web 构建外迁 GitHub Actions**：
+**2026-10-20 Web 构建外迁 GitHub Actions（已完成）**：
 - 新增 `.github/workflows/deploy.yml`：push `master`（纯文档改动除外）→ ubuntu-24.04 上 `npm ci → prisma generate → next build` → 打包 `.next/standalone` → scp → 服务器 `releases/<sha>` + `current` 软链 + PM2 reload。
-- 服务器只接收产物，**禁止再执行 `npm ci` / `npm run build`**；`deploy/README.md` 记录一次性目录/Secrets/回滚/schema 变更步骤。
+- 首次部署 `2ed26d2` 已上线：`/root/logos/current -> releases/2ed26d2...`，PM2 进程改为 `current/server.js`（端口 3001），本地与公网 `/login` 均 200；数据库计数与部署前一致、完整性 `ok`；`/api/book/import` 通过 `current/data -> shared/data` 正常返回 66 卷（8 卷已导入）。
+- 服务器只接收产物，**禁止再执行 `npm ci` / `npm run build`**；`deploy/README.md` 记录一次性目录/Secrets/回滚/schema 变更步骤。首次部署脚本会自动删除旧的 `npm start` PM2 条目，后续部署走 `startOrReload`。
 - 数据库 `/root/logos/prisma/dev.db` 与运行时 `/root/logos/shared/.env` 在发布目录之外；`DATABASE_URL` 必须绝对路径。经文源库放 `/root/logos/shared/data`，由 `current/data` 软链引用。
-- `aliyun-logos` 建议在 server-ops config 设 `deploy_disabled: true`，防止误用旧的一键部署在服务器上构建。
+- `aliyun-logos` 已在 server-ops config 设 `deploy_disabled: true`，旧的一键部署被拦截。
 
 **2026-08-24 反馈闭环（#14 / #13）**：
 - **#14 [BUG] 学习内容缓存过期**：根因是 Next.js 客户端 Router Cache 默认 30 秒内复用已访问动态页面的 RSC 载荷——复习后 30 秒内重进 `/learn` 仍显示旧队列（Plan 页任务摘要同理）。修复：`next.config.ts` 增加 `experimental.staleTimes = { dynamic: 0 }` 全局关闭动态页客户端缓存。

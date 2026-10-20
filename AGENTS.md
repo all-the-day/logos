@@ -109,7 +109,7 @@ npm run feedback:close <id>  # 标记反馈 #id 为已处理（闭环工作流�
 - 不得提交 `prisma/dev.db`、`prisma/test.db*`、`coverage/`、`data/*.db`、`.env*` 或任何凭据。
 - 生产访问凭据不得写入仓库；只能使用经确认的运维工具。
 - 生产运维的唯一权威来源为仓库外的 `D:/AIWorkSpace/project/server-ops/server-ops.py`（其 `config.json` 含凭据，不入库）；仓库内 `.codebuddy` 中的旧运维配置不得用于生产。
-- **Web 生产构建/部署由 GitHub Actions 完成**（`.github/workflows/deploy.yml`，push `master` 触发）：CI 构建 `.next/standalone` → 上传服务器 → `releases/<sha>` + `current` 软链 + PM2 reload。**禁止在服务器上跑 `npm ci` / `npm run build`**（1.6G 内存会 OOM）；`aliyun-logos` 应在 server-ops config 中设 `deploy_disabled: true`，不得再用 `server-ops.py deploy`。一次性设置、回滚与 schema 变更见 `deploy/README.md`。
+- **Web 生产构建/部署由 GitHub Actions 完成**（`.github/workflows/deploy.yml`，push `master` 触发）：CI 构建 `.next/standalone` → 上传服务器 → `releases/<sha>` + `current` 软链 + PM2 reload。**禁止在服务器上跑 `npm ci` / `npm run build`**（1.6G 内存会 OOM）；`aliyun-logos` 已于 2026-10-20 在 server-ops config 设 `deploy_disabled: true`，不得再用 `server-ops.py deploy`（新服务器接入时同样要设）。一次性设置、回滚与 schema 变更见 `deploy/README.md`。
 - 生产数据库 `prisma/dev.db` 与运行时 `.env` 位于发布目录之外（`/root/logos/prisma/dev.db`、`/root/logos/shared/.env`），部署脚本不得触碰；`DATABASE_URL` 必须使用绝对路径。
 - 未经用户明确确认，不得部署、SSH、PM2、推送或操作生产环境。
 - 数据迁移、生产数据库修改必须单独确认并先备份。
