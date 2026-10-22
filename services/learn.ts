@@ -93,8 +93,9 @@ export function toTask(card: {
 
 /**
  * 把同章且节号连续的任务按 size 分组；节号断开处断组，剩余不足 size 的也成一组。
- * 新卡/已学状态变化处同样断组：自由练习的范围可能混合两种状态，
- * 混在一组会让从未学过的经节跳过"先查看再背诵"直接默背。
+ * 不按卡片状态分组：自由练习的范围可能混合新卡与已学经节，按状态断组会让
+ * 用户设置的"每组 N 节"缩水；混合组由 toPassageTask 打 hasNew 标记，
+ * 在客户端整组先查看再背诵。
  */
 function chunkPassages(tasks: TaskData[], size: number): TaskData[][] {
   const sorted = [...tasks].sort(
@@ -114,8 +115,7 @@ function chunkPassages(tasks: TaskData[], size: number): TaskData[][] {
       prev !== null &&
       prev.bookId === task.bookId &&
       prev.chapter === task.chapter &&
-      prev.verse + 1 === task.verse &&
-      (prev.cardState === "new") === (task.cardState === "new");
+      prev.verse + 1 === task.verse;
     if (current.length >= size || (current.length > 0 && !contiguous)) {
       flush();
     }
@@ -154,6 +154,8 @@ function toPassageTask(group: TaskData[]): TaskData {
     })),
     cardId: firstVerse.cardId,
     cardState: verses.every((v) => v.cardState === "new") ? "new" : "review",
+    // 组内是否含未学经节：混合组需要整组先查看再背诵（不泄露原文）
+    hasNew: verses.some((v) => v.cardState === "new"),
   };
 }
 

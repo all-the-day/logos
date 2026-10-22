@@ -35,7 +35,7 @@ npm run dev          # 开发：http://localhost:3000
 npm run build        # 生产构建（本地/CI 用；禁止在 1.6G 生产服务器上执行）
 npm start            # 本地生产运行（默认输出；服务器用 standalone，见 deploy/README.md）
 npm run lint         # ESLint
-npm run test         # Vitest 单测 + 集成测试（128 用例，覆盖率约 85% stmts）
+npm run test         # Vitest 单测 + 集成测试（131 用例，覆盖率约 85% stmts）
 ASR_PROVIDER=mock npm run dev  # 本地语音联调（mock，仅开发环境）
 npm run test:db:reset # 重建 prisma/test.db（精确路径保护）
 npm run db:push      # 同步 schema 到 SQLite
@@ -186,7 +186,7 @@ FSRS 卡状态机：`NEW → LEARNING → REVIEW`，AGAIN 时进入 `RELEARNING`
 - **选择**：书卷（`BookSelector`）→ 章（下拉，显示"本章共 N 节"）→ 节范围（从/至，`至` 留空 = 章末，"整章"一键填充）；一次最多 50 节，**按数据库中的实际经节数**判断（章节节号可能不连续，如以弗所书 3 章 19 节、跨度 21）。`verse = 0` 的篇首标题（恢复本诗篇）不参与练习。可选「单节精背 / 连背多节 + 每组节数」，默认沿用当前计划的背诵设置；校验失败返回表单时保留刚才的连背选择。
 - **数据**：`POST /api/practice` 按库校验节号范围并**幂等补建**缺失卡片（新卡 `state=new`、`due=now`；并发撞 `@@unique([userId, verseId])` 时降级逐节重试）；随后跳 `/practice?bookId=&chapter=&from=&to=[&mode=passage&size=]`，页面只读队列并复用 `LearnClient`（`practice` 模式）。
 - **语义**：练习会话的学习动线与 `/learn` 完全一致（主动回忆、填空、语音、四键评分、撤销、会话内重学），仅完成页显示"练习完成！"并提供"再练一组 / 返回计划"。练习本身不做每日配额检查；评分照常写 FSRS，首次离开 `new` 态仍写 `introducedAt`，所以练习计划书卷的新经节会减少当日队列剩余额度（Plan 页"新卡进度"按计划书卷统计并封顶显示）。旧链接在卡片缺失（如清除数据后）时返回 409，回到选择表单。
-- 连背分组复用 `services/learn.ts#groupTasksByReciteMode`（2026-10-22 抽出，供今日队列与自由练习共享，避免规则漂移）；分组在节号不连续处**及 new/已学状态切换处**断开，混合范围的连背不会让从未学过的经节跳过"先看再背"。
+- 连背分组复用 `services/learn.ts#groupTasksByReciteMode`（2026-10-22 抽出，供今日队列与自由练习共享，避免规则漂移）；分组**只按同章连续节号与每组节数，不因卡片状态缩小组**。组内含未学经节时带 `hasNew` 标记，整组先停查看态（顶栏与查看卡显示区间，如 4:15-19）再背诵，仍满足"先看再背"。每日学习页的新卡组另受每日新卡数限制（当日 3 节 → 新卡组最多 3 节），计划表单已加提示。
 
 ### 6.4 其他页面
 - **/notes**：笔记列表（出处标题+内容+日期+编辑/删除）+ 新建/编辑 Dialog（书卷/章/节 + 内容）
@@ -261,10 +261,10 @@ FSRS 卡状态机：`NEW → LEARNING → REVIEW`，AGAIN 时进入 `RELEARNING`
 **现状（2026-08-10 Vitest 基建已落地）**：
 - 单元测试：`lib/fsrs`（15，含 peeked 推荐封顶）、`lib/compare`（17，含全组合还原 + `it.fails` 记录空原文缺陷）、`lib/date`（10）
 - 集成测试：学习队列 14 场景（隔离/排序/上限 50/统一 `now`/每日新卡配额）、`getDueCards` 新卡泄漏、Card DateTime 存储诊断
-- 组件测试（jsdom + @testing-library/react）：`LearnClient` 跨节状态隔离 1 场景（复现上一节输入/比对残留 bug 的回归防护）+ 会话内重学 2 场景（没到 100% 评 GOOD 也重出、连续 AGAIN 3 次后不再重出）+ 自由练习模式 2 场景（无计划可进入、完成页入口）
-- 集成测试（自由练习）：参数校验 4 组 + 服务 14 组（补卡幂等/并发降级、章末解析、越界 400、真实节数上限、跨用户隔离、缺卡 409、连背分组与新卡状态断组、0 节排除、章节隔离）
+- 组件测试（jsdom + @testing-library/react）：`LearnClient` 跨节状态隔离 1 场景（复现上一节输入/比对残留 bug 的回归防护）+ 会话内重学 2 场景（没到 100% 评 GOOD 也重出、连续 AGAIN 3 次后不再重出）+ 自由练习模式 4 场景（无计划可进入、完成页入口、含新卡混合组先看再背、重学副本直接背诵）
+- 集成测试（自由练习）：参数校验 5 组 + 服务 14 组（补卡幂等/并发降级、章末解析、越界 400、真实节数上限、跨用户隔离、缺卡 409、连背分组与混合状态不缩组、0 节排除、章节隔离）
 - 测试库隔离：`prisma/test.db` + `tests/fixtures/setup.ts` 进程级校验 + `reset-test-db.ts` 精确路径保护（拒绝 dev.db）
-- 当前共 **128 个用例**；`npm run test` / `test:coverage`（约 85% stmts）/ `test:db:reset`
+- 当前共 **131 个用例**；`npm run test` / `test:coverage`（约 85% stmts）/ `test:db:reset`
 
 **功能验收基线**（Plan v2 人工验证过，可作为回归清单）：
 1. 无计划：/plan 显示创建表单

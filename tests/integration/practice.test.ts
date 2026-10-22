@@ -284,7 +284,7 @@ describe("自由练习服务", () => {
     expect(result.count).toBe(MAX_PRACTICE_VERSES);
   });
 
-  it("连背分组在新卡与已学状态切换处断开，混合组不会跳过先看再背", async () => {
+  it("连背分组只按节号与每组节数：混合状态不缩小组，并打 hasNew 标记", async () => {
     // 1-3 已学（review），4-6 从未学过（实践会新建为 new）
     await prisma.card.createMany({
       data: [1, 2, 3].map((v) => ({
@@ -313,8 +313,58 @@ describe("自由练习服务", () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
 
+    // 第一组跨状态仍是完整的 5 节（用户设置的每组节数不被缩水）
     expect(result.tasks).toHaveLength(2);
-    expect(result.tasks[0]).toMatchObject({ verse: 1, verseEnd: 3, cardState: "review" });
-    expect(result.tasks[1]).toMatchObject({ verse: 4, verseEnd: 6, cardState: "new" });
+    expect(result.tasks[0]).toMatchObject({
+      verse: 1,
+      verseEnd: 5,
+      cardState: "review",
+      hasNew: true,
+    });
+    expect(result.tasks[0].cardIds).toHaveLength(5);
+    // 剩余 1 节落单，回退为单节任务
+    expect(result.tasks[1]).toMatchObject({ verse: 6, cardState: "new" });
+    expect(result.tasks[1].isPassage).toBeUndefined();
+  });
+
+  it("状态 3 节一段交错时仍按每组节数分组（不再按状态断组）", async () => {
+    // 模拟用户此前按 3 节一组背过、中间夹杂未学经节的数据
+    const states: Array<"review" | "new"> = [];
+    for (let v = 1; v <= 20; v++) {
+      states.push(Math.floor((v - 1) / 3) % 2 === 0 ? "review" : "new");
+    }
+    await prisma.card.deleteMany({ where: { userId: ALICE_ID } });
+    await prisma.card.createMany({
+      data: states.map((state, i) => ({
+        userId: ALICE_ID,
+        verseId: 5200 + i + 1,
+        state,
+        stability: state === "new" ? 2 : 10,
+        reps: state === "new" ? 0 : 3,
+        due: new Date("2026-01-01T00:00:00.000Z"),
+      })),
+    });
+
+    const parsed = parsePracticeParams({
+      bookId: BOOK_ID,
+      chapter: 5,
+      from: 1,
+      to: 20,
+      mode: "passage",
+      size: "5",
+    });
+    if (!parsed.ok) throw new Error(parsed.error);
+
+    const result = await getPracticeTasks(ALICE_ID, parsed.range);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+
+    expect(result.tasks.map((t) => `${t.verse}-${t.verseEnd}`)).toEqual([
+      "1-5",
+      "6-10",
+      "11-15",
+      "16-20",
+    ]);
+    expect(result.tasks.every((t) => t.hasNew)).toBe(true);
   });
 });

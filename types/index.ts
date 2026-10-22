@@ -43,6 +43,8 @@ export interface TaskData extends VerseData {
   isPassage?: boolean;
   verseEnd?: number;
   cardIds?: number[];
+  /** 连背组内含未学经节：整组先查看再背诵（自由练习的混合范围） */
+  hasNew?: boolean;
   /** 连背组内每张卡的独立快照（撤销用；单节任务为空） */
   passageCards?: CardSnapshot[];
 }

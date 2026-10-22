@@ -77,7 +77,8 @@ describe("LearnClient 连背模式", () => {
 
     render(<LearnClient plan={plan} tasks={tasks} />);
 
-    expect(screen.getByText("罗马书 1:1-2")).toBeInTheDocument();
+    // 顶栏与背诵卡头部都会显示经节区间
+    expect(screen.getAllByText("罗马书 1:1-2").length).toBeGreaterThan(0);
     expect(screen.getByText("连背 2 节")).toBeInTheDocument();
 
     const textarea = screen.getByPlaceholderText("在此输入经文...") as HTMLTextAreaElement;
@@ -117,6 +118,44 @@ describe("LearnClient 连背模式", () => {
     await user.type(textarea, "第一节经文");
     await user.keyboard("{Enter}");
     expect(screen.getByText(/准确率 (?!100%)/)).toBeInTheDocument();
+  });
+
+  it("含新卡的混合组没过而重学时：重出副本直接进背诵态，不再显示含新卡", async () => {
+    const user = userEvent.setup();
+    const tasks: TaskData[] = [
+      makeTask({
+        id: 101,
+        verse: 1,
+        verseEnd: 5,
+        content: "第一节经文第二节经文",
+        isPassage: true,
+        cardIds: [1, 2],
+        cardState: "review",
+        hasNew: true,
+      }),
+    ];
+
+    render(<LearnClient plan={plan} tasks={tasks} />);
+
+    // 首次进入：混合组先看（只显示区间，不显示原文输入框）
+    expect(screen.getByRole("heading", { name: "罗马书 1:1-5" })).toBeInTheDocument();
+    expect(screen.queryByPlaceholderText("在此输入经文...")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "开始背诵" }));
+
+    // 背漏一节 → 未到 100%，评 GOOD 也会重出
+    const textarea = screen.getByPlaceholderText("在此输入经文...") as HTMLTextAreaElement;
+    await user.type(textarea, "第一节经文");
+    await user.keyboard("{Enter}");
+    expect(screen.getByText(/准确率 (?!100%)/)).toBeInTheDocument();
+    await user.keyboard("3");
+
+    const next = await screen.findByRole("button", { name: /下一组|完成/ });
+    await user.click(next);
+
+    // 重出副本已评过分：直接进背诵态（不要求再点一次"开始背诵"），也不带"含新卡"
+    expect(screen.getByPlaceholderText("在此输入经文...")).toBeInTheDocument();
+    expect(screen.getByText("重学")).toBeInTheDocument();
+    expect(screen.queryByText("含新卡")).not.toBeInTheDocument();
   });
 
   it("连背评分后撤销：按组内每张卡的独立快照恢复，不用第一节覆盖整组", async () => {

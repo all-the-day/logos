@@ -26,6 +26,15 @@ export interface VerseRef {
   verse: number;
   content: string;
   kjv: string | null;
+  /** 连背任务的末节：有值时经节引用显示为区间（如 4:15-19） */
+  verseEnd?: number;
+}
+
+/** 经节引用：连背任务显示区间（4:15-19），单节显示单节 */
+export function verseRefLabel(verse: VerseRef): string {
+  return verse.verseEnd
+    ? `${verse.bookName} ${verse.chapter}:${verse.verse}-${verse.verseEnd}`
+    : `${verse.bookName} ${verse.chapter}:${verse.verse}`;
 }
 
 // ─── VerseViewer（view 态：仅经节引用，不显示原文） ──
@@ -42,7 +51,7 @@ export function VerseViewer({
     <Card>
       <CardContent className="pt-6 space-y-4">
         <p className="text-xl leading-relaxed font-medium">
-          {verse.bookName} {verse.chapter}:{verse.verse}
+          {verseRefLabel(verse)}
         </p>
         {showFillOption && <p className="text-xs text-muted-foreground">提示：先切换模式再点开始背诵</p>}
         <Button className="w-full" onClick={onStart}>
@@ -332,7 +341,7 @@ export function VerseReciter({
   );
 
   const header = (
-    <p className="text-lg font-medium truncate">{verse.bookName} {verse.chapter}:{verse.verse}</p>
+    <p className="text-lg font-medium truncate">{verseRefLabel(verse)}</p>
   );
 
   if (fillMode) {

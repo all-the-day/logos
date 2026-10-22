@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { compareVerse, generateFillBlanks, densityForStability } from "@/lib/compare";
-import { VerseViewer, VerseReciter, VerseResult } from "@/components/VerseStudy";
+import { VerseViewer, VerseReciter, VerseResult, verseRefLabel } from "@/components/VerseStudy";
 import { recommendRating, RATING, type Rating } from "@/lib/fsrs";
 import type { CardSnapshot, PlanInfo, TaskData } from "@/types";
 
@@ -24,11 +24,20 @@ type Mode = "view" | "recite" | "result";
 // 会话内重学（AGAIN 重出）：同一张卡在本会话内最多插回队列尾部几次，防死循环
 const MAX_REQUEUE_PER_SESSION = 2;
 
+/**
+ * 是否需要先进入查看态：新卡，以及含未学经节的连背组（自由练习可能混合范围）。
+ * 已学的单节/连背组直接进背诵态，避免先看原文削弱检索练习。
+ */
+function needsPreview(task: TaskData | undefined) {
+  if (!task) return false;
+  return task.cardState === "new" || Boolean(task.hasNew);
+}
+
 export default function LearnClient({ plan, tasks, asrEnabled = false, practice = false }: Props) {
   const [currentIdx, setCurrentIdx] = useState(0);
   // 新卡先查看再背诵；复习卡默认直接进入背诵态，避免先看原文削弱检索练习
   const [mode, setMode] = useState<Mode>(() =>
-    tasks[0] && tasks[0].cardState !== "new" ? "recite" : "view"
+    needsPreview(tasks[0]) ? "view" : "recite"
   );
   const [userInput, setUserInput] = useState("");
   const [submitted, setSubmitted] = useState(""); // 实际用于比对的提交文本（结果页展示"你的提交"）
@@ -100,8 +109,8 @@ export default function LearnClient({ plan, tasks, asrEnabled = false, practice 
     setUndoAvailable(false);
     undoCardsRef.current = [];
     setRecordingUrl(""); // effect cleanup 会 revoke 上一条录音的对象 URL
-    if (t.cardState !== "new") {
-      startRecite(t); // 复习卡直接背诵（会再初始化填空并聚焦）
+    if (!needsPreview(t)) {
+      startRecite(t); // 已学的单节/组直接背诵（会再初始化填空并聚焦）
     } else {
       setMode("view");
     }
@@ -206,7 +215,8 @@ export default function LearnClient({ plan, tasks, asrEnabled = false, practice 
             requeueCounts.current.set(task.cardId, count + 1);
             setRequeued((prev) => [
               ...pruneRequeued(prev, task.cardId),
-              { ...task, cardState: updatedState, requeued: true },
+              // 重出副本已评过分，不再是"含新卡"：直接进背诵态，徽标也不显示"含新卡"
+              { ...task, cardState: updatedState, hasNew: false, requeued: true },
             ]);
           }
         } else {
@@ -366,9 +376,7 @@ export default function LearnClient({ plan, tasks, asrEnabled = false, practice 
 
   const isReview = task.cardState !== "new";
   const isPassageTask = isPassage;
-  const verseLabel = isPassageTask && task.verseEnd
-    ? `${task.bookName} ${task.chapter}:${task.verse}-${task.verseEnd}`
-    : `${task.bookName} ${task.chapter}:${task.verse}`;
+  const verseLabel = verseRefLabel(task);
 
   return (
     <div className="max-w-lg mx-auto p-4 space-y-4">
@@ -380,6 +388,7 @@ export default function LearnClient({ plan, tasks, asrEnabled = false, practice 
             {task.requeued ? "重学" : isReview ? "复习" : "新卡"}
           </Badge>
           {isPassageTask && <Badge variant="outline">连背 {task.cardIds?.length ?? 1} 节</Badge>}
+          {isReview && task.hasNew && <Badge variant="secondary">含新卡</Badge>}
         </div>
         <div className="flex items-center gap-2">
           {!isPassageTask && (

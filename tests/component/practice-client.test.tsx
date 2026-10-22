@@ -44,6 +44,28 @@ describe("LearnClient 自由练习模式", () => {
     ).toBeInTheDocument();
   });
 
+  it("含新卡的混合连背组先进入查看态，并显示经节区间与含新卡标记", () => {
+    const mixed: TaskData = {
+      ...task,
+      verseEnd: 19,
+      isPassage: true,
+      cardIds: [7, 8, 9, 10, 11],
+      cardState: "review",
+      hasNew: true,
+      content: "第15节经文第16节经文第17节经文第18节经文第19节经文",
+    };
+
+    render(<LearnClient plan={null} tasks={[mixed]} practice />);
+
+    // 直接查看态：只有"开始背诵"，没有默写输入框
+    expect(screen.getByRole("button", { name: "开始背诵" })).toBeInTheDocument();
+    expect(screen.queryByPlaceholderText("在此输入经文...")).not.toBeInTheDocument();
+    // 查看态经节引用要显示整组区间，不能只显示首节
+    expect(screen.getByRole("heading", { name: "腓立比书 4:15-19" })).toBeInTheDocument();
+    expect(screen.getAllByText("腓立比书 4:15-19").length).toBeGreaterThan(0);
+    expect(screen.getByText("含新卡")).toBeInTheDocument();
+  });
+
   it("队列走完后显示练习完成，并提供再练一组入口", () => {
     render(<LearnClient plan={null} tasks={[]} practice />);
 

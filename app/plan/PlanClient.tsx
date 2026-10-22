@@ -223,6 +223,11 @@ export default function PlanClient({
                   </Button>
                   <span className="text-sm text-muted-foreground ml-2">节/组</span>
                 </div>
+                {versesPerDay >= 2 && versesPerDay < passageSize && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    每日新卡 {versesPerDay} 节，新卡连背组最多 {versesPerDay} 节（复习组不受此限）。
+                  </p>
+                )}
               </div>
             )}
             {selectedBook && (
@@ -468,6 +473,11 @@ export default function PlanClient({
                   </Button>
                   <span className="text-sm text-muted-foreground ml-2">节/组</span>
                 </div>
+                {editVersesPerDay >= 2 && editVersesPerDay < editPassageSize && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    每日新卡 {editVersesPerDay} 节，新卡连背组最多 {editVersesPerDay} 节（复习组不受此限）。
+                  </p>
+                )}
               </div>
             )}
             <Button className="w-full" disabled={!editBookId || saving}
