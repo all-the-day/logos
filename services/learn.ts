@@ -52,7 +52,7 @@ async function getRemainingNewQuota(
   return Math.max(0, versesPerDay - introducedToday);
 }
 
-function toTask(card: {
+export function toTask(card: {
   id: number;
   verseId: number;
   state: string;
@@ -91,7 +91,11 @@ function toTask(card: {
   };
 }
 
-/** 把同章且节号连续的任务按 size 分组；节号断开处断组，剩余不足 size 的也成一组 */
+/**
+ * 把同章且节号连续的任务按 size 分组；节号断开处断组，剩余不足 size 的也成一组。
+ * 新卡/已学状态变化处同样断组：自由练习的范围可能混合两种状态，
+ * 混在一组会让从未学过的经节跳过"先查看再背诵"直接默背。
+ */
 function chunkPassages(tasks: TaskData[], size: number): TaskData[][] {
   const sorted = [...tasks].sort(
     (a, b) => a.bookId - b.bookId || a.chapter - b.chapter || a.verse - b.verse
@@ -110,7 +114,8 @@ function chunkPassages(tasks: TaskData[], size: number): TaskData[][] {
       prev !== null &&
       prev.bookId === task.bookId &&
       prev.chapter === task.chapter &&
-      prev.verse + 1 === task.verse;
+      prev.verse + 1 === task.verse &&
+      (prev.cardState === "new") === (task.cardState === "new");
     if (current.length >= size || (current.length > 0 && !contiguous)) {
       flush();
     }
@@ -150,6 +155,22 @@ function toPassageTask(group: TaskData[]): TaskData {
     cardId: firstVerse.cardId,
     cardState: verses.every((v) => v.cardState === "new") ? "new" : "review",
   };
+}
+
+/**
+ * 按背诵模式组装队列：passage 时同章连续经节合成一组，落单回退为单节任务。
+ * 学习页（今日队列）与自由练习共用，避免分组规则漂移。
+ */
+export function groupTasksByReciteMode(
+  tasks: TaskData[],
+  mode: string,
+  passageSize: number
+): TaskData[] {
+  if (mode !== "passage") return tasks;
+  const size = Math.max(2, passageSize || 5);
+  return chunkPassages(tasks, size).map((group) =>
+    group.length >= 2 ? toPassageTask(group) : group[0]
+  );
 }
 
 async function fetchReviewTasks(userId: number, now: Date): Promise<TaskData[]> {
@@ -200,9 +221,9 @@ export async function getTodayTasks(userId: number, now: Date = new Date()) {
     // 复习组在前、新卡组在后；各自按“同章连续”分组，不把复习和新卡混在一组。
     // 节号不连续被断开；落单（组内只有 1 节）的回退为普通单节任务，保留 KJV 对照。
     const passages = [
-      ...chunkPassages(reviewTasks, size),
-      ...chunkPassages(newTasks, size),
-    ].map((group) => (group.length >= 2 ? toPassageTask(group) : group[0]));
+      ...groupTasksByReciteMode(reviewTasks, "passage", size),
+      ...groupTasksByReciteMode(newTasks, "passage", size),
+    ];
     return { plan, tasks: passages };
   }
 

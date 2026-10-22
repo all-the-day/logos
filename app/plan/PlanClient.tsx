@@ -239,6 +239,13 @@ export default function PlanClient({
             )}
           </CardContent>
         </Card>
+
+        <div className="text-center space-y-2">
+          <p className="text-sm text-muted-foreground">想先随手练几节？可以不建计划，直接指定经节。</p>
+          <Link href="/practice" className={cn(buttonVariants({ variant: "outline" }))}>
+            自由练习
+          </Link>
+        </div>
       </div>
     );
   }
@@ -247,6 +254,8 @@ export default function PlanClient({
   const review = todaySummary?.review ?? 0;
   const newCount = todaySummary?.new ?? 0;
   const hasTasks = review + newCount > 0;
+  // 新卡进度按计划书卷统计；自由练习可超额引入，进度条按每日目标封顶显示
+  const newProgress = Math.min(todayNewCount, plan.versesPerDay);
 
   return (
     <div className="max-w-lg mx-auto px-4 pt-4 flex flex-col min-h-[calc(100vh-5rem)] space-y-4">
@@ -274,13 +283,13 @@ export default function PlanClient({
             </Button>
           )}
           <div className="text-sm text-muted-foreground text-center">
-            新卡进度 {todayNewCount}/{planDetails?.plan.versesPerDay ?? 0} 节
+            新卡进度 {newProgress}/{plan.versesPerDay} 节
           </div>
           <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
             <div
               className="h-full bg-primary rounded-full transition-all"
               style={{
-                width: `${(planDetails?.plan.versesPerDay ?? 0) > 0 ? Math.min(100, (todayNewCount / (planDetails?.plan.versesPerDay ?? 1)) * 100) : 0}%`,
+                width: `${plan.versesPerDay > 0 ? Math.min(100, (newProgress / plan.versesPerDay) * 100) : 0}%`,
               }}
             />
           </div>
@@ -371,6 +380,26 @@ export default function PlanClient({
           )}
           <div className="text-sm text-muted-foreground">
             每日 {plan.versesPerDay} 节 · 全书已学 {(progress?.mastered ?? 0) + (progress?.learning ?? 0)}/{totalVerses}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* 自由练习入口：指定任意经节单独练，不影响计划本身 */}
+      <Card>
+        <CardContent className="pt-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <div className="text-sm font-medium">自由练习</div>
+              <div className="text-xs text-muted-foreground">
+                指定任意书卷与经节范围，随时单独练一组
+              </div>
+            </div>
+            <Link
+              href="/practice"
+              className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+            >
+              选择经节
+            </Link>
           </div>
         </CardContent>
       </Card>

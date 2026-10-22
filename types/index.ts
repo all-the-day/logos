@@ -65,6 +65,16 @@ export interface CardProgress {
   new: number;
 }
 
+/** 自由练习：用户指定书卷 + 章 + 节范围（不依赖计划） */
+export interface PracticeRange {
+  bookId: number;
+  chapter: number;
+  from: number;
+  to: number;
+  mode: "single" | "passage";
+  passageSize: number;
+}
+
 // Card
 export interface CardData {
   id: number;

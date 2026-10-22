@@ -2,7 +2,7 @@
 
 > 本文件记录项目当前状态（目录、库存、进度、已知问题、下一步）。
 > 长期规则与不变量见 `AGENTS.md`；运维细节见 `docs/OPERATIONS.md`。
-> 最近同步：2026-10-20。**事实以代码与数据库为准，不凭本文推断。**
+> 最近同步：2026-10-22。**事实以代码与数据库为准，不凭本文推断。**
 
 ---
 
@@ -35,7 +35,7 @@ npm run dev          # 开发：http://localhost:3000
 npm run build        # 生产构建（本地/CI 用；禁止在 1.6G 生产服务器上执行）
 npm start            # 本地生产运行（默认输出；服务器用 standalone，见 deploy/README.md）
 npm run lint         # ESLint
-npm run test         # Vitest 单测 + 集成测试（89 用例，覆盖率约 85% stmts）
+npm run test         # Vitest 单测 + 集成测试（128 用例，覆盖率约 85% stmts）
 ASR_PROVIDER=mock npm run dev  # 本地语音联调（mock，仅开发环境）
 npm run test:db:reset # 重建 prisma/test.db（精确路径保护）
 npm run db:push      # 同步 schema 到 SQLite
@@ -63,6 +63,7 @@ app/
 ├── admin/                后台用户管理（admin 角色可见）
 ├── plan/                 Plan 页（v2，见 §6）
 ├── learn/                学习页（今日队列：复习+新卡）
+├── practice/             自由练习（指定书卷/章/节范围，复用学习动线）
 ├── notes/                笔记列表 + 新建/编辑 Dialog
 ├── settings/             用户卡/数据管理/统计/反馈/关于
 ├── login/                登录页
@@ -71,6 +72,7 @@ app/
     ├── auth/{login,logout,me,register}  注册仅管理员
     ├── plan/route.ts     GET 详情 / POST 创建(含批量建卡) / DELETE 删除
     ├── card/route.ts     POST FSRS评分 / PUT 撤销恢复 / GET 到期卡
+    ├── practice/route.ts GET 章节节号信息 / POST 开始练习（校验范围+幂等补卡）
     ├── note/route.ts     CRUD 笔记
     ├── checkin/route.ts  POST 签到 / GET 状态
     ├── data/route.ts     GET 导出 / POST 导入 / DELETE 清除
@@ -90,9 +92,9 @@ components/
 ├── ToastProvider.tsx     轻量 toast（useToast）
 ├── SWRegister.tsx        PWA Service Worker 注册
 └── ui/                   shadcn 基础组件（button/card/badge/input/label/select/separator/tabs/dialog）
-services/  card.ts(评分业务: rateCard) checkin.ts learn.ts plan.ts verse.ts
+services/  card.ts(评分业务: rateCard) checkin.ts learn.ts plan.ts practice.ts verse.ts
 db/        card.ts checkin.ts feedback.ts note.ts plan.ts session.ts user.ts verse.ts
-lib/       auth.ts(会话/scrypt) fsrs.ts(算法) compare.ts(LCS) dailyverse.ts date.ts import-book.ts prisma.ts utils.ts
+lib/       auth.ts(会话/scrypt) fsrs.ts(算法) compare.ts(LCS) dailyverse.ts date.ts import-book.ts practice.ts(自由练习参数校验) prisma.ts utils.ts
 lib/asr/   config.ts(开关) step.ts(阶跃星辰 SSE) tencent.ts(腾讯云) mock.ts(本地联调) wav.ts(16k PCM 校验) hotwords.ts rate-limit.ts
 lib/audio/ recorder.ts(MediaRecorder + 16k WAV 转码)
 types/index.ts            全局类型
@@ -179,7 +181,14 @@ FSRS 卡状态机：`NEW → LEARNING → REVIEW`，AGAIN 时进入 `RELEARNING`
 - **语音输入（2026-10-20，可选）**：全文与连背模式均提供，**移动端长按录音、松手识别**（长按期间按钮显示“松开结束”并屏蔽 Enter，超 60 秒自动停）。录音 → 客户端转 16k 单声道 WAV → `POST /api/asr` → 在线 ASR（阶跃星辰 StepAudio 3 或腾讯云）→ 识别文本填入输入框，用户确认后手动提交；不自动提交。语音只是输入方式：识别后直接走既有文本比对（正确/漏字/错字照常标出），不设“已核对”勾选门槛；提供可选录音回放，也可“返回修改”改识别文本；识别失败/未配置回退手输；填空模式不显示语音。服务端限制 ≤60 秒、≤3MB、16k PCM WAV，按用户限流；音频不落盘。
 - **连背模式（2026-10-20）**：`Plan.reciteMode = passage` 时按 `passageSize` 把同章且节号连续的经节合成一组，节号断开处断组，落单（组内仅 1 节）的回退为普通单节任务（新建/修改计划可选“单节精背 / 连背多节”与每组节数）。`/learn` 以组为单位：顶部显示区间（如 1:1–5）与“连背 N 节”，整组一次比对与四键评分；评分通过 `/api/card` 批量写入组内每张卡（先整体校验再写入），撤销按组内每张卡独立快照逐卡恢复，未到 100% 或 AGAIN 的组按会话内重学规则插回队尾。连背组不提供填空模式，不展示注释/纲目/串珠。
 
-### 6.3 其他页面
+### 6.3 自由练习 /practice（2026-10-22）
+- **入口**：Plan 页书卷进度卡之后「自由练习 → 选择经节」；无计划时在新建计划表单下方，可直接开练。
+- **选择**：书卷（`BookSelector`）→ 章（下拉，显示"本章共 N 节"）→ 节范围（从/至，`至` 留空 = 章末，"整章"一键填充）；一次最多 50 节，**按数据库中的实际经节数**判断（章节节号可能不连续，如以弗所书 3 章 19 节、跨度 21）。`verse = 0` 的篇首标题（恢复本诗篇）不参与练习。可选「单节精背 / 连背多节 + 每组节数」，默认沿用当前计划的背诵设置；校验失败返回表单时保留刚才的连背选择。
+- **数据**：`POST /api/practice` 按库校验节号范围并**幂等补建**缺失卡片（新卡 `state=new`、`due=now`；并发撞 `@@unique([userId, verseId])` 时降级逐节重试）；随后跳 `/practice?bookId=&chapter=&from=&to=[&mode=passage&size=]`，页面只读队列并复用 `LearnClient`（`practice` 模式）。
+- **语义**：练习会话的学习动线与 `/learn` 完全一致（主动回忆、填空、语音、四键评分、撤销、会话内重学），仅完成页显示"练习完成！"并提供"再练一组 / 返回计划"。练习本身不做每日配额检查；评分照常写 FSRS，首次离开 `new` 态仍写 `introducedAt`，所以练习计划书卷的新经节会减少当日队列剩余额度（Plan 页"新卡进度"按计划书卷统计并封顶显示）。旧链接在卡片缺失（如清除数据后）时返回 409，回到选择表单。
+- 连背分组复用 `services/learn.ts#groupTasksByReciteMode`（2026-10-22 抽出，供今日队列与自由练习共享，避免规则漂移）；分组在节号不连续处**及 new/已学状态切换处**断开，混合范围的连背不会让从未学过的经节跳过"先看再背"。
+
+### 6.4 其他页面
 - **/notes**：笔记列表（出处标题+内容+日期+编辑/删除）+ 新建/编辑 Dialog（书卷/章/节 + 内容）
 - **/settings**：用户卡（退出登录/后台入口）→ 数据管理（导出 JSON/导入/清除）→ 数据统计 2×2 → 反馈 → 关于
 - **/admin**：用户管理（仅 admin）
@@ -208,7 +217,7 @@ FSRS 卡状态机：`NEW → LEARNING → REVIEW`，AGAIN 时进入 `RELEARNING`
 - 客户端 `lib/audio/recorder.ts` 用 MediaRecorder 录音并由 Web Audio API 转 16k 单声道 WAV，服务器不需要 ffmpeg；Step/腾讯都直接支持该格式。
 - 学习页背诵态新增“语音输入”按钮（仅全文模式、服务端已配置时显示）；识别结果只填入输入框，用户确认后提交；失败回退手输。
 - 本地用 `ASR_PROVIDER=mock` 跑通登录 → 上传 WAV → 识别 → 返回经文原文的端到端；Step/腾讯 provider 均按官方文档实现并用单测覆盖（SSE 解析、请求体、错误收敛）。生产未配置 `ASR_PROVIDER`/密钥，语音入口目前隐藏。上线前在 `/root/logos/shared/.env` 选 `step` 或 `tencent` 并填入密钥，再部署；APK 需真机验证麦克风权限。
-- 新增 23 个测试（WAV 校验、热词、限流、provider 选择、mock、Step SSE 解析与 provider、语音按钮渲染），当前共 105 个用例。
+- 新增 23 个测试（WAV 校验、热词、限流、provider 选择、mock、Step SSE 解析与 provider、语音按钮渲染）。
 
 **2026-08-10 学习核心改进（对应产品评审三个 P0）**：
 - ~~每日新卡配额失效（versesPerDay 只是每次进入上限）~~ —— **已修复**：Card 增加 `introducedAt`，`services/card.ts#rateCard` 在首次离开 new 态时写入；今日新卡 = `versesPerDay − 今日引入数`；含集成测试（学满后再取为 0、次日重置）
@@ -252,9 +261,10 @@ FSRS 卡状态机：`NEW → LEARNING → REVIEW`，AGAIN 时进入 `RELEARNING`
 **现状（2026-08-10 Vitest 基建已落地）**：
 - 单元测试：`lib/fsrs`（15，含 peeked 推荐封顶）、`lib/compare`（17，含全组合还原 + `it.fails` 记录空原文缺陷）、`lib/date`（10）
 - 集成测试：学习队列 14 场景（隔离/排序/上限 50/统一 `now`/每日新卡配额）、`getDueCards` 新卡泄漏、Card DateTime 存储诊断
-- 组件测试（jsdom + @testing-library/react）：`LearnClient` 跨节状态隔离 1 场景（复现上一节输入/比对残留 bug 的回归防护）+ 会话内重学 2 场景（没到 100% 评 GOOD 也重出、连续 AGAIN 3 次后不再重出）
+- 组件测试（jsdom + @testing-library/react）：`LearnClient` 跨节状态隔离 1 场景（复现上一节输入/比对残留 bug 的回归防护）+ 会话内重学 2 场景（没到 100% 评 GOOD 也重出、连续 AGAIN 3 次后不再重出）+ 自由练习模式 2 场景（无计划可进入、完成页入口）
+- 集成测试（自由练习）：参数校验 4 组 + 服务 14 组（补卡幂等/并发降级、章末解析、越界 400、真实节数上限、跨用户隔离、缺卡 409、连背分组与新卡状态断组、0 节排除、章节隔离）
 - 测试库隔离：`prisma/test.db` + `tests/fixtures/setup.ts` 进程级校验 + `reset-test-db.ts` 精确路径保护（拒绝 dev.db）
-- 当前共 **105 个用例**；`npm run test` / `test:coverage`（约 85% stmts）/ `test:db:reset`
+- 当前共 **128 个用例**；`npm run test` / `test:coverage`（约 85% stmts）/ `test:db:reset`
 
 **功能验收基线**（Plan v2 人工验证过，可作为回归清单）：
 1. 无计划：/plan 显示创建表单

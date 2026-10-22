@@ -33,13 +33,17 @@ export async function getTodayReviewedCount(userId: number) {
   });
 }
 
-/** 今日首次引入（离开 new 态）的新卡数——用于"新卡进度 X/每日 M 节" */
-export async function getTodayNewCount(userId: number) {
+/**
+ * 今日首次引入（离开 new 态）的新卡数——用于"新卡进度 X/每日 M 节"。
+ * 传入 bookId 时只统计该计划书卷（与配额口径一致），否则跨全部书卷。
+ */
+export async function getTodayNewCount(userId: number, bookId?: number) {
   const startOfDay = startOfLocalDay();
   return prisma.card.count({
     where: {
       userId,
       introducedAt: { gte: startOfDay },
+      ...(bookId ? { verse: { bookId } } : {}),
     },
   });
 }
@@ -107,6 +111,16 @@ export async function getExistingCardVerseIds(userId: number, verseIds: number[]
     select: { verseId: true },
   });
   return new Set(rows.map((r) => r.verseId));
+}
+
+/** 批量取用户在某组经文上的卡片（自由练习用；含 verse + book 以便构造学习任务） */
+export async function getCardsForVerses(userId: number, verseIds: number[]) {
+  if (verseIds.length === 0) return [];
+  return prisma.card.findMany({
+    where: { userId, verseId: { in: verseIds } },
+    include: { verse: { include: { book: true } } },
+    orderBy: [{ verse: { chapter: "asc" } }, { verse: { verse: "asc" } }],
+  });
 }
 
 export async function getAllCards(userId: number) {

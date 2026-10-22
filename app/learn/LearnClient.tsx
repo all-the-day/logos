@@ -15,6 +15,8 @@ interface Props {
   tasks: TaskData[];
   /** 服务端是否配置了在线语音识别 */
   asrEnabled?: boolean;
+  /** 自由练习会话：不依赖计划，完成页文案与返回入口不同 */
+  practice?: boolean;
 }
 
 type Mode = "view" | "recite" | "result";
@@ -22,7 +24,7 @@ type Mode = "view" | "recite" | "result";
 // 会话内重学（AGAIN 重出）：同一张卡在本会话内最多插回队列尾部几次，防死循环
 const MAX_REQUEUE_PER_SESSION = 2;
 
-export default function LearnClient({ plan, tasks, asrEnabled = false }: Props) {
+export default function LearnClient({ plan, tasks, asrEnabled = false, practice = false }: Props) {
   const [currentIdx, setCurrentIdx] = useState(0);
   // 新卡先查看再背诵；复习卡默认直接进入背诵态，避免先看原文削弱检索练习
   const [mode, setMode] = useState<Mode>(() =>
@@ -329,7 +331,7 @@ export default function LearnClient({ plan, tasks, asrEnabled = false }: Props) 
     return () => window.removeEventListener("keydown", handleKey);
   }, []);
 
-  if (!plan) {
+  if (!plan && !practice) {
     return (
       <div className="max-w-lg mx-auto p-4">
         <p className="text-muted-foreground">请先创建学习计划。</p>
@@ -343,8 +345,21 @@ export default function LearnClient({ plan, tasks, asrEnabled = false }: Props) 
   if (!task) {
     return (
       <div className="max-w-lg mx-auto p-4 text-center space-y-4">
-        <p className="text-muted-foreground">今日任务已完成！</p>
-        <Link href="/plan" className={buttonVariants({})}>返回</Link>
+        <p className="text-muted-foreground">
+          {practice ? "练习完成！" : "今日任务已完成！"}
+        </p>
+        {practice ? (
+          <div className="space-y-2">
+            <Link href="/practice" className={cn(buttonVariants({}), "w-full")}>
+              再练一组
+            </Link>
+            <Link href="/plan" className={cn(buttonVariants({ variant: "outline" }), "w-full")}>
+              返回计划
+            </Link>
+          </div>
+        ) : (
+          <Link href="/plan" className={buttonVariants({})}>返回</Link>
+        )}
       </div>
     );
   }
@@ -358,8 +373,9 @@ export default function LearnClient({ plan, tasks, asrEnabled = false }: Props) 
   return (
     <div className="max-w-lg mx-auto p-4 space-y-4">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <h2 className="font-medium text-muted-foreground">{verseLabel}</h2>
+          {practice && <Badge variant="outline">自由练习</Badge>}
           <Badge variant={task.requeued ? "destructive" : isReview ? "default" : "secondary"}>
             {task.requeued ? "重学" : isReview ? "复习" : "新卡"}
           </Badge>

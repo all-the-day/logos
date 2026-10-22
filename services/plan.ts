@@ -1,6 +1,7 @@
 import * as planDb from "@/db/plan";
 import * as verseDb from "@/db/verse";
 import * as cardDb from "@/db/card";
+import { Prisma } from "@prisma/client";
 
 export async function getActivePlanDetails(userId: number) {
   const plan = await planDb.getActivePlan(userId);
@@ -36,14 +37,41 @@ export async function updatePlan(
   return planDb.updatePlan(plan.id, userId, data);
 }
 
+function isUniqueViolation(error: unknown) {
+  return (
+    error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002"
+  );
+}
+
+/** 为指定经节补建缺失卡片（幂等：已存在的卡不重复创建） */
+export async function ensureCardsForVerses(userId: number, verseIds: number[]) {
+  if (verseIds.length === 0) return 0;
+  const existingCards = await cardDb.getExistingCardVerseIds(userId, verseIds);
+  const toCreate = verseIds.filter((id) => !existingCards.has(id));
+  if (toCreate.length === 0) return 0;
+
+  try {
+    await cardDb.createCards(userId, toCreate);
+    return toCreate.length;
+  } catch (error) {
+    if (!isUniqueViolation(error)) throw error;
+    // 并发补卡（双标签页/连点）：批量写入撞唯一约束后逐节重试，已存在的视为成功
+    let created = 0;
+    for (const verseId of toCreate) {
+      try {
+        await cardDb.createCard(userId, verseId);
+        created++;
+      } catch (retryError) {
+        if (!isUniqueViolation(retryError)) throw retryError;
+      }
+    }
+    return created;
+  }
+}
+
 /** 为书卷补建缺失卡片（幂等：已存在的卡不重复创建，避免 @@unique([userId, verseId]) 冲突） */
 export async function ensureCardsForBook(userId: number, bookId: number) {
   const verses = await verseDb.getVersesByBook(bookId);
   if (verses.length === 0) return 0;
-  const existingCards = await cardDb.getExistingCardVerseIds(userId, verses.map((v) => v.id));
-  const toCreate = verses.map((v) => v.id).filter((id) => !existingCards.has(id));
-  if (toCreate.length > 0) {
-    await cardDb.createCards(userId, toCreate);
-  }
-  return toCreate.length;
+  return ensureCardsForVerses(userId, verses.map((v) => v.id));
 }
