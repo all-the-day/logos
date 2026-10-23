@@ -141,6 +141,8 @@ function toPassageTask(group: TaskData[]): TaskData {
     kjv: null,
     isPassage: true,
     cardIds: verses.map((v) => v.cardId),
+    // 结果页按节分行展示差异用（组内按节号升序）
+    passageVerses: verses.map((v) => ({ verse: v.verse, content: v.content })),
     // 撤销用：组内每张卡的独立 FSRS 快照（不能都拿第一节的覆盖整组）
     passageCards: verses.map((v) => ({
       cardId: v.cardId,

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import "@testing-library/jest-dom/vitest";
 import React from "react";
@@ -72,6 +72,10 @@ describe("LearnClient 连背模式", () => {
         isPassage: true,
         cardIds: [1, 2],
         cardState: "review",
+        passageVerses: [
+          { verse: 1, content: "第一节经文" },
+          { verse: 2, content: "第二节经文" },
+        ],
       }),
     ];
 
@@ -80,22 +84,32 @@ describe("LearnClient 连背模式", () => {
     // 顶栏与背诵卡头部都会显示经节区间
     expect(screen.getAllByText("罗马书 1:1-2").length).toBeGreaterThan(0);
     expect(screen.getByText("连背 2 节")).toBeInTheDocument();
+    // 单项会话不显示进度行（通过与否由按钮语义色表达）
+    expect(screen.queryByText(/首答 /)).not.toBeInTheDocument();
 
     const textarea = screen.getByPlaceholderText("在此输入经文...") as HTMLTextAreaElement;
     await user.type(textarea, "第一节经文第二节经文");
     await user.keyboard("{Enter}");
     expect(screen.getByText("准确率 100%")).toBeInTheDocument();
 
-    await user.keyboard("3");
-    await screen.findByRole("button", { name: /下一组|完成/ });
+    // 结果页按节分行展示，并统计首答通过
+    expect(screen.getByRole("button", { name: "通过，下一组" })).toBeInTheDocument();
+    expect(screen.getByText("比对结果（按节）")).toBeInTheDocument();
+    expect(screen.getAllByText(/罗马书 1:1/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/罗马书 1:2/).length).toBeGreaterThan(0);
 
+    // 通过后先不写库，点「下一组」才入库
     const fetchMock = globalThis.fetch as unknown as ReturnType<typeof vi.fn>;
+    expect(fetchMock.mock.calls.filter((c) => String(c[0]).startsWith("/api/card"))).toHaveLength(0);
+    await user.click(screen.getByRole("button", { name: /下一组/ }));
+
     const rateCall = fetchMock.mock.calls.find((call) => String(call[0]).startsWith("/api/card"));
     expect(rateCall).toBeTruthy();
     const body = JSON.parse(String((rateCall?.[1] as RequestInit).body));
+    // 一次默对（100% → EASY），一组一评批量写入
     expect(body.ratings).toEqual([
-      { cardId: 1, rating: 3 },
-      { cardId: 2, rating: 3 },
+      { cardId: 1, rating: 4 },
+      { cardId: 2, rating: 4 },
     ]);
   });
 
@@ -120,7 +134,7 @@ describe("LearnClient 连背模式", () => {
     expect(screen.getByText(/准确率 (?!100%)/)).toBeInTheDocument();
   });
 
-  it("含新卡的混合组没过而重学时：重出副本直接进背诵态，不再显示含新卡", async () => {
+  it("含新卡的混合组：先查看再背诵，未通过后原地重练同一组", async () => {
     const user = userEvent.setup();
     const tasks: TaskData[] = [
       makeTask({
@@ -142,85 +156,16 @@ describe("LearnClient 连背模式", () => {
     expect(screen.queryByPlaceholderText("在此输入经文...")).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "开始背诵" }));
 
-    // 背漏一节 → 未到 100%，评 GOOD 也会重出
+    // 背漏一节 → 未到 90%
     const textarea = screen.getByPlaceholderText("在此输入经文...") as HTMLTextAreaElement;
     await user.type(textarea, "第一节经文");
     await user.keyboard("{Enter}");
-    expect(screen.getByText(/准确率 (?!100%)/)).toBeInTheDocument();
-    await user.keyboard("3");
+    expect(screen.getByRole("button", { name: "未通过，重新练习" })).toBeInTheDocument();
 
-    const next = await screen.findByRole("button", { name: /下一组|完成/ });
-    await user.click(next);
-
-    // 重出副本已评过分：直接进背诵态（不要求再点一次"开始背诵"），也不带"含新卡"
-    expect(screen.getByPlaceholderText("在此输入经文...")).toBeInTheDocument();
-    expect(screen.getByText("重学")).toBeInTheDocument();
-    expect(screen.queryByText("含新卡")).not.toBeInTheDocument();
+    // 继续练习 → 还是同一组（1:1-5），直接进背诵态，输入框清空
+    await user.click(await screen.findByRole("button", { name: /重新练习/ }));
+    expect(screen.getByRole("heading", { name: "罗马书 1:1-5" })).toBeInTheDocument();
+    expect((screen.getByPlaceholderText("在此输入经文...") as HTMLTextAreaElement).value).toBe("");
   });
 
-  it("连背评分后撤销：按组内每张卡的独立快照恢复，不用第一节覆盖整组", async () => {
-    const user = userEvent.setup();
-    const tasks: TaskData[] = [
-      makeTask({
-        id: 101,
-        verse: 1,
-        verseEnd: 2,
-        content: "第一节经文第二节经文",
-        isPassage: true,
-        cardIds: [1, 2],
-        cardState: "review",
-        cardStability: 2,
-        cardDifficulty: 5,
-        cardReps: 1,
-        cardLapses: 0,
-        cardLastReview: new Date("2026-01-01T00:00:00.000Z"),
-        cardDue: new Date("2026-02-01T00:00:00.000Z"),
-        passageCards: [
-          {
-            cardId: 1,
-            stability: 2,
-            difficulty: 5,
-            reps: 1,
-            lapses: 0,
-            state: "review",
-            lastReview: new Date("2026-01-01T00:00:00.000Z"),
-            due: new Date("2026-02-01T00:00:00.000Z"),
-          },
-          {
-            cardId: 2,
-            stability: 9,
-            difficulty: 8,
-            reps: 4,
-            lapses: 2,
-            state: "review",
-            lastReview: new Date("2026-03-01T00:00:00.000Z"),
-            due: new Date("2026-04-01T00:00:00.000Z"),
-          },
-        ],
-      }),
-    ];
-
-    render(<LearnClient plan={plan} tasks={tasks} />);
-    const textarea = screen.getByPlaceholderText("在此输入经文...") as HTMLTextAreaElement;
-    await user.type(textarea, "第一节经文第二节经文");
-    await user.keyboard("{Enter}");
-    await user.keyboard("3"); // GOOD
-    await screen.findByRole("button", { name: /下一组|完成/ });
-    await user.keyboard("u"); // 撤销
-
-    await waitFor(() => {
-      const fetchMock = globalThis.fetch as unknown as ReturnType<typeof vi.fn>;
-      const putCall = fetchMock.mock.calls.find(
-        (call) =>
-          String(call[0]) === "/api/card" &&
-          String((call[1] as RequestInit | undefined)?.method ?? "").toUpperCase() === "PUT"
-      );
-      expect(putCall).toBeTruthy();
-      const body = JSON.parse(String((putCall?.[1] as RequestInit).body));
-      // 每张卡恢复各自的快照（修复前：整组都被覆盖成第一节的数据，且字段名 id 导致 400）
-      expect(body.cards).toHaveLength(2);
-      expect(body.cards[0]).toMatchObject({ cardId: 1, stability: 2, difficulty: 5, reps: 1, lapses: 0 });
-      expect(body.cards[1]).toMatchObject({ cardId: 2, stability: 9, difficulty: 8, reps: 4, lapses: 2 });
-    });
-  });
 });

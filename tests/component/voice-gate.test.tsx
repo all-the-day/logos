@@ -106,10 +106,12 @@ describe("语音输入作为纯输入方式", () => {
     expect(screen.queryByLabelText(/播放录音并核对/)).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /提交/ })).toBeEnabled();
 
-    // Enter 直接进入既有文本比对
+    // Enter 直接进入既有文本比对（全套并行时 jsdom 较慢，放宽等待避免时序抖动）
     screen.getByPlaceholderText("在此输入经文...").focus();
     await user.keyboard("{Enter}");
-    expect(await screen.findByText(/准确率 100%/)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/准确率 100%/, {}, { timeout: 3000 })
+    ).toBeInTheDocument();
   });
 
   it("按住说话期间按 Enter/Space 不会误提交", async () => {

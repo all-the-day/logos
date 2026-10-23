@@ -1,10 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { RATING } from "@/lib/fsrs";
-import { generateFillBlanks } from "@/lib/compare";
+import { compareVerseLines, generateFillBlanks } from "@/lib/compare";
 import { cn } from "@/lib/utils";
 import {
   createRecorder,
@@ -15,7 +14,6 @@ import {
 } from "@/lib/audio/recorder";
 import VerseNotes from "./VerseNotes";
 import type { DiffSegment } from "@/lib/compare";
-import type { Rating } from "@/lib/fsrs";
 
 // ─── Shared types ─────────────────────────────────────────
 
@@ -28,6 +26,8 @@ export interface VerseRef {
   kjv: string | null;
   /** 连背任务的末节：有值时经节引用显示为区间（如 4:15-19） */
   verseEnd?: number;
+  /** 连背组内每节原文：结果页据此按节分行展示差异 */
+  passageVerses?: Array<{ verse: number; content: string }>;
 }
 
 /** 经节引用：连背任务显示区间（4:15-19），单节显示单节 */
@@ -35,6 +35,26 @@ export function verseRefLabel(verse: VerseRef): string {
   return verse.verseEnd
     ? `${verse.bookName} ${verse.chapter}:${verse.verse}-${verse.verseEnd}`
     : `${verse.bookName} ${verse.chapter}:${verse.verse}`;
+}
+
+/** 差异分段渲染（单节与连背按节共用） */
+function DiffSpans({ segments }: { segments: DiffSegment[] }) {
+  return (
+    <>
+      {segments.map((seg, i) => {
+        switch (seg.tag) {
+          case "correct":
+            return <span key={i} className="text-green-600">{seg.text}</span>;
+          case "wrong":
+            return <span key={i} className="text-red-500 line-through">{seg.original}</span>;
+          case "missing":
+            return <span key={i} className="text-orange-400 bg-orange-50 px-0.5">{seg.text}</span>;
+          case "extra":
+            return <span key={i} className="text-red-400 bg-red-50 px-0.5">{seg.text}</span>;
+        }
+      })}
+    </>
+  );
 }
 
 // ─── VerseViewer（view 态：仅经节引用，不显示原文） ──
@@ -174,8 +194,11 @@ export function VerseReciter({
     } finally {
       recorderRef.current = null;
       abortRef.current = null;
+      // 识别结束立即解除"语音忙碌"，否则父组件要等下一次渲染才复位，
+      // 用户紧接着按 Enter 会被当成"识别中"而丢掉这次提交
+      onVoiceBusyChange?.(false);
     }
-  }, [verse.id, setUserInput, inputRef, setRecordingUrl]);
+  }, [verse.id, setUserInput, inputRef, setRecordingUrl, onVoiceBusyChange]);
 
   useEffect(() => {
     if (voiceState === "recording" && recordSeconds >= MAX_RECORD_SECONDS) {
@@ -395,33 +418,74 @@ export function VerseResult({
   verse,
   segments,
   accuracy,
-  ratingDone,
-  onRate,
+  passed,
   onNext,
   nextLabel,
   verseId,
-  onUndo,
-  recommendedRating,
   submitted,
-  onEdit,
+  commitError,
+  onRetry,
 }: {
   verse: VerseRef;
   segments: DiffSegment[];
   accuracy: number;
-  ratingDone: boolean;
-  onRate: (r: Rating) => void;
-  onNext: () => void;
+  /** 是否达到通过线（准确率 ≥ 90%） */
+  passed: boolean;
+  /** 通过后点它：入库评分并进入下一项（最后一项即结束） */
+  onNext: () => void | Promise<void>;
   nextLabel?: string;
   verseId?: number;
-  onUndo?: () => void;
-  recommendedRating?: Rating;
   /** 用户实际提交用于比对的文本（反馈 #13：结果页展示"你的提交"） */
   submitted?: string;
-  /** 未评分时允许返回修改识别文本/录音 */
-  onEdit?: () => void;
+  /** 入库失败提示 */
+  commitError?: string;
+  /** 重新练习：清空输入、原地再背这一节（不写库） */
+  onRetry: () => void;
 }) {
+  // 连背：把整段比对结果按节拆开，便于一眼看出漏的是哪一节
+  const lineDiffs = useMemo(() => {
+    if (!verse.passageVerses || verse.passageVerses.length < 2 || !submitted) return null;
+    return compareVerseLines(
+      submitted,
+      verse.passageVerses.map((v) => v.content)
+    );
+  }, [verse.passageVerses, submitted]);
+
   return (
     <div className="space-y-4">
+      {/*
+        状态与操作合并：不单独显示"通过/未通过"文字，用按钮的语义色表达状态。
+        橙色「重新练习」= 未通过（唯一动作）；绿色「下一组」= 通过后的前进动作。
+        aria-label 同时带状态，避免只靠颜色传达信息（WCAG 1.4.1）。
+      */}
+      <div className="flex items-center justify-end gap-1.5">
+        <Button
+          variant={passed ? "outline" : "default"}
+          size="sm"
+          onClick={onRetry}
+          aria-label={passed ? "通过，再练一遍" : "未通过，重新练习"}
+          className={cn(
+            !passed && "bg-orange-700 text-white hover:bg-orange-800"
+          )}
+        >
+          重新练习
+        </Button>
+        {passed && (
+          <Button
+            size="sm"
+            onClick={() => void onNext()}
+            aria-label={`通过，${nextLabel || "下一组"}`}
+            className="bg-green-700 text-white hover:bg-green-800"
+          >
+            {nextLabel || "下一组"}
+          </Button>
+        )}
+      </div>
+
+      {commitError && (
+        <p className="text-sm text-destructive text-center" role="alert">{commitError}</p>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
@@ -446,73 +510,41 @@ export function VerseResult({
       )}
 
       <Card>
-        <CardHeader><CardTitle>比对结果</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle>{lineDiffs ? "比对结果（按节）" : "比对结果"}</CardTitle>
+        </CardHeader>
         <CardContent>
-          <div className="text-lg leading-relaxed">
-            {segments.map((seg, i) => {
-              switch (seg.tag) {
-                case "correct":
-                  return <span key={i} className="text-green-600">{seg.text}</span>;
-                case "wrong":
-                  return <span key={i} className="text-red-500 line-through">{seg.original}</span>;
-                case "missing":
-                  return <span key={i} className="text-orange-400 bg-orange-50 px-0.5">{seg.text}</span>;
-                case "extra":
-                  return <span key={i} className="text-red-400 bg-red-50 px-0.5">{seg.text}</span>;
-              }
-            })}
-          </div>
+          {lineDiffs ? (
+            <div className="space-y-3">
+              {lineDiffs.map((diff, i) => {
+                const verseNo = verse.passageVerses?.[i]?.verse ?? i + 1;
+                const hasDiff = diff.segments.some((s) => s.tag !== "correct");
+                return (
+                  <div key={i} className="space-y-1">
+                    <p className="text-xs text-muted-foreground">
+                      <span className="font-medium text-foreground">
+                        {verse.bookName} {verse.chapter}:{verseNo}
+                      </span>
+                      <span className={hasDiff ? " text-orange-600" : " text-green-600"}>
+                        {hasDiff ? ` · 准确率 ${(diff.accuracy * 100).toFixed(0)}%` : " · 完整"}
+                      </span>
+                    </p>
+                    <div className="text-base leading-relaxed">
+                      <DiffSpans segments={diff.segments} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-lg leading-relaxed">
+              <DiffSpans segments={segments} />
+            </div>
+          )}
         </CardContent>
       </Card>
 
       {verseId && <VerseNotes verseId={verseId} />}
-
-      {!ratingDone && (
-        <Card>
-          <CardHeader><CardTitle>评分</CardTitle></CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-4 gap-2">
-              {([RATING.AGAIN, RATING.HARD, RATING.GOOD, RATING.EASY] as Rating[]).map((r) => {
-                const labels: Record<number, string> = { 1: "忘记", 2: "困难", 3: "正确", 4: "容易" };
-                const isRecommended = recommendedRating === r;
-                return (
-                  <Button
-                    key={r}
-                    variant={isRecommended ? "default" : "outline"}
-                    onClick={() => onRate(r)}
-                    className={cn("flex-col py-4 h-auto", isRecommended && "ring-2 ring-primary ring-offset-2")}
-                  >
-                    <span>{labels[r]}{isRecommended && " ★"}</span>
-                    <span className="text-xs text-muted-foreground mt-1">{r}</span>
-                  </Button>
-                );
-              })}
-            </div>
-            <p className="text-xs text-muted-foreground text-center mt-3">
-              {recommendedRating ? "★ 智能推荐 · 按 1-4 评分 · 空格跳过" : "按 1-4 评分 · 空格跳过"}
-            </p>
-          </CardContent>
-        </Card>
-      )}
-
-      {ratingDone && (
-        <div className="space-y-2">
-          <Button className="w-full" onClick={onNext}>
-            {nextLabel || "下一节"}
-          </Button>
-          {onUndo && (
-            <Button variant="ghost" size="sm" className="w-full" onClick={onUndo}>
-              撤销 (U)
-            </Button>
-          )}
-        </div>
-      )}
-
-      {!ratingDone && onEdit && (
-        <Button variant="outline" className="w-full" onClick={onEdit}>
-          返回修改
-        </Button>
-      )}
     </div>
   );
 }

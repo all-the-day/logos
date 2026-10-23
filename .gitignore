@@ -67,3 +67,6 @@ data/*.db*
 # 反馈收件箱（npm run feedback:pull 生成，不入库）
 tools/feedback/inbox.md
 .codebuddy/
+
+# UI 评审产物（ui-review 技能生成的报告与截图，不入库）
+/.ui-review/

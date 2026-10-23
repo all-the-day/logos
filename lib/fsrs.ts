@@ -134,23 +134,30 @@ function calcState(
 }
 
 /**
- * 根据 LCS 比对准确率推荐评级（用户可手动覆盖）。
- * - ≥ 0.95：基本正确，记 EASY
- * - ≥ 0.85：少量错误，记 GOOD
- * - ≥ 0.6：明显卡顿，记 HARD
- * - < 0.6：多半忘了，记 AGAIN
+ * 通过线：背诵准确率达到该值（90%）即判定通过。
+ * 低于该值本次不通过，需要继续重复练习（见 LearnClient 的会话内重学）。
+ */
+export const PASS_ACCURACY = 0.9;
+
+/**
+ * 按 LCS 比对准确率自动评分（提交后直接写入 FSRS，不再让用户手选掌握程度）。
+ * - ≥ 0.98：基本一字不差，记 EASY
+ * - ≥ PASS_ACCURACY(0.9)：通过，记 GOOD
+ * - ≥ 0.75：未通过，记 HARD
+ * - < 0.75：多次遗漏，记 AGAIN
+ * 与通过线对齐：未达 90% 时最多 HARD，不会出现"判了不通过却记 GOOD"。
  *
  * options.peeked：本次背诵前查看了原文（短时记忆会虚高准确率），
- * 推荐评分封顶 HARD —— 只允许 忘记/困难，不再推荐 正确/容易。
+ * 评分封顶 HARD —— 只允许 忘记/困难（当前 UI 不触发，保留为防御性机制）。
  */
 export function recommendRating(
   accuracy: number,
   options?: { peeked?: boolean }
 ): Rating {
   let rating: Rating;
-  if (accuracy >= 0.95) rating = RATING.EASY;
-  else if (accuracy >= 0.85) rating = RATING.GOOD;
-  else if (accuracy >= 0.6) rating = RATING.HARD;
+  if (accuracy >= 0.98) rating = RATING.EASY;
+  else if (accuracy >= PASS_ACCURACY) rating = RATING.GOOD;
+  else if (accuracy >= 0.75) rating = RATING.HARD;
   else rating = RATING.AGAIN;
 
   if (options?.peeked && rating !== RATING.AGAIN) rating = RATING.HARD;

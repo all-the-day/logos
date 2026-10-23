@@ -1,14 +1,14 @@
 "use client";
 
-import { useState, useCallback, useEffect, useMemo, useRef } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { compareVerse, generateFillBlanks, densityForStability } from "@/lib/compare";
 import { VerseViewer, VerseReciter, VerseResult, verseRefLabel } from "@/components/VerseStudy";
-import { recommendRating, RATING, type Rating } from "@/lib/fsrs";
-import type { CardSnapshot, PlanInfo, TaskData } from "@/types";
+import { recommendRating, PASS_ACCURACY, RATING } from "@/lib/fsrs";
+import type { PlanInfo, TaskData } from "@/types";
 
 interface Props {
   plan: PlanInfo | null;
@@ -20,9 +20,6 @@ interface Props {
 }
 
 type Mode = "view" | "recite" | "result";
-
-// 会话内重学（AGAIN 重出）：同一张卡在本会话内最多插回队列尾部几次，防死循环
-const MAX_REQUEUE_PER_SESSION = 2;
 
 /**
  * 是否需要先进入查看态：新卡，以及含未学经节的连背组（自由练习可能混合范围）。
@@ -45,24 +42,23 @@ export default function LearnClient({ plan, tasks, asrEnabled = false, practice 
   const [accuracy, setAccuracy] = useState(0);
   const [fillMode, setFillMode] = useState(false);
   const [fillInputs, setFillInputs] = useState<string[]>([]);
-  const [ratingDone, setRatingDone] = useState(false);
-  const [undoAvailable, setUndoAvailable] = useState(false);
+  // 通过后点「下一组」才会写库；保存失败时停在这里提示
+  const [commitError, setCommitError] = useState("");
   // 语音录音对象 URL 提升到这里：“返回修改”后组件卸载仍能播放
   const [recordingUrl, setRecordingUrl] = useState("");
   // 语音录音/识别进行中：屏蔽 Enter 与提交，避免误触
   const [voiceBusy, setVoiceBusy] = useState(false);
-  // 会话内重出队列：AGAIN 评分的卡插到队列尾部，本会话内再次背诵
-  const [requeued, setRequeued] = useState<TaskData[]>([]);
-  const requeueCounts = useRef(new Map<number, number>());
 
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const undoCardsRef = useRef<CardSnapshot[]>([]);
-  const ratingLockRef = useRef(false); // 防止评分请求在途时连按 1-4 重复提交
+  const committingRef = useRef(false); // 防止「下一组」连点重复入库
+  // 每张卡本会话的作答次数与最近一次是否通过（进度点用）
+  const attemptsRef = useRef(new Map<number, number>());
+  const [sessionStats, setSessionStats] = useState<
+    Record<number, { attempts: number; passed: boolean }>
+  >({});
 
-  // 有效队列 = 原始任务 + 会话内重出的副本
-  const queue = useMemo(() => [...tasks, ...requeued], [tasks, requeued]);
-  const task = queue[currentIdx];
-  const totalTasks = queue.length;
+  const task = tasks[currentIdx];
+  const totalTasks = tasks.length;
   const isPassage = Boolean(task?.isPassage);
 
   // Group tasks by chapter for quick navigation
@@ -78,7 +74,6 @@ export default function LearnClient({ plan, tasks, asrEnabled = false, practice 
     setUserInput("");
     setSegments([]);
     setAccuracy(0);
-    setRatingDone(false);
     if (fillMode) {
       const density = densityForStability(t.cardStability, t.cardState);
       const blanks = generateFillBlanks(t.content, density);
@@ -94,10 +89,9 @@ export default function LearnClient({ plan, tasks, asrEnabled = false, practice 
     startRecite(task);
   }, [task, startRecite]);
 
-  /** 切换到指定任务：原子清空全部单次背诵状态，复习卡直接进背诵态、新卡先进查看态 */
+  /** 切换到指定任务：原子清空全部单次背诵状态 */
   const goToTask = useCallback((idx: number) => {
-    // 索引动态队列（原始任务 + 会话内重出副本），重出副本在尾部
-    const t = queue[idx];
+    const t = tasks[idx];
     if (!t) return;
     setCurrentIdx(idx);
     setUserInput("");
@@ -105,17 +99,19 @@ export default function LearnClient({ plan, tasks, asrEnabled = false, practice 
     setSegments([]);
     setAccuracy(0);
     setFillInputs([]);
-    setRatingDone(false);
-    setUndoAvailable(false);
-    undoCardsRef.current = [];
     setRecordingUrl(""); // effect cleanup 会 revoke 上一条录音的对象 URL
     if (!needsPreview(t)) {
       startRecite(t); // 已学的单节/组直接背诵（会再初始化填空并聚焦）
     } else {
       setMode("view");
     }
-  }, [queue, startRecite]);
+  }, [tasks, startRecite]);
 
+  /**
+   * 提交默写：只做比对并展示结果，不写库。
+   * 未通过 → 只提供「重新练习」；通过 → 「重新练习」或「下一组」，
+   * 点「下一组」才把这一组入库评分。
+   */
   const handleSubmit = useCallback(() => {
     // 语音录音/识别进行中不允许提交，避免误触
     if (voiceBusy) return;
@@ -123,8 +119,7 @@ export default function LearnClient({ plan, tasks, asrEnabled = false, practice 
     if (!fillMode && !userInput.trim()) return;
     let finalInput = userInput;
     if (fillMode && !isPassage) {
-      // 填空模式：把用户填入的空还原回整节，再与原文比对。
-      // 全部填对才得 100%——否则拿填空词和整节原文比，永远到不了 100%。
+      // 填空模式：把用户填入的空还原回整节，再与原文比对
       const density = densityForStability(task.cardStability, task.cardState);
       const { display } = generateFillBlanks(task.content, density);
       let rebuilt = "";
@@ -144,141 +139,75 @@ export default function LearnClient({ plan, tasks, asrEnabled = false, practice 
     setSegments(result.segments);
     setAccuracy(result.accuracy);
     setSubmitted(finalInput);
+    setCommitError("");
     setMode("result");
+
+    const attempts = (attemptsRef.current.get(task.cardId) ?? 0) + 1;
+    attemptsRef.current.set(task.cardId, attempts);
+    setSessionStats((prev) => ({
+      ...prev,
+      [task.cardId]: { attempts, passed: result.accuracy >= PASS_ACCURACY },
+    }));
   }, [userInput, fillInputs, fillMode, task, isPassage, voiceBusy]);
 
-  /** 移除该卡在此前会话的重出副本，但保留当前正在展示的那一条（避免队列收缩导致 currentIdx 越界） */
-  const pruneRequeued = useCallback(
-    (prev: TaskData[], cardId: number): TaskData[] =>
-      prev.filter((c, i) => {
-        const isActive = tasks.length + i === currentIdx && c.cardId === cardId;
-        return c.cardId !== cardId || isActive;
-      }),
-    [tasks, currentIdx]
-  );
+  /** 未通过 / 通过后想再练一遍：清空输入回到默写态，不写库 */
+  const handleRetryCurrent = useCallback(() => {
+    if (!task) return;
+    setUserInput("");
+    setSubmitted("");
+    setSegments([]);
+    setAccuracy(0);
+    setFillInputs([]);
+    setCommitError("");
+    setMode("recite");
+    setTimeout(() => inputRef.current?.focus(), 50);
+  }, [task]);
 
-  const handleRate = useCallback(
-    async (rating: Rating) => {
-      if (ratingDone || ratingLockRef.current) return;
-      ratingLockRef.current = true;
+  /**
+   * 通过后的「下一组」：此时才把评分写入 FSRS，然后进入下一项。
+   * 最后一项点它即结束本次会话（不再单独放「完成」按钮）。
+   */
+  const handleNext = useCallback(async () => {
+    if (!task || committingRef.current) return;
+    if (accuracy >= PASS_ACCURACY) {
+      committingRef.current = true;
+      setCommitError("");
       try {
-        const cardIds = isPassage && task.cardIds?.length ? task.cardIds : [task.cardId];
-
-        // 用 task 快照做撤销：连背时使用组内每张卡的独立快照（passageCards），
-        // 单节任务从 task 字段构造；快照字段名与 PUT /api/card 的 cardId 对齐
-        undoCardsRef.current =
-          isPassage && task.passageCards?.length
-            ? task.passageCards
-            : [
-                {
-                  cardId: task.cardId,
-                  stability: task.cardStability,
-                  difficulty: task.cardDifficulty,
-                  reps: task.cardReps,
-                  lapses: task.cardLapses,
-                  state: task.cardState,
-                  lastReview: task.cardLastReview,
-                  due: task.cardDue,
-                },
-              ];
-
-        const rateRes = await fetch("/api/card", {
+        const attempts = sessionStats[task.cardId]?.attempts ?? 1;
+        // 补考通过不高于「正确」，避免反复试错拿到跟一次背对一样的间隔
+        const rating = Math.min(
+          recommendRating(accuracy),
+          attempts > 1 ? RATING.GOOD : RATING.EASY
+        );
+        const res = await fetch("/api/card", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(
-            isPassage
-              ? { ratings: cardIds.map((cardId) => ({ cardId, rating })) }
+            task.isPassage && task.cardIds?.length
+              ? { ratings: task.cardIds.map((cardId) => ({ cardId, rating })) }
               : { cardId: task.cardId, rating }
           ),
         });
-        if (!rateRes.ok) {
-          console.error("评分保存失败", await rateRes.text());
-          return; // 不置 ratingDone，允许重试
-        }
-        const data = (await rateRes.json().catch(() => null)) as {
-          card?: { state?: string };
-          cards?: { state?: string }[];
-        } | null;
-        setRatingDone(true);
-        setUndoAvailable(true);
-
-        // 会话内重学：过不过由客观比对决定——没到 100% 一字不差，或自评 AGAIN（看了提示/蒙对），
-        // 都插回队列尾部本会话再背。评分仍写入 FSRS，决定下一次复习间隔。
-        const mustRequeue = rating === RATING.AGAIN || accuracy < 1;
-        const updatedState =
-          data?.card?.state ??
-          data?.cards?.[0]?.state ??
-          (rating === RATING.AGAIN ? "relearning" : task.cardState);
-        if (mustRequeue) {
-          const count = requeueCounts.current.get(task.cardId) ?? 0;
-          if (count < MAX_REQUEUE_PER_SESSION) {
-            requeueCounts.current.set(task.cardId, count + 1);
-            setRequeued((prev) => [
-              ...pruneRequeued(prev, task.cardId),
-              // 重出副本已评过分，不再是"含新卡"：直接进背诵态，徽标也不显示"含新卡"
-              { ...task, cardState: updatedState, hasNew: false, requeued: true },
-            ]);
-          }
-        } else {
-          // 已过：移除该卡此前的重出副本（保留当前展示项），
-          // 防止 undo 后改评 GOOD/EASY 时尾部仍残留一张本应离开会话的卡
-          setRequeued((prev) => pruneRequeued(prev, task.cardId));
+        if (!res.ok) {
+          console.error("评分保存失败", await res.text());
+          setCommitError("入库失败，请重试");
+          return;
         }
       } catch (e) {
         console.error("评分请求异常", e);
+        setCommitError("入库失败，请重试");
+        return;
       } finally {
-        ratingLockRef.current = false;
+        committingRef.current = false;
       }
-    },
-    [task, ratingDone, accuracy, pruneRequeued, isPassage]
-  );
-
-  const handleUndo = useCallback(async () => {
-    const cards = undoCardsRef.current;
-    if (cards.length === 0) return;
-    try {
-      await fetch("/api/card", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        // 单卡沿用旧请求体；多卡（连背）走 cards 数组，逐卡恢复各自快照
-        body: JSON.stringify(
-          cards.length === 1
-            ? {
-                cardId: cards[0].cardId,
-                stability: cards[0].stability,
-                difficulty: cards[0].difficulty,
-                reps: cards[0].reps,
-                lapses: cards[0].lapses,
-                state: cards[0].state,
-                lastReview: cards[0].lastReview,
-                due: cards[0].due,
-              }
-            : { cards }
-        ),
-      });
-      setRatingDone(false);
-      setUndoAvailable(false);
-      undoCardsRef.current = [];
-    } catch { /* ignore */ }
-  }, []);
-
-  const handleNext = useCallback(() => {
+    }
     if (currentIdx < totalTasks - 1) {
       goToTask(currentIdx + 1);
     } else {
-      // 最后一节完成：越界索引触发"今日任务已完成"空状态
+      // 最后一节：越界索引触发"今日任务已完成"空状态
       setCurrentIdx(totalTasks);
     }
-  }, [currentIdx, totalTasks, goToTask]);
-
-  // 结果页未评分时允许返回修改识别文本/录音，改完再提交
-  const handleEdit = useCallback(() => {
-    setSegments([]);
-    setAccuracy(0);
-    setSubmitted("");
-    setMode("recite");
-    setTimeout(() => inputRef.current?.focus(), 50);
-  }, []);
+  }, [task, accuracy, sessionStats, currentIdx, totalTasks, goToTask]);
 
   // 复习卡初始直接进入背诵态时聚焦输入框
   useEffect(() => {
@@ -296,16 +225,17 @@ export default function LearnClient({ plan, tasks, asrEnabled = false, practice 
   }, [recordingUrl]);
 
   // 键盘处理：keydown 只注册一次，通过 ref 读取"最新"的处理器与状态。
-  // 避免切换任务后的一小段窗口内，旧监听器（闭包了上一节 task/输入）把 Enter 或评分误接到上一节，
-  // 导致"页面显示 1:4、比对/评分却用了 1:2"的跨节串扰。
+  // 避免切换任务后的一小段窗口内，旧监听器（闭包了上一节 task/输入）把 Enter 误接到上一节，
+  // 导致"页面显示 1:4、比对却用了 1:2"的跨节串扰。
+  // 结果页只保留 Space：通过时等于「下一组」（入库并前进）。
   const latest = useRef({
-    mode, ratingDone, undoAvailable, voiceBusy,
-    submit: handleSubmit, rate: handleRate, next: handleNext, undo: handleUndo,
+    mode, voiceBusy,
+    submit: handleSubmit, next: handleNext,
   });
   useEffect(() => {
     latest.current = {
-      mode, ratingDone, undoAvailable, voiceBusy,
-      submit: handleSubmit, rate: handleRate, next: handleNext, undo: handleUndo,
+      mode, voiceBusy,
+      submit: handleSubmit, next: handleNext,
     };
   });
   useEffect(() => {
@@ -322,19 +252,9 @@ export default function LearnClient({ plan, tasks, asrEnabled = false, practice 
         e.preventDefault();
         l.submit();
       }
-      if (l.mode === "result" && !l.ratingDone) {
-        if (e.key === "1") l.rate(1 as Rating);
-        if (e.key === "2") l.rate(2 as Rating);
-        if (e.key === "3") l.rate(3 as Rating);
-        if (e.key === "4") l.rate(4 as Rating);
-        if (e.key === " " || e.key === "Spacebar") {
-          e.preventDefault();
-          l.next(); // skip without rating
-        }
-      }
-      if (l.mode === "result" && l.ratingDone && l.undoAvailable && (e.key === "u" || e.key === "U")) {
+      if (l.mode === "result" && (e.key === " " || e.key === "Spacebar")) {
         e.preventDefault();
-        l.undo();
+        void l.next();
       }
     };
     window.addEventListener("keydown", handleKey);
@@ -377,6 +297,11 @@ export default function LearnClient({ plan, tasks, asrEnabled = false, practice 
   const isReview = task.cardState !== "new";
   const isPassageTask = isPassage;
   const verseLabel = verseRefLabel(task);
+  // 首答通过数：只统计"第一次提交就 ≥90%"的项（补考通过不算）
+  const firstPassCount = tasks.reduce((count, t) => {
+    const stat = sessionStats[t.cardId];
+    return count + (stat?.passed && stat.attempts === 1 ? 1 : 0);
+  }, 0);
 
   return (
     <div className="max-w-lg mx-auto p-4 space-y-4">
@@ -384,8 +309,8 @@ export default function LearnClient({ plan, tasks, asrEnabled = false, practice 
         <div className="flex flex-wrap items-center gap-2">
           <h2 className="font-medium text-muted-foreground">{verseLabel}</h2>
           {practice && <Badge variant="outline">自由练习</Badge>}
-          <Badge variant={task.requeued ? "destructive" : isReview ? "default" : "secondary"}>
-            {task.requeued ? "重学" : isReview ? "复习" : "新卡"}
+          <Badge variant={isReview ? "default" : "secondary"}>
+            {isReview ? "复习" : "新卡"}
           </Badge>
           {isPassageTask && <Badge variant="outline">连背 {task.cardIds?.length ?? 1} 节</Badge>}
           {isReview && task.hasNew && <Badge variant="secondary">含新卡</Badge>}
@@ -401,6 +326,38 @@ export default function LearnClient({ plan, tasks, asrEnabled = false, practice 
           </Badge>
         </div>
       </div>
+
+      {/*
+        进度点只表示"位置"（已过/当前/未到），不使用通过/未通过的状态色：
+        通过与否已由结果页按钮的语义色表达，再上一套颜色会重复且显得杂乱。
+        单项会话没有进度可言，整行不显示。
+      */}
+      {tasks.length > 1 && (
+        <div
+          className="flex items-center justify-between gap-2"
+          aria-label={`本轮共 ${tasks.length} 项，首答通过 ${firstPassCount} 项`}
+        >
+          <div className="flex flex-wrap items-center gap-1">
+            {tasks.map((t, i) => {
+              const tone =
+                i < currentIdx
+                  ? "bg-muted-foreground/40"
+                  : i === currentIdx
+                    ? "bg-primary"
+                    : "bg-muted-foreground/15";
+              return (
+                <span
+                  key={`${t.cardId}-${i}`}
+                  className={cn("h-1.5 w-3 rounded-full transition-colors", tone)}
+                />
+              );
+            })}
+          </div>
+          <span className="shrink-0 text-xs text-muted-foreground">
+            首答 {firstPassCount}/{tasks.length}
+          </span>
+        </div>
+      )}
 
       {mode === "view" && (
         <>
@@ -459,15 +416,13 @@ export default function LearnClient({ plan, tasks, asrEnabled = false, practice 
           verse={task}
           segments={segments}
           accuracy={accuracy}
-          ratingDone={ratingDone}
-          onRate={handleRate}
+          passed={accuracy >= PASS_ACCURACY}
           onNext={handleNext}
-          nextLabel={currentIdx >= totalTasks - 1 ? "完成" : isPassageTask ? "下一组" : "下一节"}
+          nextLabel={isPassageTask ? "下一组" : "下一节"}
           verseId={isPassageTask ? undefined : task.id}
-          onUndo={undoAvailable ? handleUndo : undefined}
-          recommendedRating={recommendRating(accuracy)}
           submitted={submitted}
-          onEdit={ratingDone ? undefined : handleEdit}
+          commitError={commitError}
+          onRetry={handleRetryCurrent}
         />
       )}
     </div>

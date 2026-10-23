@@ -112,6 +112,54 @@ export interface CompareResult {
   accuracy: number;
 }
 
+/** 连背按节拆分的比对结果 */
+export interface VerseLineDiff {
+  segments: DiffSegment[];
+  accuracy: number;
+}
+
+/**
+ * 连背按节拆分比对结果：先对整段做一次 LCS，再把每个目标字符归属回它所在的节，
+ * 逐节重建"用户在这一节写了什么"，最后逐节比对。
+ * 整段准确率仍以 compareVerse 为准，这里只用于展示（一眼看出漏的是哪一节）。
+ */
+export function compareVerseLines(
+  userInput: string,
+  lines: string[],
+  ignorePunctuation: boolean = true
+): VerseLineDiff[] {
+  const normalizedLines = lines.map((line) => normalize(line, ignorePunctuation));
+  const target = normalizedLines.join("");
+  if (!target) return lines.map(() => ({ segments: [], accuracy: 1 }));
+
+  // owner[i] = 第 i 个目标字符属于第几节
+  const owner: number[] = [];
+  normalizedLines.forEach((line, lineIdx) => {
+    for (let k = 0; k < line.length; k++) owner.push(lineIdx);
+  });
+
+  const userPortions = lines.map(() => "");
+  const u = normalize(userInput, ignorePunctuation);
+  if (u) {
+    const dp = buildLCSMatrix(target, u);
+    const ops = backtrack(dp, target, u);
+    for (const op of ops) {
+      if (op.tag === "equal") {
+        userPortions[owner[op.aIdx]] += u[op.bIdx];
+      } else if (op.tag === "insert") {
+        // 多出来的字归属插入点所在的节（末尾则归最后一节）
+        const lineIdx = op.aIdx < owner.length ? owner[op.aIdx] : lines.length - 1;
+        userPortions[lineIdx] += u[op.bIdx];
+      }
+    }
+  }
+
+  return lines.map((line, i) => {
+    const result = compareVerse(userPortions[i], line, ignorePunctuation);
+    return { segments: result.segments, accuracy: result.accuracy };
+  });
+}
+
 /**
  * 比对经文，返回分段差异与准确率。
  * 默认忽略标点与空白差异——中文标点（、，；。：）和英文逗号句号混用是常态。

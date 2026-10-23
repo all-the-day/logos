@@ -37,12 +37,12 @@ export interface TaskData extends VerseData {
   cardLapses: number;
   cardLastReview: Date | null;
   cardDue: Date;
-  /** 会话内重出标记：AGAIN 评分后插回队列尾部的副本（仅客户端学习会话使用） */
-  requeued?: boolean;
   /** 连背任务标记：content 为整段拼接原文，cardIds 为组内所有卡片 */
   isPassage?: boolean;
   verseEnd?: number;
   cardIds?: number[];
+  /** 连背组内每节的原文（按节号升序），用于结果页按节分行展示差异 */
+  passageVerses?: Array<{ verse: number; content: string }>;
   /** 连背组内含未学经节：整组先查看再背诵（自由练习的混合范围） */
   hasNew?: boolean;
   /** 连背组内每张卡的独立快照（撤销用；单节任务为空） */

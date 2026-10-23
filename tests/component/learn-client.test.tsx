@@ -56,7 +56,7 @@ describe("LearnClient 跨节状态隔离（复现：上一节的输入/比对残
     }));
   });
 
-  it("上一节提交/评分后切到下一节：输入框清空，误用旧文提交不会按旧节判 100%", async () => {
+  it("上一节通过并点「下一节」后切到下一节：输入框清空，误用旧文提交不会按旧节判 100%", async () => {
     const user = userEvent.setup();
     render(<LearnClient plan={plan} tasks={tasks} />);
 
@@ -68,11 +68,11 @@ describe("LearnClient 跨节状态隔离（复现：上一节的输入/比对残
     await user.type(textarea, "第一节经文");
     await user.keyboard("{Enter}");
     expect(screen.getByText("准确率 100%")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "通过，下一节" })).toBeInTheDocument();
 
-    // 评分成功 → 出现"下一节"
-    await user.keyboard("3");
-    await screen.findByRole("button", { name: /下一节/ });
+    // 通过后点「下一节」→ 入库并进入下一项
     await user.click(screen.getByRole("button", { name: /下一节/ }));
+    await screen.findByRole("heading", { name: "罗马书 1:2" });
 
     // 第二个任务是新卡 → 查看态 → 开始背诵
     await user.click(screen.getByRole("button", { name: /开始背诵/ }));
@@ -90,105 +90,97 @@ describe("LearnClient 跨节状态隔离（复现：上一节的输入/比对残
     expect(screen.getByText(/准确率 (?!100%)/)).toBeInTheDocument();
   });
 
-  it("最后一节完成：点「完成」进入「今日任务已完成」空状态（回归 #1）", async () => {
+  it("最后一节通过后点「下一节」即结束（没有单独的「完成」按钮）", async () => {
     const user = userEvent.setup();
     render(<LearnClient plan={plan} tasks={tasks} />);
 
-    // 任务 1（复习卡）：背诵 → 提交 → 评分 → 下一节
-    const textarea = screen.getByPlaceholderText("在此输入经文...") as HTMLTextAreaElement;
-    await user.type(textarea, "第一节经文");
+    // 任务 1（复习卡）：通过 → 下一节
+    await user.type(screen.getByPlaceholderText("在此输入经文..."), "第一节经文");
     await user.keyboard("{Enter}");
-    await user.keyboard("3");
-    await screen.findByRole("button", { name: /下一节/ });
+    await user.click(screen.getByRole("button", { name: /下一节/ }));
+    await screen.findByRole("heading", { name: "罗马书 1:2" });
+
+    // 任务 2（新卡）：查看 → 背诵 → 通过
+    await user.click(screen.getByRole("button", { name: /开始背诵/ }));
+    await user.type(screen.getByPlaceholderText("在此输入经文..."), "第二节经文");
+    await user.keyboard("{Enter}");
+
+    // 最后一项也不显示「完成」，仍是「下一节」
+    expect(screen.queryByRole("button", { name: /完成/ })).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: /下一节/ }));
 
-    // 任务 2（新卡）：查看 → 开始背诵 → 提交 → 评分 → 此时按钮应为「完成」
-    await user.click(screen.getByRole("button", { name: /开始背诵/ }));
-    const textarea2 = screen.getByPlaceholderText("在此输入经文...") as HTMLTextAreaElement;
-    await user.type(textarea2, "第二节经文");
-    await user.keyboard("{Enter}");
-    await user.keyboard("3");
-    const doneBtn = await screen.findByRole("button", { name: /完成/ });
-    await user.click(doneBtn);
-
-    // 关键断言（修复点）：全部任务完成后显示完成空状态，而不是无反应
-    expect(screen.getByText("今日任务已完成！")).toBeInTheDocument();
+    expect(await screen.findByText("今日任务已完成！")).toBeInTheDocument();
   });
 
-  it("会话内重学：没到 100% 评 GOOD 也不能过，卡片插回队列尾部，重出时标「重学」", async () => {
+  it("未通过：顶部只显示「重新练习」，点击后原地重背同一节", async () => {
     const user = userEvent.setup();
     render(<LearnClient plan={plan} tasks={tasks} />);
 
-    // 任务 1（复习卡）：只背出 4/5 字（漏了"文"），准确率 80% < 100%
-    const textarea = screen.getByPlaceholderText("在此输入经文...") as HTMLTextAreaElement;
-    await user.type(textarea, "第一节经");
+    // 任务 1：只背出 4/5 字（漏了"文"），80% < 90%
+    await user.type(screen.getByPlaceholderText("在此输入经文..."), "第一节经");
     await user.keyboard("{Enter}");
     expect(screen.getByText("准确率 80%")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "未通过，重新练习" })).toBeInTheDocument();
+    // 未通过没有「下一节」
+    expect(screen.queryByRole("button", { name: /下一节/ })).not.toBeInTheDocument();
 
-    // 即使自评 GOOD，客观没到 100% 仍判定没过 → 插回队列尾部
-    await user.keyboard("3");
-    await screen.findByRole("button", { name: /下一节/ });
-    await user.click(screen.getByRole("button", { name: /下一节/ }));
+    // 重新练习 → 还是同一节，输入框清空
+    await user.click(screen.getByRole("button", { name: /重新练习/ }));
+    expect(screen.getByRole("heading", { name: "罗马书 1:1" })).toBeInTheDocument();
+    const retryInput = screen.getByPlaceholderText("在此输入经文...") as HTMLTextAreaElement;
+    expect(retryInput.value).toBe("");
 
-    // 任务 2（新卡）：正常通过
-    await user.click(screen.getByRole("button", { name: /开始背诵/ }));
-    const textarea2 = screen.getByPlaceholderText("在此输入经文...") as HTMLTextAreaElement;
-    await user.type(textarea2, "第二节经文");
+    // 这次背对 → 通过，首答仍算未通过
+    await user.type(retryInput, "第一节经文");
     await user.keyboard("{Enter}");
-    await user.keyboard("3");
-    await screen.findByRole("button", { name: /下一节/ });
-    await user.click(screen.getByRole("button", { name: /下一节/ }));
-
-    // 第 1 节的重出副本出现：标「重学」，直接进入背诵态
-    expect(screen.getByText("重学")).toBeInTheDocument();
-    const textarea3 = screen.getByPlaceholderText("在此输入经文...") as HTMLTextAreaElement;
-    await user.type(textarea3, "第一节经文");
-    await user.keyboard("{Enter}");
-    expect(screen.getByText("准确率 100%")).toBeInTheDocument();
-    await user.keyboard("3");
-
-    // 这次 100% 过了 → 完成
-    const doneBtn = await screen.findByRole("button", { name: /完成/ });
-    await user.click(doneBtn);
-    expect(screen.getByText("今日任务已完成！")).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "通过，下一节" })).toBeInTheDocument();
+    expect(screen.getByText("首答 0/2")).toBeInTheDocument();
   });
 
-  it("会话内重学上限：同一节连续 AGAIN 3 次后不再重出，直接完成", async () => {
+  it("未通过可以一直原地重练，不限次数", async () => {
     const user = userEvent.setup();
     render(<LearnClient plan={plan} tasks={tasks} />);
 
-    // 任务 1（复习卡）：背错 → AGAIN → 重出副本 1
-    const textarea = screen.getByPlaceholderText("在此输入经文...") as HTMLTextAreaElement;
-    await user.type(textarea, "第一节经");
-    await user.keyboard("{Enter}");
-    await user.keyboard("1");
-    await screen.findByRole("button", { name: /下一节/ });
-    await user.click(screen.getByRole("button", { name: /下一节/ }));
+    for (let i = 0; i < 4; i++) {
+      await user.type(screen.getByPlaceholderText("在此输入经文..."), "第一节经");
+      await user.keyboard("{Enter}");
+      await user.click(await screen.findByRole("button", { name: /重新练习/ }));
+      expect(screen.getByRole("heading", { name: "罗马书 1:1" })).toBeInTheDocument();
+    }
+    expect(screen.getByPlaceholderText("在此输入经文...")).toBeInTheDocument();
+  });
 
-    // 任务 2（新卡）：正常通过
-    await user.click(screen.getByRole("button", { name: /开始背诵/ }));
-    const textarea2 = screen.getByPlaceholderText("在此输入经文...") as HTMLTextAreaElement;
-    await user.type(textarea2, "第二节经文");
-    await user.keyboard("{Enter}");
-    await user.keyboard("3");
-    await screen.findByRole("button", { name: /下一节/ });
-    await user.click(screen.getByRole("button", { name: /下一节/ }));
+  it("通过后点「下一组」才入库：未通过不写分，补考通过封顶「正确」", async () => {
+    const user = userEvent.setup();
+    render(<LearnClient plan={plan} tasks={tasks} />);
 
-    // 重出副本 1：又背错 → AGAIN → 重出副本 2
-    const textarea3 = screen.getByPlaceholderText("在此输入经文...") as HTMLTextAreaElement;
-    await user.type(textarea3, "第一节经");
-    await user.keyboard("{Enter}");
-    await user.keyboard("1");
-    await screen.findByRole("button", { name: /下一节/ });
-    await user.click(screen.getByRole("button", { name: /下一节/ }));
+    const fetchMock = globalThis.fetch as unknown as ReturnType<typeof vi.fn>;
+    const rateCalls = () =>
+      fetchMock.mock.calls.filter(
+        (call) => String(call[0]) === "/api/card" && String((call[1] as RequestInit)?.method) === "POST"
+      );
 
-    // 重出副本 2：再背错 → AGAIN → 已达上限（2 次），不再重出 → 按钮为「完成」
-    const textarea4 = screen.getByPlaceholderText("在此输入经文...") as HTMLTextAreaElement;
-    await user.type(textarea4, "第一节经");
+    // 先失败一次 → 提交时不写库
+    await user.type(screen.getByPlaceholderText("在此输入经文..."), "第一节经");
     await user.keyboard("{Enter}");
-    await user.keyboard("1");
-    const doneBtn = await screen.findByRole("button", { name: /完成/ });
-    await user.click(doneBtn);
-    expect(screen.getByText("今日任务已完成！")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "未通过，重新练习" })).toBeInTheDocument();
+    expect(rateCalls()).toHaveLength(0);
+
+    // 重新练习并背对 → 仍不写库，要点「下一节」才入库
+    await user.click(screen.getByRole("button", { name: /重新练习/ }));
+    await user.type(screen.getByPlaceholderText("在此输入经文..."), "第一节经文");
+    await user.keyboard("{Enter}");
+    expect(await screen.findByRole("button", { name: "通过，下一节" })).toBeInTheDocument();
+    expect(rateCalls()).toHaveLength(0);
+
+    await user.click(screen.getByRole("button", { name: /下一节/ }));
+    await screen.findByRole("heading", { name: "罗马书 1:2" });
+
+    expect(rateCalls()).toHaveLength(1);
+    const body = JSON.parse(String((rateCalls()[0][1] as RequestInit).body));
+    // 补考通过：accuracy 100% 本应 EASY(4)，封顶为 GOOD(3)
+    expect(body).toEqual({ cardId: 1, rating: 3 });
+    // 首答未通过：计数不涨
+    expect(screen.getByText("首答 0/2")).toBeInTheDocument();
   });
 });

@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   compareVerse,
+  compareVerseLines,
   normalize,
   generateFillBlanks,
   densityForStability,
@@ -157,6 +158,42 @@ describe("generateFillBlanks", () => {
     const r = generateFillBlanks("", 0.5);
     expect(r.display).toBe("");
     expect(r.blanks).toEqual([]);
+  });
+});
+
+describe("compareVerseLines（连背按节拆分）", () => {
+  const lines = ["神爱世人", "甚至将他的独生子赐给他们"];
+
+  it("每节都能对上时，各节准确率都是 100%", () => {
+    const result = compareVerseLines("神爱世人甚至将他的独生子赐给他们", lines);
+    expect(result).toHaveLength(2);
+    expect(result[0].accuracy).toBe(1);
+    expect(result[1].accuracy).toBe(1);
+  });
+
+  it("漏掉第二节里的字，只标在第二节", () => {
+    // 漏了第二节的"独生子"
+    const result = compareVerseLines("神爱世人甚至将他的赐给他们", lines);
+    expect(result[0].accuracy).toBe(1);
+    expect(result[1].accuracy).toBeLessThan(1);
+    expect(
+      result[1].segments.filter((s) => s.tag === "missing").map((s) => s.text).join("")
+    ).toContain("独生子");
+  });
+
+  it("整节缺失时该节准确率为 0，其余节不受影响", () => {
+    const result = compareVerseLines("神爱世人", lines);
+    expect(result[0].accuracy).toBe(1);
+    expect(result[1].accuracy).toBe(0);
+  });
+
+  it("空输入时每节都是 missing", () => {
+    const result = compareVerseLines("", lines);
+    expect(result.every((r) => r.accuracy === 0)).toBe(true);
+  });
+
+  it("空行列表返回空数组", () => {
+    expect(compareVerseLines("任何内容", [])).toEqual([]);
   });
 });
 
