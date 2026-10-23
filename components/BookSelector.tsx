@@ -1,5 +1,7 @@
 "use client";
 
+import { useId } from "react";
+
 interface BookSelectorProps {
   books: Array<{ id: number; name: string }>;
   selectedId: number | null;
@@ -11,31 +13,39 @@ export default function BookSelector({
   selectedId,
   onSelect,
 }: BookSelectorProps) {
+  const idPrefix = useId();
   const ot = books.filter((b) => b.id <= 39);
   const nt = books.filter((b) => b.id > 39);
 
-  const renderSelect = (list: typeof books, label: string, ntFilter: boolean) => (
-    <div>
-      <label className="text-sm font-medium text-muted-foreground mb-1.5 block">
-        {label}
-      </label>
-      <select
-        className="w-full px-3 py-2 border rounded-md bg-background text-sm"
-        value={selectedId && (ntFilter ? selectedId > 39 : selectedId <= 39) ? selectedId : ""}
-        onChange={(e) => {
-          const v = Number(e.target.value);
-          if (v) onSelect(v);
-        }}
-      >
-        <option value="" disabled>选择{label}书卷...</option>
-        {list.map((book) => (
-          <option key={book.id} value={book.id}>
-            {book.name}
-          </option>
-        ))}
-      </select>
-    </div>
-  );
+  const renderSelect = (list: typeof books, label: string, ntFilter: boolean) => {
+    const selectId = `${idPrefix}-${ntFilter ? "nt" : "ot"}`;
+    return (
+      <div>
+        <label
+          htmlFor={selectId}
+          className="text-sm font-medium text-muted-foreground mb-1.5 block"
+        >
+          {label}
+        </label>
+        <select
+          id={selectId}
+          className="w-full px-3 py-2 border rounded-md bg-background text-sm"
+          value={selectedId && (ntFilter ? selectedId > 39 : selectedId <= 39) ? selectedId : ""}
+          onChange={(e) => {
+            const v = Number(e.target.value);
+            if (v) onSelect(v);
+          }}
+        >
+          <option value="" disabled>选择{label}书卷...</option>
+          {list.map((book) => (
+            <option key={book.id} value={book.id}>
+              {book.name}
+            </option>
+          ))}
+        </select>
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-3">

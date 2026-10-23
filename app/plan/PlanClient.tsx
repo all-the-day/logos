@@ -55,6 +55,8 @@ export default function PlanClient({
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [checkinState, setCheckinState] = useState(checkin);
+  const [checkinError, setCheckinError] = useState<string | null>(null);
+  const [checkingIn, setCheckingIn] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [editVersesPerDay, setEditVersesPerDay] = useState(planDetails?.plan?.versesPerDay ?? 3);
@@ -143,13 +145,22 @@ export default function PlanClient({
   }, [editBookId, editVersesPerDay, editReciteMode, editPassageSize]);
 
   const handleCheckin = useCallback(async () => {
+    setCheckingIn(true);
+    setCheckinError(null);
     try {
       const res = await fetch("/api/checkin", { method: "POST" });
       if (res.ok) {
         const data = await res.json();
         setCheckinState({ checkedIn: true, streak: data.streak });
+      } else {
+        const data = await res.json().catch(() => null);
+        setCheckinError(data?.error || `签到失败（${res.status}），请重试`);
       }
-    } catch { /* ignore */ }
+    } catch {
+      setCheckinError("网络错误，签到失败，请重试");
+    } finally {
+      setCheckingIn(false);
+    }
   }, []);
 
   if (!planDetails?.plan) {
@@ -160,38 +171,39 @@ export default function PlanClient({
         </p>
         <Card>
           <CardHeader>
-            <CardTitle>新建背诵计划</CardTitle>
+            <CardTitle as="h1">新建背诵计划</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div>
-              <label className="text-sm font-medium mb-2 block">选择书卷</label>
+            <div role="group" aria-label="选择书卷">
+              <div className="text-sm font-medium mb-2 block">选择书卷</div>
               <BookSelector
                 books={books}
                 selectedId={selectedBook}
                 onSelect={setSelectedBook}
               />
             </div>
-            <div>
-              <label className="text-sm font-medium mb-2 block">每日节数</label>
+            <div role="group" aria-label="每日节数">
+              <div className="text-sm font-medium mb-2 block">每日节数</div>
               <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm"
+                <Button variant="outline" size="sm" aria-label="减少每日节数"
                   onClick={() => setVersesPerDay(Math.max(1, versesPerDay - 1))}>
                   -
                 </Button>
-                <span className="w-12 text-center font-medium">{versesPerDay}</span>
-                <Button variant="outline" size="sm"
+                <span aria-live="polite" className="w-12 text-center font-medium">{versesPerDay}</span>
+                <Button variant="outline" size="sm" aria-label="增加每日节数"
                   onClick={() => setVersesPerDay(Math.min(10, versesPerDay + 1))}>
                   +
                 </Button>
                 <span className="text-sm text-muted-foreground ml-2">节/天</span>
               </div>
             </div>
-            <div>
-              <label className="text-sm font-medium mb-2 block">背诵模式</label>
+            <div role="group" aria-label="背诵模式">
+              <div className="text-sm font-medium mb-2 block">背诵模式</div>
               <div className="flex gap-2">
                 <Button
                   variant={reciteMode === "single" ? "default" : "outline"}
                   size="sm"
+                  aria-pressed={reciteMode === "single"}
                   onClick={() => setReciteMode("single")}
                 >
                   单节精背
@@ -199,6 +211,7 @@ export default function PlanClient({
                 <Button
                   variant={reciteMode === "passage" ? "default" : "outline"}
                   size="sm"
+                  aria-pressed={reciteMode === "passage"}
                   onClick={() => setReciteMode("passage")}
                 >
                   连背多节
@@ -209,15 +222,15 @@ export default function PlanClient({
               </p>
             </div>
             {reciteMode === "passage" && (
-              <div>
-                <label className="text-sm font-medium mb-2 block">每组节数</label>
+              <div role="group" aria-label="每组节数">
+                <div className="text-sm font-medium mb-2 block">每组节数</div>
                 <div className="flex items-center gap-2">
-                  <Button variant="outline" size="sm"
+                  <Button variant="outline" size="sm" aria-label="减少每组节数"
                     onClick={() => setPassageSize(Math.max(2, passageSize - 1))}>
                     -
                   </Button>
-                  <span className="w-12 text-center font-medium">{passageSize}</span>
-                  <Button variant="outline" size="sm"
+                  <span aria-live="polite" className="w-12 text-center font-medium">{passageSize}</span>
+                  <Button variant="outline" size="sm" aria-label="增加每组节数"
                     onClick={() => setPassageSize(Math.min(10, passageSize + 1))}>
                     +
                   </Button>
@@ -265,6 +278,8 @@ export default function PlanClient({
   return (
     <div className="max-w-lg mx-auto px-4 pt-4 flex flex-col min-h-[calc(100vh-5rem)] space-y-4">
 
+      <h1 className="sr-only">今日背诵计划</h1>
+
       <div className="text-sm text-muted-foreground">
         {getTodayLabel()}
       </div>
@@ -272,7 +287,7 @@ export default function PlanClient({
       {/* 今日任务卡（唯一 CTA → /learn） */}
       <Card>
         <CardHeader>
-          <CardTitle>今日任务</CardTitle>
+          <CardTitle as="h2">今日任务</CardTitle>
           <div className="text-sm text-muted-foreground">
             待复习 {review} 节 · 新经文 {newCount} 节
           </div>
@@ -313,10 +328,15 @@ export default function PlanClient({
                   连续 {checkinState.streak} 天
                 </div>
               </div>
-              <Button onClick={handleCheckin} size="lg">
-                签到
+              <Button onClick={handleCheckin} size="lg" disabled={checkingIn}>
+                {checkingIn ? "签到中..." : "签到"}
               </Button>
             </div>
+            {checkinError && (
+              <p role="alert" className="text-sm text-red-600 mt-3">
+                {checkinError}
+              </p>
+            )}
           </CardContent>
         </Card>
       ) : dailyVerse ? (
@@ -332,12 +352,12 @@ export default function PlanClient({
       <Card className="mt-auto shadow-md border-muted/60">
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>{book?.name}</CardTitle>
+            <CardTitle as="h2">{book?.name}</CardTitle>
             <div className="flex items-center gap-1">
               <Badge variant="secondary">学习中</Badge>
               <details className="relative">
                 <summary
-                  className="list-none cursor-pointer p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary"
+                  className="list-none cursor-pointer p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary relative after:absolute after:-inset-2.5 after:content-['']"
                   aria-label="更多操作"
                 >
                   <svg
@@ -394,14 +414,17 @@ export default function PlanClient({
         <CardContent className="pt-4">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <div className="text-sm font-medium">自由练习</div>
+              <h2 className="text-sm font-medium">自由练习</h2>
               <div className="text-xs text-muted-foreground">
                 指定任意书卷与经节范围，随时单独练一组
               </div>
             </div>
             <Link
               href="/practice"
-              className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+              className={cn(
+                buttonVariants({ variant: "outline", size: "sm" }),
+                "relative after:absolute after:-inset-2 after:content-['']"
+              )}
             >
               选择经节
             </Link>
@@ -416,35 +439,36 @@ export default function PlanClient({
             <DialogTitle>修改计划</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium mb-2 block">选择书卷</label>
+            <div role="group" aria-label="选择书卷">
+              <div className="text-sm font-medium mb-2 block">选择书卷</div>
               <BookSelector
                 books={books}
                 selectedId={editBookId}
                 onSelect={setEditBookId}
               />
             </div>
-            <div>
-              <label className="text-sm font-medium mb-2 block">每日节数</label>
+            <div role="group" aria-label="每日节数">
+              <div className="text-sm font-medium mb-2 block">每日节数</div>
               <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm"
+                <Button variant="outline" size="sm" aria-label="减少每日节数"
                   onClick={() => setEditVersesPerDay(Math.max(1, editVersesPerDay - 1))}>
                   -
                 </Button>
-                <span className="w-12 text-center font-medium">{editVersesPerDay}</span>
-                <Button variant="outline" size="sm"
+                <span aria-live="polite" className="w-12 text-center font-medium">{editVersesPerDay}</span>
+                <Button variant="outline" size="sm" aria-label="增加每日节数"
                   onClick={() => setEditVersesPerDay(Math.min(10, editVersesPerDay + 1))}>
                   +
                 </Button>
                 <span className="text-sm text-muted-foreground ml-2">节/天</span>
               </div>
             </div>
-            <div>
-              <label className="text-sm font-medium mb-2 block">背诵模式</label>
+            <div role="group" aria-label="背诵模式">
+              <div className="text-sm font-medium mb-2 block">背诵模式</div>
               <div className="flex gap-2">
                 <Button
                   variant={editReciteMode === "single" ? "default" : "outline"}
                   size="sm"
+                  aria-pressed={editReciteMode === "single"}
                   onClick={() => setEditReciteMode("single")}
                 >
                   单节精背
@@ -452,6 +476,7 @@ export default function PlanClient({
                 <Button
                   variant={editReciteMode === "passage" ? "default" : "outline"}
                   size="sm"
+                  aria-pressed={editReciteMode === "passage"}
                   onClick={() => setEditReciteMode("passage")}
                 >
                   连背多节
@@ -459,15 +484,15 @@ export default function PlanClient({
               </div>
             </div>
             {editReciteMode === "passage" && (
-              <div>
-                <label className="text-sm font-medium mb-2 block">每组节数</label>
+              <div role="group" aria-label="每组节数">
+                <div className="text-sm font-medium mb-2 block">每组节数</div>
                 <div className="flex items-center gap-2">
-                  <Button variant="outline" size="sm"
+                  <Button variant="outline" size="sm" aria-label="减少每组节数"
                     onClick={() => setEditPassageSize(Math.max(2, editPassageSize - 1))}>
                     -
                   </Button>
-                  <span className="w-12 text-center font-medium">{editPassageSize}</span>
-                  <Button variant="outline" size="sm"
+                  <span aria-live="polite" className="w-12 text-center font-medium">{editPassageSize}</span>
+                  <Button variant="outline" size="sm" aria-label="增加每组节数"
                     onClick={() => setEditPassageSize(Math.min(10, editPassageSize + 1))}>
                     +
                   </Button>

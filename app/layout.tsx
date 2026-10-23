@@ -22,7 +22,7 @@ export default function RootLayout({
     <html lang="zh-CN">
       <body className="antialiased min-h-screen pb-16">
         <ToastProvider>
-        {children}
+        <main>{children}</main>
         <BottomNavWrapper />
         </ToastProvider>
       </body>
