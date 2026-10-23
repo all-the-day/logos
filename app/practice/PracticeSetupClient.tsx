@@ -308,6 +308,7 @@ export default function PracticeSetupClient({
 
           <Button
             className="w-full"
+            size="lg"
             disabled={!bookId || rangeInvalid || tooMany || submitting || (!loadingInfo && !info)}
             onClick={handleStart}
           >

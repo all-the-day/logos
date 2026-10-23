@@ -36,8 +36,13 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={{ toast }}>
       {children}
-      {/* Toast container */}
-      <div className="fixed top-4 right-4 z-[100] space-y-2 max-w-sm">
+      {/* Toast 容器：aria-live 让屏幕阅读器感知异步提示（WCAG 4.1.3） */}
+      <div
+        role="status"
+        aria-live="polite"
+        aria-atomic="false"
+        className="fixed top-4 right-4 z-[100] space-y-2 max-w-sm"
+      >
         {toasts.map((t) => {
           const colors: Record<ToastType, string> = {
             success: "bg-green-600",
@@ -47,6 +52,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           return (
             <div
               key={t.id}
+              role={t.type === "error" ? "alert" : undefined}
               className={`${colors[t.type]} text-white px-4 py-2.5 rounded-lg shadow-lg text-sm animate-in fade-in slide-in-from-top-2`}
             >
               {t.message}

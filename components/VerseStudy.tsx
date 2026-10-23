@@ -286,6 +286,44 @@ export function VerseReciter({
     }
   }, [voiceState, stopVoice]);
 
+  // 桌面鼠标长按支持（与移动端 touchstart/touchend 等价）
+  const handleMouseStart = useCallback(
+    (event: React.MouseEvent) => {
+      // 触摸设备上 touchstart 会紧跟着触发 mouse 事件，避免重复开始
+      if (event.detail === 0) return; // 键盘触发的 click 走 onKeyDown
+      if (voiceState !== "idle") return;
+      cancelRequestedRef.current = false;
+      void startVoice();
+    },
+    [voiceState, startVoice]
+  );
+
+  const handleMouseEnd = useCallback(() => {
+    handleVoiceEnd();
+  }, [handleVoiceEnd]);
+
+  // 键盘支持：Space/Enter 按下开始录音，松开停止
+  const handleKeyDown = useCallback(
+    (event: React.KeyboardEvent) => {
+      if (event.key !== " " && event.key !== "Enter") return;
+      if (event.repeat) return; // 按住不放时的 repeat 事件忽略
+      event.preventDefault();
+      if (voiceState !== "idle") return;
+      cancelRequestedRef.current = false;
+      void startVoice();
+    },
+    [voiceState, startVoice]
+  );
+
+  const handleKeyUp = useCallback(
+    (event: React.KeyboardEvent) => {
+      if (event.key !== " " && event.key !== "Enter") return;
+      event.preventDefault();
+      handleVoiceEnd();
+    },
+    [handleVoiceEnd]
+  );
+
   const voiceArea = asrEnabled && inputMode === "voice" && (
     <div className="space-y-1.5">
       <div
@@ -310,6 +348,14 @@ export function VerseReciter({
         onTouchMove={handleVoiceMove}
         onTouchEnd={handleVoiceEnd}
         onTouchCancel={cancelVoice}
+        onMouseDown={handleMouseStart}
+        onMouseUp={handleMouseEnd}
+        onMouseLeave={() => {
+          // 鼠标按住时拖出区域：视为取消（等同移动端的上滑取消）
+          if (voiceState === "recording") cancelVoice();
+        }}
+        onKeyDown={handleKeyDown}
+        onKeyUp={handleKeyUp}
         onContextMenu={(event) => event.preventDefault()}
       >
         {voiceState === "recording" ? (
@@ -324,7 +370,7 @@ export function VerseReciter({
         ) : (
           <>
             <p className="text-xl font-medium">按住 说话</p>
-            <p className="text-xs text-muted-foreground">松手自动识别，可修改后提交</p>
+            <p className="text-xs text-muted-foreground">松手自动识别，可修改后提交（桌面可按 Space）</p>
           </>
         )}
       </div>
@@ -390,7 +436,7 @@ export function VerseReciter({
               />
             ))}
           </div>
-          <Button className="w-full" onClick={onSubmit}>
+          <Button className="w-full" size="lg" onClick={onSubmit}>
             提交
           </Button>
         </CardContent>
@@ -405,7 +451,7 @@ export function VerseReciter({
         {modeToggle}
         {asrEnabled && inputMode === "voice" ? voiceArea : textArea}
         {asrEnabled && inputMode === "text" && recordingPlayback}
-        <Button className="w-full" onClick={onSubmit} disabled={!userInput.trim()}>
+        <Button className="w-full" size="lg" onClick={onSubmit} disabled={!userInput.trim()}>
           提交 (Enter)
         </Button>
       </CardContent>
@@ -458,10 +504,10 @@ export function VerseResult({
         橙色「重新练习」= 未通过（唯一动作）；绿色「下一组」= 通过后的前进动作。
         aria-label 同时带状态，避免只靠颜色传达信息（WCAG 1.4.1）。
       */}
-      <div className="flex items-center justify-end gap-1.5">
+      <div className="flex items-center justify-end gap-2">
         <Button
           variant={passed ? "outline" : "default"}
-          size="sm"
+          size="lg"
           onClick={onRetry}
           aria-label={passed ? "通过，再练一遍" : "未通过，重新练习"}
           className={cn(
@@ -472,7 +518,7 @@ export function VerseResult({
         </Button>
         {passed && (
           <Button
-            size="sm"
+            size="lg"
             onClick={() => void onNext()}
             aria-label={`通过，${nextLabel || "下一组"}`}
             className="bg-green-700 text-white hover:bg-green-800"

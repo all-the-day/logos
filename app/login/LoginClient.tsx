@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 
 export default function LoginClient() {
   const router = useRouter();
@@ -47,24 +48,41 @@ export default function LoginClient() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-3">
-            <input
-              type="text"
-              placeholder="账号"
-              className="w-full px-3 py-2 border rounded-md bg-background text-sm"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              required
-            />
-            <input
-              type="password"
-              placeholder="密码"
-              className="w-full px-3 py-2 border rounded-md bg-background text-sm"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-            {error && <p className="text-sm text-red-600">{error}</p>}
-            <Button type="submit" className="w-full" disabled={loading}>
+            <div className="space-y-1.5">
+              <Label htmlFor="login-username">账号</Label>
+              <input
+                id="login-username"
+                name="username"
+                type="text"
+                placeholder="账号"
+                autoComplete="username"
+                spellCheck={false}
+                className="w-full px-3 py-2 border rounded-md bg-background text-sm"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="login-password">密码</Label>
+              <input
+                id="login-password"
+                name="password"
+                type="password"
+                placeholder="密码"
+                autoComplete="current-password"
+                className="w-full px-3 py-2 border rounded-md bg-background text-sm"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
+            {error && (
+              <p className="text-sm text-red-600" role="alert">
+                {error}
+              </p>
+            )}
+            <Button type="submit" className="w-full" size="lg" disabled={loading}>
               {loading ? "登录中..." : "登录"}
             </Button>
           </form>

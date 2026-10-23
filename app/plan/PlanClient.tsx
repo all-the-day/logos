@@ -294,11 +294,11 @@ export default function PlanClient({
         </CardHeader>
         <CardContent className="space-y-3">
           {hasTasks ? (
-            <Link href="/learn" className={cn(buttonVariants({}), "w-full")}>
+            <Link href="/learn" className={cn(buttonVariants({ size: "lg" }), "w-full")}>
               开始今日学习
             </Link>
           ) : (
-            <Button className="w-full" disabled>
+            <Button className="w-full" size="lg" disabled>
               今日已完成
             </Button>
           )}
