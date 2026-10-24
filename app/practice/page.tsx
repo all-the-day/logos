@@ -7,7 +7,6 @@ import { parsePracticeParams } from "@/lib/practice";
 import * as planDb from "@/db/plan";
 import * as verseDb from "@/db/verse";
 import { requireUser } from "@/lib/auth";
-import { isAsrEnabled } from "@/lib/asr/config";
 import LearnClient from "../learn/LearnClient";
 import PracticeSetupClient from "./PracticeSetupClient";
 import type { BookInfo } from "@/types";
@@ -84,7 +83,8 @@ export default async function PracticePage({
       <LearnClient
         plan={plan ? JSON.parse(JSON.stringify(plan)) : null}
         tasks={JSON.parse(JSON.stringify(result.tasks))}
-        asrEnabled={isAsrEnabled()}
+        // 语音入口暂时隐藏（2026-10-24）：改用输入法自带语音输入；恢复时改回 isAsrEnabled()
+        asrEnabled={false}
         practice
       />
     </>

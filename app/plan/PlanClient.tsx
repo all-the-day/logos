@@ -57,6 +57,8 @@ export default function PlanClient({
   const [checkinState, setCheckinState] = useState(checkin);
   const [checkinError, setCheckinError] = useState<string | null>(null);
   const [checkingIn, setCheckingIn] = useState(false);
+  // 签到成功后的短暂过渡态：先显示「已签到 ✓」再切换为金句
+  const [justCheckedIn, setJustCheckedIn] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [editVersesPerDay, setEditVersesPerDay] = useState(planDetails?.plan?.versesPerDay ?? 3);
@@ -93,7 +95,8 @@ export default function PlanClient({
         }),
       });
       if (res.ok) {
-        window.location.reload();
+        // 创建成功后直接开始学习，文案与行为一致
+        window.location.href = "/learn";
       } else {
         const data = await res.json().catch(() => null);
         setCreateError(data?.error || `创建失败 (${res.status})`);
@@ -152,6 +155,9 @@ export default function PlanClient({
       if (res.ok) {
         const data = await res.json();
         setCheckinState({ checkedIn: true, streak: data.streak });
+        // 短暂显示「已签到 ✓」过渡，再切换为金句
+        setJustCheckedIn(true);
+        setTimeout(() => setJustCheckedIn(false), 1200);
       } else {
         const data = await res.json().catch(() => null);
         setCheckinError(data?.error || `签到失败（${res.status}），请重试`);
@@ -248,9 +254,9 @@ export default function PlanClient({
                 书卷：<span className="font-medium text-foreground">{books.find(b => b.id === selectedBook)?.name}</span>
               </div>
             )}
-            <Button className="w-full" disabled={!selectedBook || creating}
+            <Button className="w-full" size="lg" disabled={!selectedBook || creating}
               onClick={handleCreate}>
-              {creating ? "创建中..." : "开始背诵"}
+              {creating ? "创建中..." : "创建计划并开始学习"}
             </Button>
             {createError && (
               <p className="text-sm text-red-600">{createError}</p>
@@ -340,9 +346,14 @@ export default function PlanClient({
           </CardContent>
         </Card>
       ) : dailyVerse ? (
-        <div className="text-center py-8 px-6">
+        <div className="text-center py-8 px-6 space-y-3">
+          {justCheckedIn && (
+            <p className="text-sm font-medium text-green-600" role="status">
+              已签到 ✓ 连续 {checkinState.streak} 天
+            </p>
+          )}
           <p className="text-xl leading-relaxed max-w-[66%] mx-auto">{dailyVerse.content}</p>
-          <p className="text-sm text-muted-foreground mt-4">
+          <p className="text-sm text-muted-foreground">
             {dailyVerse.book} {dailyVerse.chapter}:{dailyVerse.section}
           </p>
         </div>
@@ -403,30 +414,28 @@ export default function PlanClient({
               total={progress.total}
             />
           )}
-          <div className="text-sm text-muted-foreground">
-            每日 {plan.versesPerDay} 节 · 全书已学 {(progress?.mastered ?? 0) + (progress?.learning ?? 0)}/{totalVerses}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* 自由练习入口：指定任意经节单独练，不影响计划本身 */}
-      <Card>
-        <CardContent className="pt-4">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <h2 className="text-sm font-medium">自由练习</h2>
-              <div className="text-xs text-muted-foreground">
-                指定任意书卷与经节范围，随时单独练一组
-              </div>
+          <div className="flex items-center justify-between gap-2">
+            <div className="text-sm text-muted-foreground">
+              每日 {plan.versesPerDay} 节 · 全书已学 {(progress?.mastered ?? 0) + (progress?.learning ?? 0)}/{totalVerses}
             </div>
             <Link
               href="/practice"
-              className={cn(
-                buttonVariants({ variant: "outline", size: "sm" }),
-                "relative after:absolute after:-inset-2 after:content-['']"
-              )}
+              className="shrink-0 inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors relative after:absolute after:-inset-2 after:content-['']"
             >
-              选择经节
+              自由练习
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="w-3 h-3"
+              >
+                <path d="M5 12h14" />
+                <path d="m12 5 7 7-7 7" />
+              </svg>
             </Link>
           </div>
         </CardContent>

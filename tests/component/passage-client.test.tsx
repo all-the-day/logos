@@ -93,7 +93,7 @@ describe("LearnClient 连背模式", () => {
     expect(screen.getByText("准确率 100%")).toBeInTheDocument();
 
     // 结果页按节分行展示，并统计首答通过
-    expect(screen.getByRole("button", { name: "通过，下一组" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "通过，完成学习" })).toBeInTheDocument();
     expect(screen.getByText("比对结果（按节）")).toBeInTheDocument();
     expect(screen.getAllByText(/罗马书 1:1/).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/罗马书 1:2/).length).toBeGreaterThan(0);
@@ -101,7 +101,7 @@ describe("LearnClient 连背模式", () => {
     // 通过后先不写库，点「下一组」才入库
     const fetchMock = globalThis.fetch as unknown as ReturnType<typeof vi.fn>;
     expect(fetchMock.mock.calls.filter((c) => String(c[0]).startsWith("/api/card"))).toHaveLength(0);
-    await user.click(screen.getByRole("button", { name: /下一组/ }));
+    await user.click(screen.getByRole("button", { name: /下一组|完成学习/ }));
 
     const rateCall = fetchMock.mock.calls.find((call) => String(call[0]).startsWith("/api/card"));
     expect(rateCall).toBeTruthy();

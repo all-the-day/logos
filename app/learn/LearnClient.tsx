@@ -305,6 +305,15 @@ export default function LearnClient({ plan, tasks, asrEnabled = false, practice 
 
   return (
     <div className="max-w-lg mx-auto p-4 space-y-4">
+      {/* 学习页隐藏底部导航，顶部提供显式出口 */}
+      <div className="flex items-center justify-between -mt-1">
+        <Link
+          href={practice ? "/practice" : "/plan"}
+          className="text-sm text-muted-foreground hover:text-foreground"
+        >
+          ← 返回{practice ? "练习" : "计划"}
+        </Link>
+      </div>
       <div className="flex items-center justify-between">
         <div className="flex flex-wrap items-center gap-2">
           <h2 className="font-medium text-muted-foreground">{verseLabel}</h2>
@@ -328,16 +337,15 @@ export default function LearnClient({ plan, tasks, asrEnabled = false, practice 
       </div>
 
       {/*
-        进度点只表示"位置"（已过/当前/未到），不使用通过/未通过的状态色：
-        通过与否已由结果页按钮的语义色表达，再上一套颜色会重复且显得杂乱。
-        单项会话没有进度可言，整行不显示。
+        进度区合并：分段进度条承担"位置"指示，右侧计数同时显示进度与首答通过数。
+        不再单独放一行进度点 + 一行计数，减少视觉噪音。
       */}
       {tasks.length > 1 && (
         <div
-          className="flex items-center justify-between gap-2"
-          aria-label={`本轮共 ${tasks.length} 项，首答通过 ${firstPassCount} 项`}
+          className="space-y-1"
+          aria-label={`本轮共 ${tasks.length} 项，当前第 ${currentIdx + 1} 项，首答通过 ${firstPassCount} 项`}
         >
-          <div className="flex flex-wrap items-center gap-1">
+          <div className="flex h-1.5 w-full gap-0.5 overflow-hidden rounded-full bg-muted">
             {tasks.map((t, i) => {
               const tone =
                 i < currentIdx
@@ -348,14 +356,15 @@ export default function LearnClient({ plan, tasks, asrEnabled = false, practice 
               return (
                 <span
                   key={`${t.cardId}-${i}`}
-                  className={cn("h-1.5 w-3 rounded-full transition-colors", tone)}
+                  className={cn("h-full flex-1 rounded-full transition-colors", tone)}
                 />
               );
             })}
           </div>
-          <span className="shrink-0 text-xs text-muted-foreground">
-            首答 {firstPassCount}/{tasks.length}
-          </span>
+          <div className="flex justify-between text-xs text-muted-foreground">
+            <span>{currentIdx + 1}/{tasks.length}</span>
+            <span>首答通过 {firstPassCount}</span>
+          </div>
         </div>
       )}
 
@@ -418,7 +427,15 @@ export default function LearnClient({ plan, tasks, asrEnabled = false, practice 
           accuracy={accuracy}
           passed={accuracy >= PASS_ACCURACY}
           onNext={handleNext}
-          nextLabel={isPassageTask ? "下一组" : "下一节"}
+          nextLabel={
+            currentIdx === totalTasks - 1
+              ? practice
+                ? "完成练习"
+                : "完成学习"
+              : isPassageTask
+                ? "下一组"
+                : "下一节"
+          }
           verseId={isPassageTask ? undefined : task.id}
           submitted={submitted}
           commitError={commitError}

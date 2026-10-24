@@ -70,3 +70,6 @@ tools/feedback/inbox.md
 
 # UI 评审产物（ui-review 技能生成的报告与截图，不入库）
 /.ui-review/
+
+# 本地 dev server 日志（npx next dev > dev.log）
+/dev.log

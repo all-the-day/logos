@@ -105,9 +105,9 @@ describe("LearnClient 跨节状态隔离（复现：上一节的输入/比对残
     await user.type(screen.getByPlaceholderText("在此输入经文..."), "第二节经文");
     await user.keyboard("{Enter}");
 
-    // 最后一项也不显示「完成」，仍是「下一节」
-    expect(screen.queryByRole("button", { name: /完成/ })).not.toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: /下一节/ }));
+    // 最后一项显示「完成学习」
+    expect(screen.getByRole("button", { name: /完成学习/ })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /完成学习/ }));
 
     expect(await screen.findByText("今日任务已完成！")).toBeInTheDocument();
   });
@@ -134,7 +134,7 @@ describe("LearnClient 跨节状态隔离（复现：上一节的输入/比对残
     await user.type(retryInput, "第一节经文");
     await user.keyboard("{Enter}");
     expect(await screen.findByRole("button", { name: "通过，下一节" })).toBeInTheDocument();
-    expect(screen.getByText("首答 0/2")).toBeInTheDocument();
+    expect(screen.getByText("首答通过 0")).toBeInTheDocument();
   });
 
   it("未通过可以一直原地重练，不限次数", async () => {
@@ -181,6 +181,6 @@ describe("LearnClient 跨节状态隔离（复现：上一节的输入/比对残
     // 补考通过：accuracy 100% 本应 EASY(4)，封顶为 GOOD(3)
     expect(body).toEqual({ cardId: 1, rating: 3 });
     // 首答未通过：计数不涨
-    expect(screen.getByText("首答 0/2")).toBeInTheDocument();
+    expect(screen.getByText("首答通过 0")).toBeInTheDocument();
   });
 });

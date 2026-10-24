@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 export const dynamic = "force-dynamic";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
+import pkg from "../../package.json";
 import SettingsClient from "./SettingsClient";
 
 export const metadata: Metadata = {
@@ -15,6 +16,7 @@ export default async function SettingsPage() {
   return (
     <SettingsClient
       user={{ id: user.id, username: user.username, name: user.name, role: user.role }}
+      version={pkg.version}
     />
   );
 }

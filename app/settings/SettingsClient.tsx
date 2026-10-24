@@ -11,6 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   BookOpen,
   Layers,
@@ -20,7 +21,7 @@ import {
 import { useToast } from "@/components/ToastProvider";
 import { cn } from "@/lib/utils";
 
-export default function SettingsClient({ user }: { user: { id: number; username: string; name: string; role: string } }) {
+export default function SettingsClient({ user, version }: { user: { id: number; username: string; name: string; role: string }; version: string }) {
   const [exporting, setExporting] = useState(false);
   const [importing, setImporting] = useState(false);
   const [clearOpen, setClearOpen] = useState(false);
@@ -129,40 +130,56 @@ export default function SettingsClient({ user }: { user: { id: number; username:
 
       <Card>
         <CardHeader><CardTitle>数据管理</CardTitle></CardHeader>
-        <CardContent className="space-y-3">
-          <Button className="w-full" variant="outline"
-            onClick={handleExport} disabled={exporting}>
-            {exporting ? "导出中..." : "本地备份 (JSON)"}
-          </Button>
+        <CardContent>
+          <Tabs defaultValue="backup">
+            <TabsList className="w-full">
+              <TabsTrigger value="backup" className="flex-1">备份</TabsTrigger>
+              <TabsTrigger value="restore" className="flex-1">恢复</TabsTrigger>
+              <TabsTrigger value="clear" className="flex-1">清除</TabsTrigger>
+            </TabsList>
 
-          <div>
-            <input type="file" accept=".json" className="hidden" id="import-file"
-              onChange={handleImport} />
-            <label
-              htmlFor="import-file"
-              className={cn(
-                buttonVariants({ variant: "outline" }),
-                "w-full",
-                importing && "pointer-events-none opacity-50"
-              )}
-            >
-              {importing ? "导入中..." : "从备份恢复"}
-            </label>
-          </div>
+            <TabsContent value="backup" className="pt-4 space-y-2">
+              <p className="text-xs text-muted-foreground">
+                导出全部卡片、笔记、签到与计划为 JSON 文件，可用于迁移或存档。
+              </p>
+              <Button className="w-full" variant="outline"
+                onClick={handleExport} disabled={exporting}>
+                {exporting ? "导出中..." : "导出本地备份 (JSON)"}
+              </Button>
+            </TabsContent>
 
-          <div className="pt-3 border-t border-red-200 space-y-2">
-            <Button className="w-full" variant="outline"
-              onClick={() => setClearOpen(true)}>
-              清除所有数据
-            </Button>
-            <p className="text-xs text-muted-foreground">
-              清空全部卡片、笔记、签到与计划，不可恢复。建议先导出备份。
-            </p>
-          </div>
+            <TabsContent value="restore" className="pt-4 space-y-2">
+              <p className="text-xs text-muted-foreground">
+                从之前导出的 JSON 备份文件恢复数据。
+              </p>
+              <input type="file" accept=".json" className="hidden" id="import-file"
+                onChange={handleImport} />
+              <label
+                htmlFor="import-file"
+                className={cn(
+                  buttonVariants({ variant: "outline" }),
+                  "w-full",
+                  importing && "pointer-events-none opacity-50"
+                )}
+              >
+                {importing ? "导入中..." : "选择备份文件恢复"}
+              </label>
+            </TabsContent>
+
+            <TabsContent value="clear" className="pt-4 space-y-2">
+              <p className="text-xs text-muted-foreground">
+                清空全部卡片、笔记、签到与计划，不可恢复。建议先导出备份。
+              </p>
+              <Button className="w-full" variant="outline"
+                onClick={() => setClearOpen(true)}>
+                清除所有数据
+              </Button>
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
 
-      <FeedbackCard />
+      <FeedbackCard version={version} />
 
       <Dialog open={clearOpen} onOpenChange={setClearOpen}>
         <DialogContent className="sm:max-w-sm">
@@ -235,7 +252,7 @@ function StatsCard() {
   );
 }
 
-function FeedbackCard() {
+function FeedbackCard({ version }: { version: string }) {
   const [open, setOpen] = useState(false);
   const [type, setType] = useState("suggestion");
   const [content, setContent] = useState("");
@@ -289,7 +306,7 @@ function FeedbackCard() {
       <CardContent className="space-y-3">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm text-muted-foreground">logos v0.1.0 · 仅供个人使用</p>
+            <p className="text-sm text-muted-foreground">logos v{version} · 仅供个人使用</p>
             <p className="text-xs text-muted-foreground mt-0.5">
               {list.length > 0 ? `历史反馈 ${list.length} 条` : "遇到问题或有建议？告诉我们"}
             </p>

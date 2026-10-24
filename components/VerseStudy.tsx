@@ -57,6 +57,18 @@ function DiffSpans({ segments }: { segments: DiffSegment[] }) {
   );
 }
 
+/** 比对颜色图例：用与正文一致的样式自解释（绿=正确 / 橙底=漏字 / 红删除线=错字 / 红底=多字） */
+function DiffLegend() {
+  return (
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+      <span><span className="text-green-600">背对</span></span>
+      <span><span className="text-orange-400 bg-orange-50 px-0.5">漏字</span>（未背出）</span>
+      <span><span className="text-red-500 line-through">错字</span>（示原文）</span>
+      <span><span className="text-red-400 bg-red-50 px-0.5">多字</span>（多背的）</span>
+    </div>
+  );
+}
+
 // ─── VerseViewer（view 态：仅经节引用，不显示原文） ──
 export function VerseViewer({
   verse,
@@ -117,7 +129,12 @@ export function VerseReciter({
   const [voiceError, setVoiceError] = useState("");
   const [recordSeconds, setRecordSeconds] = useState(0);
   // 语音态默认展示微信式"按住 说话"大区域；文字态展示文本框
-  const [inputMode, setInputMode] = useState<"voice" | "text">(asrEnabled ? "voice" : "text");
+  // 记住用户上次选择的输入模式（localStorage），避免每节都重置
+  const [inputMode, setInputMode] = useState<"voice" | "text">(() => {
+    if (!asrEnabled) return "text";
+    if (typeof window === "undefined") return "voice";
+    return (localStorage.getItem("logos_input_mode") as "voice" | "text") || "voice";
+  });
   const recorderRef = useRef<Recorder | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const mountedRef = useRef(true);
@@ -388,6 +405,13 @@ export function VerseReciter({
     />
   );
 
+  // 语音入口隐藏期间，提示用户可用输入法自带的语音输入
+  const imeHint = !asrEnabled && (
+    <p className="text-xs text-muted-foreground -mt-2">
+      可点输入框用输入法语音输入，说完照常提交
+    </p>
+  );
+
   const recordingPlayback = recordingUrl && (
     <div className="space-y-1.5">
       <audio controls src={recordingUrl} className="w-full" preload="none" />
@@ -402,7 +426,11 @@ export function VerseReciter({
       <Button
         variant="ghost"
         size="sm"
-        onClick={() => setInputMode(inputMode === "voice" ? "text" : "voice")}
+        onClick={() => {
+          const next = inputMode === "voice" ? "text" : "voice";
+          setInputMode(next);
+          localStorage.setItem("logos_input_mode", next);
+        }}
       >
         {inputMode === "voice" ? "文字输入" : "语音输入"}
       </Button>
@@ -450,6 +478,7 @@ export function VerseReciter({
         {header}
         {modeToggle}
         {asrEnabled && inputMode === "voice" ? voiceArea : textArea}
+        {imeHint}
         {asrEnabled && inputMode === "text" && recordingPlayback}
         <Button className="w-full" size="lg" onClick={onSubmit} disabled={!userInput.trim()}>
           提交 (Enter)
@@ -559,7 +588,8 @@ export function VerseResult({
         <CardHeader>
           <CardTitle>{lineDiffs ? "比对结果（按节）" : "比对结果"}</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-3">
+          <DiffLegend />
           {lineDiffs ? (
             <div className="space-y-3">
               {lineDiffs.map((diff, i) => {
